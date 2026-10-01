@@ -1,0 +1,26 @@
+// The Reelcards engine: plain Java, no Android and no dependencies, so it runs anywhere.
+plugins {
+    id "java-library"
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.release = 8          // the Android app compiles it as Java 8
+    options.encoding = "UTF-8"
+}
+
+tasks.register("engineChecks", JavaExec) {
+    description = "Engine checks: FSRS-6 vs py-fsrs, grading, rhythm, skipping, formats, calibration, notes"
+    group = "verification"
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass.set("EngineChecks")
+}
+
+tasks.register("simulate", JavaExec) {
+    description = "30-day simulated students comparing engine versions (./gradlew :engine:simulate -Pstudents=30)"
+    group = "verification"
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass.set("Simulate")
+    args = [project.findProperty("students") ?: "30"]
+}
+
+tasks.named("check") { dependsOn "engineChecks" }

@@ -1,0 +1,45 @@
+plugins {
+    id "com.android.application"
+}
+
+android {
+    namespace "com.reelcards.app"
+    compileSdk 34
+
+    defaultConfig {
+        applicationId "com.reelcards.app"
+        minSdk 26          // Android 8.0+
+        targetSdk 34
+        versionCode 2
+        versionName "1.0.0"
+    }
+
+    signingConfigs {
+        // Shared debug key so every teammate's build can update the same installed app.
+        demo {
+            storeFile file("../tools/reelcards-debug.jks")
+            storePassword "reelcards"
+            keyAlias "reelcards"
+            keyPassword "reelcards"
+        }
+    }
+
+    buildTypes {
+        debug { signingConfig signingConfigs.demo }
+        release {
+            minifyEnabled false
+            signingConfig signingConfigs.demo
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+}
+
+dependencies {
+    // The engine is plain Java in its own module. No other dependencies: the app only uses the
+    // Android framework, so it builds fast and the APK is ~100 KB.
+    implementation project(":engine")
+}

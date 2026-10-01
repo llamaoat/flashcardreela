@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp" android:height="108dp"
+    android:viewportWidth="108" android:viewportHeight="108">
+    <!-- back card, tilted -->
+    <group android:rotation="-10" android:pivotX="54" android:pivotY="54">
+        <path android:fillColor="#3A3C4A"
+            android:pathData="M40,30 L68,30 Q72,30 72,34 L72,76 Q72,80 68,80 L40,80 Q36,80 36,76 L36,34 Q36,30 40,30 Z" />
+    </group>
+    <!-- front card -->
+    <group android:rotation="6" android:pivotX="54" android:pivotY="54">
+        <path android:fillColor="#FFE14D"
+            android:pathData="M42,28 L70,28 Q74,28 74,32 L74,76 Q74,80 70,80 L42,80 Q38,80 38,76 L38,32 Q38,28 42,28 Z" />
+        <!-- play triangle -->
+        <path android:fillColor="#0F1014" android:pathData="M50,43 L66,54 L50,65 Z" />
+    </group>
+</vector>

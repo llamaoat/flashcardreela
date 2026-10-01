@@ -1,0 +1,1422 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Reelcards Engine</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Bricolage+Grotesque:wght@400;600;800&family=Caveat:wght@600;700&family=Fraunces:opsz,wght@9..144,500;9..144,700&family=JetBrains+Mono:wght@400;600&family=Roboto:wght@400;500;700;900&family=TikTok+Sans:wght@400;600;800;900&display=swap">
+<style>
+:root{
+  color-scheme: dark;
+  --ground:#0f1014; --panel:#17181e; --panel2:#1e1f27; --line:#2a2c37;
+  --text:#ecebe6; --muted:#9c9ca9; --accent:#ffe14d; --good:#3ecf8e; --bad:#ff5a76; --warn:#ffb547;
+  --display:'Anton', Impact, 'Arial Narrow', sans-serif;
+  --body:'Bricolage Grotesque', system-ui, sans-serif;
+  --mono:'JetBrains Mono', ui-monospace, Menlo, monospace;
+  --f-tiktok:'TikTok Sans', 'Bricolage Grotesque', system-ui, sans-serif;
+  --f-youtube:'Roboto', system-ui, sans-serif;
+  --f-instagram: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+}
+html,body{background:var(--ground);color:var(--text)}
+body{font-family:var(--body);font-size:14px;line-height:1.45;padding-inline:16px;padding-block:20px 40px}
+.wrap{max-width:1280px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
+header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px}
+h1{font-family:var(--display);font-weight:400;font-size:40px;line-height:1;letter-spacing:.5px;margin:0;text-transform:uppercase}
+h1 span{color:var(--accent)}
+.sub{color:var(--muted);max-width:68ch;margin:6px 0 0}
+.stats{display:flex;flex-wrap:wrap;gap:8px}
+.stat{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:8px 12px;min-width:88px}
+.stat b{display:block;font-family:var(--mono);font-size:18px;font-variant-numeric:tabular-nums}
+.stat small{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.06em}
+.main{display:grid;grid-template-columns:380px minmax(0,1fr);gap:22px;align-items:start}
+@media (max-width:940px){.main{grid-template-columns:minmax(0,1fr)}}
+.phonecol{display:flex;flex-direction:column;gap:10px;align-items:center;position:sticky;top:12px}
+@media (max-width:940px){.phonecol{position:static}}
+.hostbar{display:flex;gap:6px;flex-wrap:wrap;justify-content:center}
+.hostbar button,.chipbtn{min-height:34px;padding:4px 12px;border-radius:999px;border:1px solid var(--line);background:var(--panel2);color:var(--text);font-size:12.5px;font-weight:600}
+.hostbar button.on,.chipbtn.on{background:var(--accent);border-color:var(--accent);color:#141208}
+.phone{width:360px;max-width:100%;aspect-ratio:360/740;border-radius:42px;border:8px solid #25262e;background:#000;position:relative;overflow:hidden;user-select:none;-webkit-user-select:none;box-shadow:0 30px 60px -30px #000}
+.phone.feedmode{touch-action:none}
+.screen{position:absolute;inset:0;overflow:hidden;container-type:size}
+.screen.enter{animation:up .3s cubic-bezier(.2,.8,.2,1)}
+@keyframes up{from{transform:translateY(38%);opacity:.4}to{transform:none;opacity:1}}
+.row{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
+button{font-family:var(--body);cursor:pointer}
+button:focus-visible,select:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.btn{min-height:44px;padding:10px 16px;border-radius:12px;border:1px solid var(--line);background:var(--panel2);color:var(--text);font-weight:600;font-size:14px}
+.btn.primary{background:var(--accent);color:#141208;border-color:var(--accent);font-weight:800}
+.btn:disabled{opacity:.5;cursor:default}
+.hint{color:var(--muted);font-size:12px;text-align:center;max-width:360px;margin:0}
+.panels{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+@media (max-width:1140px){.panels{grid-template-columns:minmax(0,1fr)}}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px 16px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.panel.wide{grid-column:1/-1}
+.panel > h2{margin:0;font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:800}
+.panel > h2 .note{text-transform:none;letter-spacing:0;font-weight:400}
+.why{display:flex;flex-direction:column;gap:8px;margin:0}
+.why div{display:grid;grid-template-columns:62px minmax(0,1fr);gap:8px}
+.why dt{font-family:var(--mono);font-size:11px;color:var(--accent);padding-top:2px}
+.why dd{margin:0}
+.muted{color:var(--muted)}
+.mono{font-family:var(--mono);font-size:12px}
+.dims{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+@media (max-width:560px){.dims{grid-template-columns:minmax(0,1fr)}}
+.dim h3{margin:0 0 6px;font-size:13px}
+.piece{display:grid;grid-template-columns:118px minmax(0,1fr) 64px;gap:8px;align-items:center;font-size:12px;padding:2px 0}
+.piece .bar{height:8px;border-radius:4px;background:var(--panel2);overflow:hidden}
+.piece .bar i{display:block;height:100%;background:var(--muted);border-radius:4px;transition:width .3s}
+.piece.used .bar i{background:var(--accent)}
+.piece.used .nm{color:var(--accent);font-weight:800}
+.piece .ct{font-family:var(--mono);font-size:11px;color:var(--muted);text-align:right;font-variant-numeric:tabular-nums}
+.tablewrap{overflow-x:auto;max-height:340px;overflow-y:auto}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{text-align:left;color:var(--muted);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.05em;padding:4px 8px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--panel)}
+td{padding:6px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+td.num{font-family:var(--mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+.chip{display:inline-block;padding:1px 8px;border-radius:999px;font-size:11px;font-weight:600;background:var(--panel2);color:var(--muted)}
+.chip.easy{background:#123a2a;color:var(--good)}.chip.good{background:#12303a;color:#6fd3ff}.chip.again{background:#3a1520;color:var(--bad)}.chip.hard{background:#3a2e10;color:var(--warn)}
+.chip.due{background:#3a2e10;color:var(--warn)}
+.log{font-family:var(--mono);font-size:11.5px;display:flex;flex-direction:column;gap:3px;max-height:160px;overflow:auto}
+.controls{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+@media (max-width:560px){.controls{grid-template-columns:minmax(0,1fr)}}
+label{font-size:12px;color:var(--muted);display:flex;flex-direction:column;gap:4px}
+label output{color:var(--text);font-family:var(--mono)}
+input[type=range]{accent-color:var(--accent);width:100%}
+select{min-height:40px;border-radius:10px;border:1px solid var(--line);background:var(--panel2);color:var(--text);padding:0 10px;font-family:var(--body)}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));gap:8px}
+.kpi{background:var(--panel2);border-radius:10px;padding:10px 12px}
+.kpi b{display:block;font-family:var(--mono);font-size:18px;font-variant-numeric:tabular-nums}
+.kpi small{color:var(--muted);font-size:11px}
+.arms{display:flex;gap:6px;align-items:flex-end;height:90px;padding-bottom:18px}
+.arms div{flex:1;position:relative;display:flex;flex-direction:column;justify-content:flex-end;height:100%}
+.arms i{display:block;background:var(--muted);border-radius:4px 4px 0 0}
+.arms div.on i{background:var(--accent)}
+.arms span{position:absolute;bottom:-16px;left:0;right:0;text-align:center;font-size:10px;font-family:var(--mono);color:var(--muted)}
+.toggle{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--text)}
+.toggle input{width:18px;height:18px;accent-color:var(--accent)}
+
+/* ---------- design lab ---------- */
+.lab{display:grid;grid-template-columns:repeat(auto-fill,minmax(196px,1fr));gap:14px}
+.lab figure{margin:0;display:flex;flex-direction:column;gap:6px}
+.lab .mini{width:100%;aspect-ratio:360/740;border-radius:22px;border:5px solid #25262e;position:relative;overflow:hidden;background:#000}
+.lab .mini .scaler{position:absolute;left:0;top:0;width:360px;height:740px;transform-origin:0 0}
+.lab figcaption{font-size:11.5px;color:var(--muted);line-height:1.35}
+.lab figcaption b{color:var(--text);font-weight:600}
+.labbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+
+/* ---------- in-phone app (setup + dashboard) ---------- */
+.app{position:absolute;inset:0;background:var(--ground);overflow-y:auto;padding:30px 18px 26px;display:flex;flex-direction:column;gap:10px;scrollbar-width:none}
+.app::-webkit-scrollbar{display:none}
+.app h3{font-family:var(--display);font-weight:400;font-size:28px;line-height:1;text-transform:uppercase;margin:6px 0 0}
+.app p{margin:0;font-size:14px}
+.steplbl{font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:800}
+.stepbar{display:flex;gap:5px}.stepbar i{flex:1;height:4px;border-radius:2px;background:var(--line)}.stepbar i.on{background:var(--accent)}
+.choice{display:flex;align-items:center;gap:10px;width:100%;text-align:left;min-height:56px;padding:11px 12px;border-radius:14px;border:1px solid var(--line);background:var(--panel);color:var(--text)}
+.choice .t{flex:1;display:flex;flex-direction:column;gap:1px}
+.choice .t b{font-size:14.5px;font-weight:600}
+.choice .t small{font-size:12px;color:var(--muted)}
+.choice .m{width:24px;height:24px;border-radius:50%;border:2px solid var(--line);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-weight:800;color:#141208;font-size:13px}
+.choice.on{border:2px solid var(--accent);background:#24230f}
+.choice.on .m{background:var(--accent);border-color:var(--accent)}
+.choice:disabled{opacity:.55}
+.vchips{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.vchips button{min-height:44px;border-radius:12px;border:1px solid var(--line);background:var(--panel);color:var(--text);font-size:12.5px;font-weight:600;padding:4px}
+.vchips button.on{background:var(--accent);color:#141208;border-color:var(--accent)}
+.sec{font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:800;margin-top:8px}
+.abtn{min-height:48px;border-radius:14px;border:none;background:var(--accent);color:#141208;font-family:var(--display);font-size:17px;letter-spacing:.3px;margin-top:6px}
+.abtn.ghost{background:var(--panel2);color:var(--text);border:1px solid var(--line);font-family:var(--body);font-weight:600;font-size:14px}
+.alink{background:none;border:none;color:var(--accent);font-weight:600;padding:10px 0;text-align:left;min-height:44px;font-size:13.5px}
+.box{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:12px;display:flex;flex-direction:column;gap:6px}
+.box b{font-size:14px}
+.err{color:var(--bad);font-size:13px;min-height:1em}
+textarea{width:100%;min-height:140px;border-radius:12px;border:1px solid var(--line);background:var(--panel);color:var(--text);padding:10px;font-family:var(--body);font-size:13px;resize:vertical;box-sizing:border-box}
+input[type=text]{width:100%;min-height:42px;border-radius:12px;border:1px solid var(--line);background:var(--panel);color:var(--text);padding:0 10px;font-family:var(--body);font-size:14px;box-sizing:border-box}
+.mini2{font-size:12.5px;background:var(--panel2);border-radius:10px;padding:7px 10px}
+.num{display:flex;gap:10px;align-items:flex-start;font-size:13.5px}.num i{font-style:normal;width:22px;height:22px;border-radius:50%;background:var(--accent);color:#141208;font-weight:800;font-size:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.seg{display:flex;gap:5px}.seg button{flex:1;min-height:40px;border-radius:10px;border:1px solid var(--line);background:var(--panel2);color:var(--text);font-weight:600;font-size:12.5px}
+.seg button.on{background:var(--accent);color:#141208;border-color:var(--accent);font-weight:800}
+.tiles{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.tile{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:10px 12px}
+.tile b{display:block;font-family:var(--display);font-weight:400;font-size:26px;line-height:1.1}
+.tile small{color:var(--muted);font-size:11.5px}
+.status{border-radius:14px;padding:12px;border:1px solid var(--good);background:#14261e}
+.status b{color:var(--good);font-family:var(--display);font-weight:400;font-size:18px;letter-spacing:.3px}
+.bars{display:flex;align-items:flex-end;gap:4px;height:84px;padding-bottom:16px;position:relative}
+.bars div{flex:1;display:flex;flex-direction:column;justify-content:flex-end;height:100%;position:relative}
+.bars div i{display:block;border-radius:3px 3px 0 0}
+.bars div span{position:absolute;bottom:-15px;left:0;right:0;text-align:center;font-size:9px;color:var(--muted);font-family:var(--mono)}
+.tabs{position:absolute;top:10px;left:0;right:0;z-index:12;display:flex;justify-content:center;gap:18px;pointer-events:none}
+.tabs button{pointer-events:auto;background:none;border:none;color:#ffffffa0;font-weight:800;font-size:14px;padding:6px 2px;min-height:34px;text-shadow:0 1px 3px #000}
+.tabs button.on{color:#fff;border-bottom:2px solid #fff}
+.settings-sim{position:absolute;inset:0;background:#f4f4f6;color:#1b1b1f;z-index:20;display:flex;flex-direction:column;padding:28px 16px;gap:10px}
+.settings-sim .lbl{font-size:10.5px;text-transform:uppercase;letter-spacing:.08em;color:#6b6b75;font-weight:800}
+.settings-sim .row2{display:flex;align-items:center;justify-content:space-between;background:#fff;border-radius:14px;padding:14px;min-height:56px}
+.switch{width:52px;height:30px;border-radius:15px;background:#c9c9d0;border:none;position:relative;transition:background .2s}
+.switch::after{content:"";position:absolute;top:3px;left:3px;width:24px;height:24px;border-radius:50%;background:#fff;transition:left .2s}
+.switch.on{background:#2f6bff}.switch.on::after{left:25px}
+
+/* ---------- plain reels (someone's normal feed) ---------- */
+.reel{position:absolute;inset:0;overflow:hidden}
+.plain-reel{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:8px}
+.plain-reel .big{font-family:var(--display);font-size:40px;text-transform:uppercase;color:#ffffffd9}
+.plain-reel .small{color:#ffffffa6;font-size:13px;max-width:24ch}
+
+/* =================================================================================
+   CARD REEL DESIGN SYSTEM
+   A card is drawn exactly like a reel: full-bleed "video", text inside the host app's safe zone,
+   the host's rail on the right, its caption band bottom-left, a thin progress line.
+   ================================================================================= */
+.card{position:absolute;inset:0;overflow:hidden;--st:5.6%;--sb:16.7%;--sl:5.6%;--sr:11.1%;
+  --fg:#fff;--acc:#ffe14d;--accfg:#0e0e10;--panel:#1f1f24;--bubble:#2a2a30;--bgc:#0e0e10;--hf:var(--f-tiktok);
+  background:var(--bgc);color:var(--fg);font-family:var(--hf)}
+.card.h-tiktok{--st:5.6%;--sb:16.7%;--sl:5.6%;--sr:11.1%;--hf:var(--f-tiktok)}
+.card.h-instagram{--st:10.9%;--sb:16.1%;--sl:3.7%;--sr:7.8%;--hf:var(--f-instagram)}
+.card.h-youtube{--st:6.3%;--sb:15.6%;--sl:4.4%;--sr:8.9%;--hf:var(--f-youtube)}
+.card .bgl{position:absolute;inset:0;z-index:0}
+.card .scrim{position:absolute;inset:0;z-index:1;pointer-events:none;background:linear-gradient(to top,rgba(0,0,0,.62) 0%,rgba(0,0,0,0) 34%),linear-gradient(to bottom,rgba(0,0,0,.35) 0%,rgba(0,0,0,0) 18%)}
+.card .body{position:absolute;z-index:3;left:calc(var(--sl) + 12px);right:calc(var(--sr) + 30px);top:calc(var(--st) + 44px);bottom:calc(var(--sb) + 104px);display:flex;flex-direction:column;gap:14px;justify-content:flex-start}
+.card.l-split .body{top:44%;bottom:calc(var(--sb) + 96px)}
+.card.l-bigtext .body,.card.l-captions .body{justify-content:center;padding-bottom:6%}
+.card .splittop{position:absolute;left:0;right:0;top:0;height:42%;z-index:2;overflow:hidden;border-bottom:3px solid #000}
+
+/* hook pill: the first thing read, top of the safe zone */
+.card .hook{align-self:flex-start;max-width:100%;padding:7px 13px;border-radius:10px;font-size:16.5px;font-weight:800;background:var(--panel);color:var(--fg);line-height:1.22;letter-spacing:-.1px}
+.card .q{margin:0;line-height:1.02;overflow-wrap:normal;word-break:normal;hyphens:manual;font-weight:900}
+.card .tag{display:inline}
+
+/* ---- looks: text treatments borrowed from creator tools ---- */
+/* caption: heavy captions, outlined for any background, key words in yellow */
+.card.k-caption .q{font-family:var(--hf);font-weight:900;text-transform:uppercase;font-size:34px;letter-spacing:-.2px;
+  text-shadow:0 0 1px #000,2px 2px 0 #000,-2px 2px 0 #000,2px -2px 0 #000,-2px -2px 0 #000,0 4px 10px rgba(0,0,0,.45)}
+.card.k-caption .q em{font-style:normal;color:var(--acc)}
+/* subtitle: text on rounded highlight boxes, one box per line (creator "text background" style) */
+.card.k-subtitle .q{font-family:var(--hf);font-weight:800;font-size:27px;line-height:1.42}
+.card.k-subtitle .q span{background:#fff;color:#111;padding:2px 9px;border-radius:8px;-webkit-box-decoration-break:clone;box-decoration-break:clone}
+.card.k-subtitle .q em{font-style:normal;background:var(--acc);color:#111;border-radius:6px;padding:0 4px}
+.card.k-subtitle .hook{background:#111;color:#fff}
+/* clean: editorial serif on paper-white */
+.card.k-clean .q{font-family:'Fraunces',Georgia,serif;font-weight:700;font-size:31px;line-height:1.08;letter-spacing:-.3px}
+.card.k-clean .q em{font-style:italic;color:var(--acc)}
+/* neon: glow */
+.card.k-neon .q{font-family:var(--display);font-weight:400;text-transform:uppercase;font-size:36px;letter-spacing:.4px;line-height:1.1;text-shadow:0 0 18px var(--acc),0 0 3px #fff}
+.card.k-neon .q em{font-style:normal;color:var(--acc)}
+/* paper: handwritten notes on ruled paper */
+.card.k-paper .q{font-family:'Caveat','Comic Sans MS',cursive;font-weight:700;font-size:40px;line-height:1.02}
+.card.k-paper .q em{font-style:normal;background:linear-gradient(transparent 55%,color-mix(in srgb,var(--acc) 55%,transparent) 55%)}
+/* sheet: light looks float as a notes page over the footage */
+.card.sheet .body{background:var(--sheet);border-radius:18px;padding:18px 16px 16px;bottom:auto;box-shadow:0 24px 48px -20px rgba(0,0,0,.85);transform:rotate(-.6deg)}
+.card.sheet.l-bigtext .body,.card.sheet.l-captions .body{top:calc(var(--st) + 70px)}
+.card.sheet.k-paper .body{background:
+  linear-gradient(90deg,transparent 30px,rgba(228,87,46,.5) 30px,rgba(228,87,46,.5) 32px,transparent 32px),
+  repeating-linear-gradient(to bottom,var(--sheet) 0 29px,rgba(47,107,255,.25) 29px 30px);padding-left:42px}
+.card.sheet.k-paper.night .body{background:repeating-linear-gradient(to bottom,var(--sheet) 0 29px,rgba(255,255,255,.08) 29px 30px);padding-left:16px}
+/* chat bubbles carry their own surface: no sheet behind them, whatever the look */
+.card.sheet.l-chat .body{background:none!important;box-shadow:none;padding:0!important;transform:none;bottom:calc(var(--sb) + 104px)}
+.card.sheet .reveal{color:var(--fg);text-shadow:none}
+.card.sheet .ring{background:rgba(255,255,255,.7)}
+.card.sheet.night .ring{background:rgba(0,0,0,.3)}
+.card .coach{position:absolute;z-index:9;left:calc(var(--sl) + 10px);right:calc(var(--sr) + 64px);bottom:calc(var(--sb) + 72px);background:rgba(255,255,255,.96);color:#111;font-size:13px;line-height:1.3;font-weight:800;padding:9px 14px;border-radius:16px;box-shadow:0 10px 24px -10px rgba(0,0,0,.7);animation:coach 4.2s ease forwards;pointer-events:none}
+@keyframes coach{0%{opacity:0;transform:translateY(8px)}10%,80%{opacity:1;transform:none}100%{opacity:0}}
+
+/* reveal ring + answer */
+.card .reveal{align-self:flex-start;display:flex;align-items:center;gap:10px;background:none;border:none;color:var(--fg);padding:0;font:inherit;font-size:14.5px;font-weight:700;min-height:56px;text-shadow:0 1px 3px rgba(0,0,0,.5)}
+.card .hintchip{align-self:flex-start;max-width:100%;background:#fff;color:#111;border-radius:12px 12px 12px 4px;padding:7px 11px;font-size:14px;font-weight:700;box-shadow:0 8px 20px -10px rgba(0,0,0,.6);animation:drop .25s ease-out}
+.card .hintchip b{color:#e4572e;margin-right:4px}
+.card .ring{width:52px;height:52px;border-radius:50%;border:3px solid var(--acc);color:var(--acc);display:flex;align-items:center;justify-content:center;font-family:var(--hf);font-weight:900;font-size:22px;background:rgba(0,0,0,.25);position:relative}
+.card .ring::after{content:"";position:absolute;inset:-3px;border-radius:50%;border:3px solid transparent;border-top-color:#fff;animation:spin 3s linear forwards}
+@keyframes spin{to{transform:rotate(1080deg)}}
+.card .ans{padding:13px 15px;border-radius:16px;display:flex;flex-direction:column;gap:4px;background:var(--acc);color:var(--accfg);animation:drop .32s cubic-bezier(.2,1.4,.4,1);box-shadow:0 10px 24px -12px rgba(0,0,0,.6)}
+@keyframes drop{from{transform:translateY(-10px) scale(.94);opacity:0}to{transform:none;opacity:1}}
+.card .ans .a1{font-weight:900;font-size:20px;line-height:1.15}
+.card .ans .a2{font-size:14.5px;line-height:1.35;font-weight:500}
+
+/* captions: auto-caption beats, one at a time */
+.card .beat{font-family:var(--hf);font-weight:900;font-size:40px;line-height:1.02;text-transform:uppercase;text-align:center;align-self:center;margin-top:14%;
+  text-shadow:0 0 1px #000,3px 3px 0 #000,-3px 3px 0 #000,3px -3px 0 #000,-3px -3px 0 #000;animation:beat .18s ease-out}
+.card .beat em{font-style:normal;color:var(--acc)}
+.card.k-subtitle .beat{text-shadow:none}
+.card.k-subtitle .beat span{background:#fff;color:#111;padding:2px 10px;border-radius:9px;-webkit-box-decoration-break:clone;box-decoration-break:clone}
+.card.k-paper .beat{font-family:'Caveat',cursive;text-transform:none;text-shadow:none;color:var(--fg)}
+.card.k-clean .beat{font-family:'Fraunces',serif;text-transform:none;text-shadow:none;font-size:34px}
+@keyframes beat{from{transform:scale(.86);opacity:.2}to{transform:none;opacity:1}}
+.card .beatcount{align-self:center;display:flex;gap:4px}.card .beatcount i{width:18px;height:3px;border-radius:2px;background:rgba(255,255,255,.35)}.card .beatcount i.on{background:#fff}
+
+/* chat: a phone chat thread */
+.card .chat{border-radius:22px;padding:12px;display:flex;flex-direction:column;gap:6px;background:var(--panel);box-shadow:0 18px 40px -20px rgba(0,0,0,.7)}
+.card .chathead{display:flex;align-items:center;gap:10px;padding-bottom:6px;border-bottom:1px solid rgba(127,127,127,.2);margin-bottom:2px}
+.card .chathead i{width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,#ff8a3d,#ff3b5c);color:#fff;font-style:normal;font-weight:800;display:flex;align-items:center;justify-content:center;font-size:14px}
+.card .chathead b{display:block;font-size:14px}.card .chathead small{font-size:11px;opacity:.6}
+.card .bub{max-width:84%;padding:8px 12px;border-radius:18px;font-size:14.5px;line-height:1.3;font-family:var(--hf)}
+.card .bub.them{align-self:flex-start;border-bottom-left-radius:5px;background:var(--bubble);color:var(--fg)}
+.card .bub.me{align-self:flex-end;border-bottom-right-radius:5px;background:var(--acc);color:var(--accfg);animation:drop .25s ease-out}
+.card .typing{align-self:flex-end;border:none;min-height:44px;padding:6px 18px;border-radius:18px;border-bottom-right-radius:5px;background:var(--acc);color:var(--accfg);font-weight:900;letter-spacing:3px;font-size:18px}
+.card .typing span{display:inline-block;animation:dot 1s infinite}.card .typing span:nth-child(2){animation-delay:.15s}.card .typing span:nth-child(3){animation-delay:.3s}
+@keyframes dot{0%,60%,100%{transform:none;opacity:.6}30%{transform:translateY(-4px);opacity:1}}
+
+/* comment: "replying to" sticker */
+.card .sticker{align-self:flex-start;max-width:92%;background:#fff;color:#111;border-radius:14px;padding:10px 12px;display:flex;gap:9px;align-items:flex-start;box-shadow:0 10px 26px -10px rgba(0,0,0,.6);transform:rotate(-1.5deg)}
+.card .sticker i{width:26px;height:26px;border-radius:50%;flex-shrink:0;background:linear-gradient(135deg,#6fd3ff,#2f6bff)}
+.card .sticker small{display:block;font-size:11.5px;color:#666;font-weight:600}
+.card .sticker span{font-size:15px;font-weight:700;line-height:1.25}
+
+/* quiz: poll sticker */
+.card .poll{background:#fff;color:#111;border-radius:18px;padding:12px;display:flex;flex-direction:column;gap:8px;box-shadow:0 14px 30px -14px rgba(0,0,0,.7)}
+.card .poll .pq{font-weight:800;font-size:16px;line-height:1.25;padding:2px 4px 4px}
+.card .opt{min-height:50px;display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:12px;border:2px solid #e3e3e8;background:#f4f4f6;color:#111;font:inherit;font-size:15.5px;font-weight:700;text-align:left;width:100%}
+.card .opt .l{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12.5px;flex-shrink:0;background:#111;color:#fff}
+.card .opt.right{border-color:#1fa463;background:#e3f7ec}.card .opt.right .l{background:#1fa463}
+.card .opt.wrong{border-color:#e23b55;background:#fde7eb}.card .opt.wrong .l{background:#e23b55}
+.card .opt.dim{opacity:.45}
+.card .pollnote{font-size:13.5px;line-height:1.35;color:#333;padding:0 4px}
+
+/* the host app's rail: our four actions in the host's positions and icon style */
+.card .rail{position:absolute;z-index:6;right:max(6px, calc(var(--sr) - 48px));bottom:calc(var(--sb) - 2px);display:flex;flex-direction:column;gap:14px;align-items:center}
+.card .rail button{background:none;border:none;color:#fff;display:flex;flex-direction:column;align-items:center;gap:2px;font:inherit;font-size:11px;font-weight:700;min-width:50px;min-height:50px;padding:0;text-shadow:0 1px 2px rgba(0,0,0,.6)}
+.card .rail svg{width:32px;height:32px;filter:drop-shadow(0 1px 2px rgba(0,0,0,.45))}
+.card .rail .av{width:44px;height:44px;border-radius:50%;border:2px solid #fff;background:var(--acc);color:var(--accfg);display:flex;align-items:center;justify-content:center;font-weight:900;font-size:18px;position:relative;margin-bottom:6px}
+.card .rail .av::after{content:"+";position:absolute;bottom:-9px;left:50%;transform:translateX(-50%);width:18px;height:18px;border-radius:50%;background:#ff3b5c;color:#fff;font-size:14px;line-height:18px;text-align:center;font-weight:800}
+.card.h-instagram .rail .av,.card.h-youtube .rail .av{display:none}
+.card .rail .on svg{color:#ff3b5c}
+.card .rail .saved svg{color:var(--acc)}
+
+/* caption band: account, caption, sound line, bottom-left like the host app */
+.card .band{position:absolute;z-index:5;left:calc(var(--sl) + 10px);right:calc(var(--sr) + 22px);bottom:calc(var(--sb) - 58px);display:flex;flex-direction:column;gap:5px;font-size:14px;line-height:1.3;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.55)}
+.card .band .who{display:flex;align-items:center;gap:8px;font-weight:800;font-size:15px}
+.card .band .who .dot{width:28px;height:28px;border-radius:50%;background:var(--acc);color:var(--accfg);display:none;align-items:center;justify-content:center;font-size:12px;font-weight:900}
+.card.h-instagram .band .who .dot,.card.h-youtube .band .who .dot{display:flex}
+.card .band .pill{font-size:12px;font-weight:700;padding:3px 10px;border-radius:8px;border:1.5px solid currentColor;display:none}
+.card.h-instagram .band .pill{display:inline-block}
+.card.h-youtube .band .pill{display:inline-block;background:#fff;color:#0f0f0f;border-color:#fff;border-radius:999px;text-shadow:none}
+.card .band .sound{display:flex;align-items:center;gap:6px;font-size:12.5px;opacity:.95;white-space:nowrap;overflow:hidden}
+.card .band .sound svg{width:14px;height:14px;flex-shrink:0}
+.card .band .tags{font-weight:700;opacity:.95}
+.card.h-youtube .band .title{order:-1;font-weight:600}
+/* progress line */
+.card .prog{position:absolute;left:0;right:0;bottom:0;height:3px;background:rgba(255,255,255,.28);z-index:7}
+.card .prog i{display:block;height:100%;background:#fff;width:0;animation:prog 12s linear forwards}
+.card.h-youtube .prog i{background:#ff2d55}
+@keyframes prog{to{width:100%}}
+
+/* vibe badges: small touches that match the reels they watch */
+.card .vibe{position:absolute;z-index:4;left:calc(var(--sl) + 12px);top:calc(var(--st) + 6px);display:flex;align-items:center;gap:6px;font-family:var(--hf);font-size:12px;font-weight:800;letter-spacing:.3px}
+.card .score{display:flex;border-radius:6px;overflow:hidden;box-shadow:0 4px 12px -4px rgba(0,0,0,.6)}
+.card .score span{padding:4px 7px;background:#101418;color:#fff}.card .score b{padding:4px 8px;background:#fff;color:#101418;font-variant-numeric:tabular-nums}
+.card .score .t{background:#1fa463}
+.card .hud{display:flex;align-items:center;gap:6px;background:rgba(0,0,0,.55);color:#9dff6f;padding:4px 8px;border-radius:6px;font-family:var(--mono)}
+.card .hud i{display:block;width:60px;height:6px;border-radius:3px;background:#2b3a2b;overflow:hidden}.card .hud i b{display:block;height:100%;background:#9dff6f;width:35%;transition:width .5s}
+.card .vpill{padding:4px 10px;border-radius:999px;background:rgba(255,255,255,.9);color:#111}
+.card .eqmini{display:inline-flex;gap:2px;align-items:flex-end;height:11px}.card .eqmini i{width:3px;background:currentColor;animation:eq .8s infinite ease-in-out}
+.card .eqmini i:nth-child(2){animation-delay:.2s}.card .eqmini i:nth-child(3){animation-delay:.4s}
+@keyframes eq{0%,100%{height:3px}50%{height:11px}}
+.card .xp{position:absolute;z-index:8;left:50%;top:40%;transform:translate(-50%,-50%);font-family:var(--mono);font-weight:800;font-size:22px;color:#9dff6f;text-shadow:0 2px 0 #000;animation:float 1s ease-out forwards;pointer-events:none}
+@keyframes float{from{opacity:0;transform:translate(-50%,-30%)}20%{opacity:1}to{opacity:0;transform:translate(-50%,-120%)}}
+
+/* floating things */
+.card .badge{position:absolute;top:calc(var(--st) + 4px);right:calc(var(--sr) + 4px);z-index:8;font-size:12px;font-weight:900;padding:5px 11px;border-radius:999px;background:var(--acc);color:var(--accfg);animation:drop .25s ease-out}
+.card .hintbub{position:absolute;z-index:9;right:calc(var(--sr) + 6px);bottom:calc(var(--sb) + 150px);max-width:62%;background:#fff;color:#111;border-radius:16px 16px 4px 16px;padding:9px 12px;font-size:14px;font-weight:700;box-shadow:0 10px 26px -10px rgba(0,0,0,.7);animation:drop .25s ease-out}
+.card .hintbub small{display:block;font-size:11px;color:#777;font-weight:600}
+.toast{position:absolute;left:50%;transform:translateX(-50%);bottom:26%;z-index:15;background:rgba(20,20,24,.92);color:#fff;font-size:12.5px;font-weight:600;border-radius:999px;padding:8px 14px;pointer-events:none;transition:opacity .4s;white-space:nowrap}
+.enginenote{position:absolute;left:10px;right:10px;top:48px;z-index:15;background:rgba(0,0,0,.8);color:#fff;font-family:var(--mono);font-size:10.5px;border-radius:10px;padding:7px 9px;pointer-events:none;transition:opacity .5s}
+.bigheart{position:absolute;width:112px;height:112px;margin:-56px 0 0 -56px;z-index:10;pointer-events:none;animation:pop .65s ease-out forwards;color:#ff3b5c}
+@keyframes pop{0%{transform:scale(.3) rotate(-12deg);opacity:0}30%{transform:scale(1.12) rotate(4deg);opacity:1}100%{transform:scale(1) rotate(0);opacity:0}}
+
+/* ---- backgrounds (stand-ins for looping footage) ---- */
+.bg-satisfying{background:repeating-linear-gradient(135deg,#c9a4f2 0 22px,#b88de8 22px 44px);background-size:62px 62px;animation:slide 2.5s linear infinite}
+.bg-satisfying::after{content:"";position:absolute;left:0;right:0;height:6px;background:rgba(255,255,255,.45);animation:blade 3.2s linear infinite}
+@keyframes blade{from{top:-10px}to{top:100%}}
+.bg-gameplay{background:linear-gradient(#64c7ff 0,#c9ecff 34%,#2d313b 34%);overflow:hidden}
+.bg-gameplay::before{content:"";position:absolute;left:-40%;right:-40%;top:34%;bottom:-10%;transform:perspective(260px) rotateX(58deg);transform-origin:top;
+  background:linear-gradient(90deg,#8a5a3c 0 12%,#3b3f4a 12% 33%,#f2f2f2 33% 34%,#3b3f4a 34% 66%,#f2f2f2 66% 67%,#3b3f4a 67% 88%,#8a5a3c 88%),
+  repeating-linear-gradient(to bottom,transparent 0 40px,rgba(255,225,77,.9) 40px 48px);background-blend-mode:normal;background-size:100% 100%,100% 96px;animation:run .7s linear infinite}
+.bg-gameplay::after{content:"";position:absolute;width:30px;height:38px;border-radius:8px 8px 4px 4px;background:#ff4fd8;left:46%;bottom:27%;box-shadow:0 0 0 3px #111,0 18px 0 -8px rgba(0,0,0,.35);animation:hop .45s ease-in-out infinite alternate}
+@keyframes run{to{background-position:0 0,0 96px}}
+@keyframes hop{to{transform:translateY(-34px)}}
+.bg-citywalk{background:radial-gradient(circle at 20% 30%,#ffb54766 0 6px,transparent 7px),radial-gradient(circle at 70% 60%,#6fd3ff55 0 5px,transparent 6px),linear-gradient(#1b2233,#2d2438);background-size:70px 90px,90px 70px,100% 100%;animation:drift 5s linear infinite}
+.bg-citywalk::after{content:"";position:absolute;left:0;right:0;bottom:0;height:22%;background:linear-gradient(90deg,#121722 0 12%,transparent 12% 14%,#121722 14% 29%,transparent 29% 31%,#121722 31% 44%,transparent 44% 46%,#121722 46% 64%,transparent 64% 66%,#121722 66% 84%,transparent 84% 86%,#121722 86%);-webkit-mask:linear-gradient(to top,#000 60%,transparent)}
+.bg-pitch{background:repeating-linear-gradient(90deg,#2f8f45 0 40px,#2a8340 40px 80px);animation:pan 6s linear infinite}
+.bg-pitch::after{content:"";position:absolute;inset:8% 10%;border:3px solid rgba(255,255,255,.75);border-radius:2px;background:radial-gradient(circle at 50% 50%,transparent 0 44px,rgba(255,255,255,.75) 44px 47px,transparent 47px),linear-gradient(to bottom,transparent calc(50% - 1.5px),rgba(255,255,255,.75) calc(50% - 1.5px) calc(50% + 1.5px),transparent calc(50% + 1.5px))}
+.bg-glow{background:radial-gradient(circle at 30% 30%,#ffb3d9 0,transparent 45%),radial-gradient(circle at 70% 65%,#c9b3ff 0,transparent 50%),radial-gradient(circle at 50% 100%,#ffd9b3 0,transparent 55%),#2a1f2e;background-size:160% 160%;animation:glow 7s ease-in-out infinite alternate}
+@keyframes glow{to{background-position:100% 60%,0 40%,50% 0,0 0}}
+.bg-equalizer{background:linear-gradient(#150b26,#2a0f3d)}
+.bg-equalizer::after{content:"";position:absolute;left:6%;right:6%;bottom:22%;height:40%;background:repeating-linear-gradient(90deg,#ff4fd8 0 10px,transparent 10px 16px);-webkit-mask:linear-gradient(to top,#000 0,#000 100%);animation:eqbg 1.1s ease-in-out infinite alternate;transform-origin:bottom;opacity:.8}
+@keyframes eqbg{0%{clip-path:polygon(0 60%,10% 30%,20% 70%,30% 20%,40% 55%,50% 10%,60% 65%,70% 35%,80% 75%,90% 25%,100% 50%,100% 100%,0 100%)}100%{clip-path:polygon(0 30%,10% 70%,20% 20%,30% 60%,40% 15%,50% 55%,60% 25%,70% 70%,80% 30%,90% 60%,100% 20%,100% 100%,0 100%)}}
+@keyframes slide{to{background-position:62px 62px,82px 82px}}
+@keyframes drift{to{background-position:0 90px,0 -70px,0 0}}
+@keyframes pan{to{background-position:80px 0}}
+@media (prefers-reduced-motion:reduce){.screen.enter,.card *,.card .bgl,.card .bgl::after{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Reelcards <span>demo</span></h1>
+      <p class="sub">The whole student journey in a browser, running the same engine as the Android app. Set up on the phone, then scroll: flashcard reels slip in between normal reels, styled for the app you're in (TikTok, Instagram or YouTube) and the things you watch. The panels explain every decision. The design lab at the bottom shows every card style side by side.</p>
+    </div>
+    <div class="stats" id="stats"></div>
+  </header>
+
+  <div class="main">
+    <div class="phonecol">
+      <div class="hostbar" role="group" aria-label="App you're scrolling in" id="hostbar"></div>
+      <div class="phone" id="phone" aria-label="Reelcards on a phone"><div class="screen" id="screen"></div></div>
+      <div class="row">
+        <button class="btn primary" id="swipe">Swipe up ↑</button>
+        <button class="btn" id="nextday">Next day</button>
+      </div>
+      <p class="hint" id="hint">Follow the setup on the phone, or <button class="alink" id="skipSetup" style="padding:0;min-height:0">skip straight to the feed</button>.</p>
+      <p class="hint" id="gestures" hidden>On a card: tap = reveal · double-tap or heart = “knew it” · speech bubble = hint · bookmark = save · swipe or ↓ = next.</p>
+    </div>
+
+    <div class="panels">
+      <section class="panel" aria-labelledby="h-why">
+        <h2 id="h-why">Why this card</h2>
+        <dl class="why" id="why"></dl>
+      </section>
+      <section class="panel" aria-labelledby="h-sim">
+        <h2 id="h-sim">Controls &amp; simulated student</h2>
+        <div class="controls">
+          <label for="persona">Student to simulate
+            <select id="persona">
+              <option value="quiz">Loves quiz formats</option>
+              <option value="chat">Loves text-chat formats</option>
+              <option value="gamer">Gamer (gameplay backgrounds)</option>
+              <option value="random">No preference</option>
+            </select>
+          </label>
+          <label for="mins">Time on reels per day (forecast) <output id="minsOut">60 min</output><input type="range" id="mins" min="10" max="240" step="5" value="60"></label>
+          <label for="night">Night mode
+            <select id="night"><option value="auto">Auto (10pm–6am)</option><option value="on">On</option><option value="off">Off</option></select>
+          </label>
+          <div style="display:flex;flex-direction:column;gap:8px;justify-content:flex-end">
+            <label class="toggle" for="tint"><input type="checkbox" id="tint"> Match colours of the reel just watched</label>
+            <label class="toggle" for="voice"><input type="checkbox" id="voice"> Voiceover (reads the hook aloud)</label>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn primary" id="auto">Simulate 80 swipes</button>
+          <button class="btn" id="autoWeek">Simulate a week</button>
+          <button class="btn" id="reset">Reset</button>
+        </div>
+        <p class="muted" style="margin:0;font-size:12px">The simulated student has a taste in card styles and a tolerance for how often cards appear. Watch the format scores and the rhythm adapt to them.</p>
+      </section>
+
+      <section class="panel wide" aria-labelledby="h-fmt">
+        <h2 id="h-fmt">Format scores <span class="note">· bar = how well each piece holds attention · yellow = used on the last card · per-app favourites below</span></h2>
+        <div class="dims" id="dims"></div>
+        <div class="mono muted" id="perapp"></div>
+      </section>
+
+      <section class="panel" aria-labelledby="h-rhythm">
+        <h2 id="h-rhythm">Rhythm <span class="note">· learned spacing between cards</span></h2>
+        <div class="arms" id="arms"></div>
+        <div id="rhythmText" style="font-size:13px"></div>
+      </section>
+      <section class="panel" aria-labelledby="h-mem">
+        <h2 id="h-mem">Memory model</h2>
+        <div id="memText" style="font-size:13px"></div>
+      </section>
+
+      <section class="panel wide" aria-labelledby="h-prog">
+        <h2 id="h-prog">Progress, skips &amp; forecast</h2>
+        <div class="kpis" id="kpis"></div>
+        <div class="mini2" id="forecast"></div>
+        <div class="dims">
+          <div><h3 style="margin:0 0 6px;font-size:13px">Skip rate by layout</h3><div id="skiplayout"></div></div>
+          <div><h3 style="margin:0 0 6px;font-size:13px">Most skipped cards</h3><div id="skipcards"></div></div>
+        </div>
+      </section>
+
+      <section class="panel wide" aria-labelledby="h-deck">
+        <h2 id="h-deck">Deck <span class="note">· FSRS-6 schedule: stability = days until recall drops to 90%</span></h2>
+        <div class="tablewrap"><table><thead><tr><th>Card</th><th>Deck</th><th>State</th><th>Recall now</th><th>Stability</th><th>Next due</th><th>Last</th><th>Skips</th></tr></thead><tbody id="deck"></tbody></table></div>
+      </section>
+
+      <section class="panel wide" aria-labelledby="h-anki">
+        <h2 id="h-anki">Sent to AnkiDroid <span class="note">· what the Android app sends through AnkiDroid's API for Anki decks (ease 1 = Again, 2 = Hard, 3 = Good, 4 = Easy)</span></h2>
+        <div class="log" id="anki"><span class="muted">Nothing graded yet.</span></div>
+      </section>
+    </div>
+  </div>
+
+  <section class="panel wide" aria-labelledby="h-lab">
+    <h2 id="h-lab">Design lab <span class="note">· every layout, in the app and vibe you pick. These are the real card components the feed uses.</span></h2>
+    <div class="labbar">
+      <label for="labHost" style="flex-direction:row;align-items:center;gap:6px">App <select id="labHost"><option value="tiktok">TikTok</option><option value="instagram">Instagram Reels</option><option value="youtube">YouTube Shorts</option></select></label>
+      <label for="labVibe" style="flex-direction:row;align-items:center;gap:6px">Vibe <select id="labVibe"><option value="">None</option></select></label>
+      <label for="labState" style="flex-direction:row;align-items:center;gap:6px">State <select id="labState"><option value="q">Question</option><option value="a">Answer revealed</option><option value="liked">Knew it</option></select></label>
+      <label class="toggle" for="labNight"><input type="checkbox" id="labNight"> Night</label>
+      <button class="btn" id="labShuffle">Shuffle looks</button>
+    </div>
+    <div class="lab" id="lab"></div>
+  </section>
+</div>
+<script>
+/* Reelcards engine, JavaScript port of engine/src/main/java/com/reelcards/engine (same rules, same numbers).
+   Kept deliberately close to the Java so the browser demo and the Android app behave the same. */
+"use strict";
+const RC = (function(){
+const MIN = 60000, DAY = 86400000, SESSION_GAP = 10 * MIN, ABSORBED_SEC = 25, SKIMMING_SEC = 3;
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const NEW = 0, LEARNING = 1, REVIEW = 2, RELEARNING = 3, LEECH_LAPSES = 6;
+const STATE = ["new", "learning", "review", "relearning"];
+const G = {again: 1, hard: 2, good: 3, easy: 4};
+const GL = ["", "again", "hard", "good", "easy"];
+
+/* ---------------- random ---------------- */
+function randn(rnd){let u=0,v=0;while(!u)u=rnd();while(!v)v=rnd();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v);}
+function gamma(rnd,k){if(k<1)return gamma(rnd,k+1)*Math.pow(rnd(),1/k);const d=k-1/3,c=1/Math.sqrt(9*d);for(;;){let x,v;do{x=randn(rnd);v=1+c*x;}while(v<=0);v=v*v*v;const u=rnd();if(u<1-.0331*x*x*x*x)return d*v;if(Math.log(u)<.5*x*x+d*(1-v+Math.log(v)))return d*v;}}
+function beta(rnd,a,b){const x=gamma(rnd,a),y=gamma(rnd,b);return x/(x+y);}
+const pickOf = (rnd, a) => a[Math.floor(rnd() * a.length)];
+
+/* ---------------- FSRS-6 (py-fsrs defaults) ---------------- */
+const DEFAULT_W = [0.212,1.2931,2.3065,8.2956,6.4133,0.8334,3.0194,0.001,1.8722,0.1666,0.796,1.4835,0.0614,0.2629,1.6483,0.6014,1.8729,0.5425,0.0912,0.0658,0.1542];
+const FUZZ = [[2.5,7,0.15],[7,20,0.1],[20,Infinity,0.05]];
+function Fsrs(rnd){
+  this.w = DEFAULT_W.slice(); this.learningSteps=[1*MIN,10*MIN]; this.relearningSteps=[10*MIN];
+  this.maxIntervalDays=365; this.fuzz=true; this.personalScale=1; this.rnd=rnd;
+}
+Fsrs.prototype = {
+  decay(){return -this.w[20];}, factor(){return Math.pow(0.9,1/this.decay())-1;},
+  R(el,s){ if(s<=0)return 0; return Math.pow(1+this.factor()*Math.max(0,el)/s,this.decay()); },
+  I(s,r){ return s/this.factor()*(Math.pow(r,1/this.decay())-1); },
+  initS(g){return Math.max(0.001,this.w[g-1]);},
+  initD(g,cl){const d=this.w[4]-Math.exp(this.w[5]*(g-1))+1;return cl?clamp(d,1,10):d;},
+  nextD(d,g){const delta=-(this.w[6]*(g-3));const damped=d+(10-d)*delta/9;return clamp(this.w[7]*this.initD(4,false)+(1-this.w[7])*damped,1,10);},
+  shortS(s,g){let inc=Math.exp(this.w[17]*(g-3+this.w[18]))*Math.pow(s,-this.w[19]);if(g!==1)inc=Math.max(inc,1);return Math.max(0.001,s*inc);},
+  recallS(d,s,r,g){const w=this.w;return s*(1+Math.exp(w[8])*(11-d)*Math.pow(s,-w[9])*(Math.exp((1-r)*w[10])-1)*(g===2?w[15]:1)*(g===4?w[16]:1));},
+  forgetS(d,s,r){const w=this.w;return Math.min(w[11]*Math.pow(d,-w[12])*(Math.pow(s+1,w[13])-1)*Math.exp((1-r)*w[14]), s/Math.exp(w[17]*w[18]));},
+  nextS(d,s,r,g){return Math.max(0.001,g===1?this.forgetS(d,s,r):this.recallS(d,s,r,g));},
+  recallNow(c,t){ if(c.state===NEW||!c.last)return 0; return this.R((t-c.last)/DAY,c.s*this.personalScale); },
+  recallAt(c,t){ return this.recallNow(c,t); },
+  target(t,exam){ if(exam>t){const left=exam-t;if(left<=7*DAY)return .95;if(left<=21*DAY)return .92;} return .9; },
+  fuzzed(days){ if(days<2.5)return days; let delta=1; for(const f of FUZZ)delta+=f[2]*Math.max(Math.min(days,f[1])-f[0],0);
+    let lo=Math.round(days-delta),hi=Math.round(days+delta);lo=Math.max(2,lo);hi=Math.min(hi,this.maxIntervalDays);lo=Math.min(lo,hi);
+    return Math.min(Math.round(this.rnd()*(hi-lo+1)+lo),this.maxIntervalDays); },
+  reviewInterval(s,t,exam){ let days=Math.round(this.I(s*this.personalScale,this.target(t,exam))); days=Math.max(1,Math.min(this.maxIntervalDays,days));
+    if(this.fuzz)days=this.fuzzed(days); if(exam>t){const left=Math.floor((exam-t)/DAY);const cap=Math.max(1,left-1);if(days>cap)days=cap;} return days*DAY; },
+  review(c,g,t,exam){
+    const elapsed=c.last?Math.max(0,Math.floor((t-c.last)/DAY)):-1, sameDay=elapsed>=0&&elapsed<1; let next;
+    if(c.state!==REVIEW){
+      const relearning=c.state===RELEARNING;
+      if(c.state===NEW||c.s<=0){c.s=this.initS(g);c.d=this.initD(g,true);c.state=LEARNING;c.step=0;}
+      else if(sameDay){c.s=this.shortS(c.s,g);c.d=this.nextD(c.d,g);}
+      else{const r=this.R(elapsed,c.s);c.s=this.nextS(c.d,c.s,r,g);c.d=this.nextD(c.d,g);}
+      const steps=relearning?this.relearningSteps:this.learningSteps;
+      const grad=()=>{c.state=REVIEW;c.step=0;return this.reviewInterval(c.s,t,exam);};
+      if(!steps.length||c.step>=steps.length)next=grad();
+      else if(g===1){c.step=0;next=steps[0];}
+      else if(g===2){next=c.step===0&&steps.length===1?Math.round(steps[0]*1.5):c.step===0?(steps[0]+steps[1])/2:steps[c.step];}
+      else if(g===3){if(c.step+1===steps.length)next=grad();else{c.step++;next=steps[c.step];}}
+      else next=grad();
+    }else{
+      if(sameDay){c.s=this.shortS(c.s,g);c.d=this.nextD(c.d,g);}
+      else{const r=this.R(elapsed,c.s);c.s=this.nextS(c.d,c.s,r,g);c.d=this.nextD(c.d,g);}
+      if(g===1){c.lapses++;if(!this.relearningSteps.length)next=this.reviewInterval(c.s,t,exam);else{c.state=RELEARNING;c.step=0;next=this.relearningSteps[0];}}
+      else next=this.reviewInterval(c.s,t,exam);
+    }
+    c.reps++;c.last=t;c.grade=GL[g];c.due=t+next;return next/DAY;
+  }
+};
+
+/* ---------------- Calibration (one-number personal forgetting rate) ---------------- */
+function Calibration(){this.log=[];this.scale=1;this.fittedOn=0;}
+Calibration.prototype={
+  add(days,s,ok){if(days<1||s<=0)return;this.log.push([days,s,ok]);if(this.log.length>2000)this.log.shift();},
+  maybeRefit(f){ if(this.log.length<100||this.log.length-this.fittedOn<10)return false; let best=1,bl=Infinity;
+    for(let k=0.4;k<=2.51;k+=0.05){let loss=Math.pow(Math.log(k),2);for(const e of this.log){const r=clamp(f.R(e[0],e[1]*k),1e-4,1-1e-4);loss-=e[2]?Math.log(r):Math.log(1-r);}if(loss<bl){bl=loss;best=k;}}
+    this.fittedOn=this.log.length;const changed=Math.abs(best-this.scale)>1e-9;this.scale=Math.round(best*100)/100;f.personalScale=this.scale;return changed; },
+  describe(){ if(!this.fittedOn)return null; const pct=Math.round((this.scale-1)*100); if(Math.abs(pct)<8)return "You forget at about the rate FSRS expects."; return pct>0?"You remember about "+pct+"% longer than FSRS's average learner.":"You forget about "+(-pct)+"% faster than FSRS's average learner."; }
+};
+
+/* ---------------- Rhythm (learned spacing between cards) ---------------- */
+const MULT=[0.6,0.8,1.0,1.3,1.7,2.2];
+function Rhythm(){this.a=MULT.map(()=>0);this.b=MULT.map(()=>0);this.arm=2;this.seeded=false;}
+Rhythm.prototype={
+  seed(base){for(let i=0;i<MULT.length;i++){const g=base*MULT[i];const m=Math.min(.9,.5*(g+1)/(base+1));this.a[i]=4*m;this.b[i]=4*(1-m);}this.seeded=true;},
+  multiplier(){return MULT[this.arm];},
+  choose(rnd,base){if(!this.seeded)this.seed(base);let best=this.arm,bv=-1;for(let i=0;i<MULT.length;i++){const v=beta(rnd,this.a[i],this.b[i])/(base*MULT[i]+1);if(v>bv){bv=v;best=i;}}this.arm=best;return best;},
+  update(i,r){if(!this.seeded)return;r=clamp(r,0,1);this.a[i]=this.a[i]*.98+r;this.b[i]=this.b[i]*.98+(1-r);},
+  bestArm(base){let best=2,bv=-1;for(let i=0;i<MULT.length;i++){const v=this.a[i]/(this.a[i]+this.b[i])/(base*MULT[i]+1);if(v>bv){bv=v;best=i;}}return best;},
+  evidence(){let n=0;for(let i=0;i<MULT.length;i++)n+=this.a[i]+this.b[i]-4;return Math.round(n);}
+};
+
+/* ---------------- Formats ---------------- */
+const DIMS=["hook","layout","look","bg"];
+const PIECES={
+  hook:["pov","waitforit","mostwrong","text2am","rate","storytime"],
+  layout:["bigtext","captions","chat","comment","split","quiz"],
+  look:["caption","subtitle","clean","neon","paper"],
+  bg:["satisfying","gameplay","citywalk","pitch","glow","equalizer","plain"]
+};
+const VIBES=["football","gaming","beauty","comedy","music","fitness","food"];
+const LABEL={pov:"POV",waitforit:"Wait for it",mostwrong:"Most get it wrong",text2am:"2am text",rate:"Rate my answer",storytime:"Storytime",
+  bigtext:"Big text",captions:"Word-by-word captions",chat:"Text chat",comment:"Reply to a comment",split:"Split-screen",quiz:"Quiz buttons",
+  caption:"Bold captions",subtitle:"Highlight boxes",clean:"Clean serif",neon:"Neon",paper:"Handwritten notes",
+  satisfying:"Satisfying clip",gameplay:"Gameplay",citywalk:"City walk",pitch:"Football pitch",glow:"Soft glow",equalizer:"Music visualiser",plain:"Plain",
+  football:"Football",gaming:"Gaming",beauty:"Beauty & fashion",comedy:"Comedy",music:"Music",fitness:"Gym & fitness",food:"Food",
+  tiktok:"TikTok",instagram:"Instagram Reels",youtube:"YouTube Shorts",practice:"Practice feed"};
+const DIMLABEL={hook:"Hook",layout:"Layout",look:"Look",bg:"Background"};
+function vibePriors(v){switch(v){
+  case "football":return[["bg","pitch",3],["hook","pov",1]];
+  case "gaming":return[["bg","gameplay",3],["layout","split",1],["hook","waitforit",1]];
+  case "beauty":return[["bg","glow",3],["look","clean",1],["look","paper",1]];
+  case "comedy":return[["hook","text2am",2],["layout","comment",2],["layout","chat",1]];
+  case "music":return[["bg","equalizer",3],["look","neon",2],["layout","captions",1]];
+  case "fitness":return[["bg","citywalk",2],["hook","pov",1],["look","caption",1]];
+  case "food":return[["bg","satisfying",3],["look","paper",1]];
+  default:return[];}}
+const fkey=f=>DIMS.map(d=>f[d]).join("/");
+
+/* ---------------- FormatBandit (recovering, contextual Thompson sampling) ---------------- */
+function Bandit(){this.scores={};this.lastUsed={};this.shown=0;this.lastKey=null;this.recent={};this.learn=true;for(const d of DIMS)for(const p of PIECES[d])this.scores[d+":"+p]=[1,1];}
+Bandit.prototype={
+  sc(k){if(!this.scores[k])this.scores[k]=[1,1];return this.scores[k];},
+  mean(d,p){const s=this.sc(d+":"+p);return s[0]/(s[0]+s[1]);},
+  applyVibes(vs){for(const v of vs)for(const p of vibePriors(v))this.sc(p[0]+":"+p[1])[0]+=p[2];},
+  pooled(ctx,d,p){const g=this.sc(d+":"+p);if(!ctx)return g;const c=this.scores[ctx+"|"+d+":"+p];if(!c)return g;const nc=c[0]+c[1]-2,wg=1/(1+nc/8);return[1+wg*(g[0]-1)+(c[0]-1),1+wg*(g[1]-1)+(c[1]-1)];},
+  runFull(d,p){const r=this.recent[d]||[];const n=d==="hook"?1:d==="layout"?2:3;if(r.length<n)return false;for(let i=r.length-n;i<r.length;i++)if(r[i]!==p)return false;return true;},
+  pick(rnd,ctx,avoid,allowQuiz,allowCaptions){
+    const f={},detail={};const explore=rnd()<.1?pickOf(rnd,DIMS):null;
+    const pen={hook:.3,layout:.25,look:.18,bg:.08};
+    for(const d of DIMS){
+      let c=PIECES[d].filter(p=>!(d==="layout"&&((!allowQuiz&&p==="quiz")||(!allowCaptions&&p==="captions")||p===avoid))&&!this.runFull(d,p));
+      if(!c.length)c=[PIECES[d][0]];
+      if(d===explore){f[d]=pickOf(rnd,c);detail[d]="explored";continue;}
+      let best=c[0],bv=-9,bd=0,bp=0;
+      for(const p of c){const s=this.pooled(ctx,d,p);const draw=beta(rnd,s[0],s[1]);const at=this.lastUsed[d+":"+p];const pn=at==null?0:pen[d]*Math.pow(.5,(this.shown-at)/1.5);if(draw-pn>bv){bv=draw-pn;best=p;bd=draw;bp=pn;}}
+      f[d]=best;detail[d]=bp>.005?"score "+bd.toFixed(2)+" − recent-use "+bp.toFixed(2):"score "+bd.toFixed(2);
+    }
+    if(fkey(f)===this.lastKey){let alt=f.look;while(alt===f.look)alt=pickOf(rnd,PIECES.look);f.look=alt;detail.look="swapped: no repeats";}
+    this.shown++;
+    for(const d of DIMS){this.lastUsed[d+":"+f[d]]=this.shown;(this.recent[d]=this.recent[d]||[]).push(f[d]);if(this.recent[d].length>4)this.recent[d].shift();}
+    this.lastKey=fkey(f);
+    return{format:f,explored:explore,detail};
+  },
+  update(f,ctx,r){if(!f||!this.learn)return;r=clamp(r,0,1);const bump=s=>{s[0]=1+(s[0]-1)*.98+r;s[1]=1+(s[1]-1)*.98+(1-r);};for(const d of DIMS){bump(this.sc(d+":"+f[d]));if(ctx)bump(this.sc(ctx+"|"+d+":"+f[d]));}},
+  favourite(d){let best=null,bm=-1;for(const p of PIECES[d]){const s=this.sc(d+":"+p);if(s[0]+s[1]<5)continue;const m=s[0]/(s[0]+s[1]);if(m>bm){bm=m;best=p;}}return best;}
+};
+
+/* ---------------- CopyWriter (reel-native words) ---------------- */
+function themed(v,h,gen){if(!v)return gen;const t={
+  "football/pov":["POV: VAR is checking your answer","POV: last minute of the mock, extra time"],"football/mostwrong":["Even the pundits get this wrong"],"football/waitforit":["Wait for the replay…"],
+  "gaming/waitforit":["Speedrun this question","Boss level question. Wait for it…"],"gaming/rate":["Clutch or choke? Answer first"],"gaming/pov":["POV: you respawn in the exam hall"],
+  "beauty/pov":["GRWM while I explain this","POV: 5-minute revision routine"],"beauty/mostwrong":["The revision tip nobody gatekeeps"],
+  "comedy/pov":["POV: the teacher picks you","POV: you said the answer with confidence"],"comedy/rate":["Rate my answer (be nice)"],
+  "music/waitforit":["Wait for the drop…","Answer drops on the beat…"],"music/pov":["POV: this is stuck in your head now"],
+  "fitness/pov":["POV: rest set, quick question","POV: brain day, not leg day"],"fitness/rate":["One rep: answer this"],
+  "food/pov":["POV: revising while dinner cooks"],"food/waitforit":["Let it cook… answer in 3"]}[v+"/"+h];return t||gen;}
+function hint(ans){const a=String(ans||"").trim();if(!a)return"No hint for this one";const w=a.split(/\s+/);let first=w[0].replace(/^[^\p{L}\p{N}]+/u,"")||w[0];
+  if(w.length===1){const n=first.replace(/[^\p{L}\p{N}]/gu,"").length;return"Starts with “"+first[0].toUpperCase()+"” · "+n+(n===1?" letter":" letters");}
+  return"Starts with “"+first+"…” · "+w.length+" words";}
+function slug(deck){if(!deck)return"study";let s=deck.toLowerCase().replace(/^(gcse|a-level|a level|ks3)\s+/,"").replace(/[^a-z0-9]+/g,"");return s?s.slice(0,14):"study";}
+function casual(q){let t=q.trim().replace(/[?.!]+$/,"");if(t.length>1&&t[1]!==t[1].toUpperCase())t=t[0].toLowerCase()+t.slice(1);return t;}
+function beats(q){const words=q.trim().split(/\s+/),out=[],hl=[];let cur=[];
+  words.forEach((w,i)=>{cur.push(w);if(cur.length>=3||/[,?]$/.test(w)||i===words.length-1){let hi=-1,len=0;cur.forEach((x,k)=>{const b=x.replace(/[^\p{L}\p{N}]/gu,"");if(b.length>len&&b.length>=5){len=b.length;hi=k;}});out.push(cur.join(" "));hl.push(hi);cur=[];}});return{beats:out,hl};}
+function distractor(c,pool,rnd){const mine=c.b.trim().toLowerCase(),same=[],any=[];for(const o of pool){if(o===c||!o.b)continue;const ob=o.b.trim().toLowerCase();if(!ob||ob===mine)continue;const r=(o.b.length+4)/(c.b.length+4);if(r<.4||r>2.5)continue;(o.deck===c.deck?same:any).push(o.b);}const src=same.length?same:any;return src.length?pickOf(rnd,src):null;}
+function write(c,f,pool,rnd,reason,vibes){
+  const s={q:c.f,a:c.b,x:c.x||"",options:[],correct:-1,beats:[],hl:[]};
+  s.account="@"+slug(c.deck)+pickOf(rnd,[".mocks",".revision",".explained",".facts"]);s.tag=c.deck+" · "+reason;
+  const vl=[...(vibes||[])];const v=!vl.length||rnd()<.4?null:pickOf(rnd,vl);s.vibe=v;
+  let hooks,caps;
+  switch(f.hook){
+    case "pov":hooks=themed(v,"pov",["POV: it's 2 days before your mock","POV: you actually revised this time","POV: this comes up and you blank"]);caps=["if you don't know this we need to talk","tag someone who'd get this wrong","be honest"];break;
+    case "waitforit":hooks=themed(v,"waitforit",["Wait for it…","Watch till the end","Answer drops in 3…"]);caps=["watch till the end","say it before the reveal","no pausing"];break;
+    case "mostwrong":hooks=themed(v,"mostwrong",["Most people get this wrong","Everyone forgets this one","This one catches people out"]);caps=["be honest in the comments","no googling","first answer only"];break;
+    case "text2am":hooks=["She texted me this at 2am","My mate asked this in the group chat","Got this text in the middle of lunch"];caps=["would you have got it?","reply before the dots do","the group chat went silent"];break;
+    case "storytime":hooks=["Storytime: this cost me marks","The mock question I'll never forget","I got this wrong so you don't have to"];caps=["learn from my pain","part 2?","don't be me"];break;
+    default:hooks=themed(v,"rate",["Rate my answer 1–10","Can you beat my answer?","Say it out loud first"]);caps=["no googling","rate it honestly","answer in your head first"];
+  }
+  s.hook=pickOf(rnd,hooks);s.cap=pickOf(rnd,caps);s.prompt=pickOf(rnd,["wait for it… (tap)","tap for the answer","think… then tap"]);
+  s.hint=hint(c.b);s.sound="original sound · "+s.account.slice(1);
+  if(f.layout==="chat"){s.name=pickOf(rnd,["Jess","Sam","Priya","Tom","Aisha","Leo"]);s.them=[pickOf(rnd,["ok random q","wait quick one","don't laugh but"]),c.f,pickOf(rnd,["and don't google it","fast","i've forgotten already"])];s.me=[c.b].concat(c.x?[c.x[0].toLowerCase()+c.x.slice(1)]:[]);s.after=pickOf(rnd,["ok genius go to sleep","how do you just know that","saving this"]);}
+  if(f.layout==="comment"){s.commentUser=pickOf(rnd,["@revision.panic","@mocks_in_2_weeks","@year11.survivor","@lost.in.chem","@notes.pls"]);s.commentText=casual(c.f)+pickOf(rnd,[" pls"," someone explain"," i'm begging"," help"]);s.hook="Replying to "+s.commentUser;}
+  if(f.layout==="captions"){const b=beats(c.f);s.beats=b.beats;s.hl=b.hl;}
+  if(f.layout==="quiz"){const w=distractor(c,pool,rnd);if(w){if(rnd()<.5){s.options=[c.b,w];s.correct=0;}else{s.options=[w,c.b];s.correct=1;}}}
+  s.voice=(f.layout==="comment"?"Someone asked: "+s.commentText+".":s.hook.replace("…",".").replace("1–10","one to ten"))+" "+c.f;
+  return s;
+}
+
+/* ---------------- Grading (response-time aware) ---------------- */
+const readingMs=t=>1500+45*(t?t.length:0);
+function gradeOf(o,quiz,correct,q,opts){
+  const read=readingMs(q);
+  if(quiz&&o.pick>=0&&o.pick!==correct)return 1;
+  if(o.hintAt>0){if(o.liked||(quiz&&o.pick>=0))return 2;if(o.revealed)return 1;return 0;}
+  if(o.likedBefore)return(!o.likeAt||o.likeAt<=read+2500)?4:3;
+  if(quiz&&o.pick>=0)return(!o.pickAt||o.pickAt<=read+readingMs(opts)+4000)?3:2;
+  if(o.liked)return 3;if(o.revealed)return 1;return 0;
+}
+const fastSkip=o=>!o.revealed&&!o.liked&&!o.saved&&!o.shared&&!o.hintAt&&o.pick<0&&o.dwell<1200;
+const engaged=o=>o.liked||o.shared||o.saved||o.hintAt>0||o.pick>=0||(o.revealed&&o.dwell>=2000);
+function reward(o){if(o.liked||o.shared)return 1;if(o.saved)return .85;if(o.pick>=0)return .9;if(o.revealed&&o.dwell>=2000)return .7;if(o.revealed)return .45;if(o.dwell>=3000)return .35;if(o.dwell>=1200)return .15;return 0;}
+
+/* ---------------- Settings ---------------- */
+const INT={chill:{gap:8,cap:60,newPer:10},normal:{gap:5,cap:150,newPer:25},cram:{gap:3,cap:300,newPer:50},demo:{gap:2,cap:1000,newPer:500}};
+
+/* ---------------- Engine ---------------- */
+function Engine(seed){
+  let s=seed||Date.now()%2147483647;const rnd=()=>{s=(s*16807)%2147483647;return(s-1)/2147483646;};
+  this.rnd=rnd;this.cards=[];this.settings={intensity:"normal",examDate:0,pausedUntil:0,minutesPerDay:60,vibes:[]};
+  this.bandit=new Bandit();this.fsrs=new Fsrs(rnd);this.calibration=new Calibration();this.rhythm=new Rhythm();this.adaptiveRhythm=true;
+  this.stats={days:{},avgReel:12,avgCard:6,reelN:0,cardN:0,layout:{}};
+  this.sessionId=0;this.sessionReels=0;this.reelsSinceCard=0;this.cardsToday=0;this.newToday=0;this.postponed=0;this.lastSwipeAt=0;this.snoozeUntil=0;this.dayKey=null;
+  this.rhythmArm=-1;this.lastHost=null;this.lastDeck=null;this.recentFast=[];this.recentReel=[];this.requeue=[];this.newShown=new Set();this.lastDecision=null;this.log=[];this.anki=[];this.tzOffsetMin=null;
+}
+Engine.prototype={
+  I(){return INT[this.settings.intensity];}, isDemo(){return this.settings.intensity==="demo";},
+  dk(t){return Math.floor((t-new Date(t).getTimezoneOffset()*MIN)/DAY);},
+  day(k){return this.stats.days[k]||(this.stats.days[k]={reels:0,cards:0,reviews:0,again:0,hard:0,good:0,easy:0,skips:0,fastSkips:0,newSeen:0,reelSec:0,cardSec:0});},
+  examDaysLeft(t){const e=this.settings.examDate;if(!e)return -1;if(e<=t)return 0;return Math.ceil((e-t)/DAY);},
+  addCards(list){const have=new Set(this.cards.map(c=>c.id));let n=0;for(const c of list){if(have.has(c.id))continue;this.cards.push(c);have.add(c.id);n++;}return n;},
+  find(id){return this.cards.find(c=>c.id===id);},
+  setVibes(vs){const added=vs.filter(v=>!this.settings.vibes.includes(v));this.settings.vibes=vs.slice();this.bandit.applyVibes(added);},
+  buried(c){return c.buriedUntil>=this.sessionId;}, inRequeue(c){return this.requeue.some(r=>r.id===c.id);},
+  dueCount(t){return this.cards.filter(c=>c.state!==NEW&&c.due<=t&&!this.buried(c)).length;},
+  newRemaining(){return this.cards.filter(c=>c.state===NEW).length;}, learnedCount(){return this.cards.filter(c=>c.state===REVIEW).length;},
+  rollDay(t){const k=this.dk(t);if(k!==this.dayKey){this.dayKey=k;this.cardsToday=0;this.newToday=0;this.newShown=new Set();}},
+  rollSession(t){if(!this.lastSwipeAt||t-this.lastSwipeAt>SESSION_GAP){this.sessionId++;this.sessionReels=0;this.reelsSinceCard=0;this.postponed=0;this.requeue=[];this.recentReel=[];this.cards.forEach(c=>c.bounces=0);return true;}return false;},
+  newLimit(t){const base=this.I().newPer,ex=this.examDaysLeft(t);if(ex<=0||this.isDemo())return base;const need=Math.ceil(this.newRemaining()/Math.max(1,ex*.8));return Math.max(base,Math.min(need,base*3));},
+  currentGap(t){let g=this.I().gap*(this.isDemo()||!this.adaptiveRhythm||!this.rhythm.seeded?1:this.rhythm.multiplier());const ex=this.examDaysLeft(t);if(this.dueCount(t)>=20)g*=.85;if(ex>=0&&ex<=2)g*=.6;else if(ex>=0&&ex<=7)g*=.75;return Math.max(this.isDemo()?1:2,Math.min(15,Math.round(g)));},
+  rhythmText(){const base=this.I().gap;if(this.isDemo()||!this.rhythm.seeded||this.rhythm.evidence()<15)return"1 card every "+base+" reels (your setting). It adapts after a few cards.";const best=Math.round(base*MULT[this.rhythm.bestArm(base)]);return best===base?"1 card every "+base+" reels suits you best so far.":"Learned from you: 1 card every "+best+" reels gets you the most cards answered (you started at "+base+").";},
+  newAvailable(t){if(this.newToday>=this.newLimit(t))return false;return this.cards.some(c=>c.state===NEW&&!this.buried(c)&&!this.inRequeue(c));},
+  readyRequeue(){return this.requeue.find(r=>this.sessionReels>=r.at);},
+  decide(t){
+    const d={show:false,gap:this.I().gap,blocked:null,reasons:[]};const base=this.I().gap;
+    if(this.settings.pausedUntil>t){d.blocked="Paused by you";return d;}
+    if(this.snoozeUntil>t){d.blocked="Quiet mode after lots of fast skips (back in "+Math.max(1,Math.round((this.snoozeUntil-t)/MIN))+" min)";return d;}
+    if(this.sessionReels<(this.isDemo()?1:3)){d.blocked="Warm-up: no cards in the first few reels of a session";return d;}
+    if(this.cardsToday>=this.I().cap){d.blocked="Daily limit of "+this.I().cap+" cards reached";return d;}
+    const gap=this.currentGap(t);d.gap=gap;const ex=this.examDaysLeft(t),due=this.dueCount(t);
+    const avail=due>0||!!this.readyRequeue()||this.newAvailable(t)||(ex>=0&&ex<=3&&this.learnedCount()>0);
+    if(!avail){d.blocked="Nothing due, and today's new cards are done";return d;}
+    d.reasons.push("1 card every "+gap+" reels"+(this.rhythm.seeded&&this.adaptiveRhythm&&!this.isDemo()&&this.rhythm.multiplier()!==1?" (rhythm being learned; you started at "+base+")":" (your setting)"));
+    if(due>=20)d.reasons.push(due+" cards due, so a little more often");
+    if(ex>=0&&ex<=7)d.reasons.push("Exam in "+ex+" days: cram mode");
+    const last=this.recentReel.length?this.recentReel[this.recentReel.length-1]:0;
+    let skimming=this.recentReel.length>=3;for(let i=Math.max(0,this.recentReel.length-3);i<this.recentReel.length;i++)if(this.recentReel[i]>=SKIMMING_SEC)skimming=false;
+    if(this.reelsSinceCard>=gap){
+      if(this.adaptiveRhythm&&last>=ABSORBED_SEC&&this.postponed<2&&!this.isDemo()){this.postponed++;d.reasons.push("You watched that reel for "+Math.round(last)+" s, so waiting for a natural break");return d;}
+      d.show=true;
+    }else if(this.adaptiveRhythm&&this.reelsSinceCard===gap-1&&gap>=3&&skimming){d.show=true;d.reasons.push("You're skimming past reels: a good moment for a card");}
+    else d.reasons.push("Next card in "+(gap-this.reelsSinceCard)+" reels");
+    return d;
+  },
+  pickCard(t,force){
+    const r=this.readyRequeue();
+    if(r){this.requeue.splice(this.requeue.indexOf(r),1);const c=this.find(r.id);if(c&&!this.buried(c))return{card:c,why:"You swiped past it earlier without looking, so it's back in a different look.",short:"back again"};}
+    const ex=this.examDaysLeft(t),focus=ex>0&&ex<=14;const learning=[],reviews=[];
+    for(const c of this.cards){if(c.state===NEW||c.due>t||this.buried(c)||this.inRequeue(c))continue;(c.state===LEARNING||c.state===RELEARNING?learning:reviews).push(c);}
+    if(learning.length){const b=learning.reduce((a,c)=>c.due<a.due?c:a);return{card:b,short:"learning",why:b.state===RELEARNING?"You forgot this one recently, so it's back after a short step.":"Still learning this one: a short step after you last saw it."};}
+    if(reviews.length){
+      const rr=c=>focus?this.fsrs.recallAt(c,this.settings.examDate):this.fsrs.recallNow(c,t);
+      let best=null,bR=2;for(const c of reviews){const v=rr(c);if(v<bR){bR=v;best=c;}}
+      let switched=false;
+      if(best&&best.deck===this.lastDeck){let alt=null,aR=2;for(const c of reviews){if(c.deck===this.lastDeck)continue;const v=rr(c);if(v<aR){aR=v;alt=c;}}if(alt&&aR<=bR+.1){best=alt;bR=aR;switched=true;}}
+      let why="Due. Predicted recall "+(focus?"on exam day":"now")+" "+Math.round(bR*100)+"%, the lowest of your due cards"+(switched?" from a different subject (mixing subjects helps)":"")+".";
+      if(best.lapses>=LEECH_LAPSES)why+=" It's a tricky one: forgotten "+best.lapses+" times.";
+      if(best.saved)why+=" You saved this one.";
+      return{card:best,why,short:best.lapses>=LEECH_LAPSES?"tricky one":"due today"};
+    }
+    const limit=this.newLimit(t);
+    if(this.newToday<limit||force){const per={};for(const id of this.newShown){const c=this.find(id);if(c)per[c.deck]=(per[c.deck]||0)+1;}
+      let pn=null,few=1e9;for(const c of this.cards){if(c.state!==NEW||this.buried(c)||this.inRequeue(c))continue;const k=(per[c.deck]||0)*2+(c.deck===this.lastDeck?1:0);if(k<few){few=k;pn=c;}}
+      if(pn)return{card:pn,short:"new",why:"New card ("+(this.newToday+1)+" of "+limit+" today"+(limit>this.I().newPer?", raised so you cover the deck before your exam":"")+"). No reviews were due."};}
+    if((ex>=0&&ex<=3)||force){let weak=null,wr=2;const at=ex>=0?this.settings.examDate:t;for(const c of this.cards){if(c.state===NEW||this.buried(c)||this.inRequeue(c))continue;const v=this.fsrs.recallAt(c,at);if(v<wr){wr=v;weak=c;}}
+      if(!weak&&force&&this.cards.length)weak=pickOf(this.rnd,this.cards);
+      if(weak&&(force||wr<.97))return{card:weak,short:force?"test":"exam soon",why:force?"Test card.":"Exam in "+ex+" days: final sweep of your weakest card ("+Math.round(wr*100)+"% predicted on the day)."};}
+    return null;
+  },
+  onReelSwipe(t,host){
+    this.rollDay(t);const fresh=this.rollSession(t);const dd=this.day(this.dayKey);
+    if(!fresh){const sec=(t-this.lastSwipeAt)/1000;dd.reels++;if(sec>0&&sec<=120){dd.reelSec+=sec;this.stats.reelN++;const a=this.stats.reelN<20?1/this.stats.reelN:.05;this.stats.avgReel+=a*(sec-this.stats.avgReel);this.recentReel.push(sec);if(this.recentReel.length>6)this.recentReel.shift();}}
+    else dd.reels++;
+    this.lastSwipeAt=t;this.lastHost=host;this.sessionReels++;this.reelsSinceCard++;
+    const d=this.decide(t);this.lastDecision=d;if(!d.show)return null;return this.makeShow(t,d,false);
+  },
+  forceShow(t,host){this.rollDay(t);if(!this.lastSwipeAt){this.lastSwipeAt=t;this.sessionId++;}if(host)this.lastHost=host;return this.makeShow(t,{show:true,gap:this.currentGap(t),reasons:["Requested now (test card)"]},true);},
+  makeShow(t,d,force){
+    const p=this.pickCard(t,force);if(!p)return null;const c=p.card;
+    const allowQuiz=!!distractor(c,this.cards,()=>0),allowCaptions=c.f.length<=140;
+    const avoid=(c.bounces>0||(c.skips>0&&!c.grade))?c.layout:null;
+    const fp=this.bandit.pick(this.rnd,this.lastHost,avoid,allowQuiz,allowCaptions);
+    let sc=write(c,fp.format,this.cards,this.rnd,p.short,this.settings.vibes);
+    if(fp.format.layout==="quiz"&&sc.correct<0){fp.format.layout="bigtext";sc=write(c,fp.format,this.cards,this.rnd,p.short,this.settings.vibes);}
+    this.reelsSinceCard=0;this.postponed=0;this.cardsToday++;const dd=this.day(this.dayKey);dd.cards++;
+    (this.stats.layout[fp.format.layout]=this.stats.layout[fp.format.layout]||[0,0])[0]++;
+    if(c.state===NEW&&!this.newShown.has(c.id)){this.newShown.add(c.id);this.newToday++;dd.newSeen++;}
+    c.layout=fp.format.layout;this.lastDeck=c.deck;
+    this.log.unshift("Showed “"+(c.f.length>48?c.f.slice(0,47)+"…":c.f)+"” as "+LABEL[fp.format.layout]+" ("+p.short+")");this.log.length=Math.min(this.log.length,40);
+    return{card:c,f:fp.format,s:sc,host:this.lastHost,test:force,short:p.short,explored:fp.explored,detail:fp.detail,why:{when:d.reasons,which:p.why}};
+  },
+  onCardFinished(sh,o,t){
+    this.rollDay(t);const c=sh.card;const quiz=sh.f.layout==="quiz"&&sh.s.correct>=0;
+    const g=gradeOf(o,quiz,sh.s.correct,c.f,sh.s.options.join(" "));const dd=this.day(this.dayKey);let summary;
+    const sec=o.dwell/1000;if(sec>0&&sec<=120){dd.cardSec+=sec;this.stats.cardN++;const a=this.stats.cardN<20?1/this.stats.cardN:.05;this.stats.avgCard+=a*(sec-this.stats.avgCard);}
+    let ivl=-1;
+    if(g){
+      dd.reviews++;dd[GL[g]]++;c.bounces=0;
+      if(c.state===REVIEW&&c.last)this.calibration.add((t-c.last)/DAY,c.s,g!==1);
+      ivl=this.fsrs.review(c,g,t,this.settings.examDate);
+      const note=g===3&&o.likedBefore?" (knew it, but slowly)":g===2?(o.hintAt>0?" (with a hint)":" (right, but slowly)"):"";
+      summary="Graded "+GL[g][0].toUpperCase()+GL[g].slice(1)+note+" → next in "+human(ivl);
+      if(this.calibration.maybeRefit(this.fsrs))summary+=" · memory calibration updated (×"+this.calibration.scale+")";
+      if(c.lapses>=LEECH_LAPSES&&g===1)summary+=" · flagged as a tricky card";
+      this.anki.unshift({g:GL[g],line:"answerCard(note="+c.id+", ease="+g+", time_taken="+Math.round(o.dwell)+"ms) → next in "+human(ivl)});this.anki.length=Math.min(this.anki.length,40);
+    }else{
+      dd.skips++;c.skips++;c.bounces++;(this.stats.layout[sh.f.layout]=this.stats.layout[sh.f.layout]||[0,0])[1]++;if(fastSkip(o))dd.fastSkips++;
+      if(c.bounces>=2){c.buriedUntil=this.sessionId;summary="Skipped twice this session → saved for next session, in a different look";}
+      else{this.requeue.push({id:c.id,at:this.sessionReels+3});summary="Not graded (swiped past) → back in 3 reels";}
+    }
+    if(o.saved&&!c.saved){c.saved=true;if(c.state===REVIEW&&c.due>t+DAY)c.due=t+DAY;summary+=" · saved: back within a day";}
+    if(o.shared)summary+=" · shared";
+    const rw=reward(o);this.bandit.update(sh.f,sh.host,rw);summary+=" · look scored "+rw.toFixed(2);
+    if(this.adaptiveRhythm&&!this.isDemo()&&!sh.test){const before=this.currentGap(t);if(this.rhythmArm>=0)this.rhythm.update(this.rhythmArm,engaged(o)?1:0);this.rhythmArm=this.rhythm.choose(this.rnd,this.I().gap);const after=this.currentGap(t);if(after!==before)summary+=" · next card in ~"+after+" reels";}
+    this.recentFast.push(fastSkip(o));if(this.recentFast.length>10)this.recentFast.shift();
+    let tail=0;for(let i=this.recentFast.length-1;i>=0&&this.recentFast[i];i--)tail++;
+    if(tail>=5){this.snoozeUntil=t+15*MIN;this.recentFast=[];summary+=" · 5 fast skips in a row → quiet mode for 15 min";}
+    this.lastSwipeAt=t;this.log.unshift(summary);this.log.length=Math.min(this.log.length,40);
+    return{grade:g?GL[g]:null,summary,ivl};
+  },
+  recallRate(k,n){let ok=0,all=0;for(const key in this.stats.days){if(+key<=k-n)continue;const d=this.stats.days[key];ok+=d.good+d.easy+d.hard;all+=d.reviews;}return all?ok/all:-1;},
+  streak(k){let s=0,x=k;const t=this.stats.days[x];if(!t||!t.reviews)x--;while(this.stats.days[x]&&this.stats.days[x].reviews){s++;x--;}return s;},
+  forecast(t){
+    const f={mins:this.settings.minutesPerDay||60};const ex=this.examDaysLeft(t);const gap=this.currentGap(t);f.gap=gap;
+    const cycle=gap*this.stats.avgReel+this.stats.avgCard;const raw=Math.floor(f.mins*60/cycle);f.perDay=Math.min(this.I().cap,raw);f.capped=raw>this.I().cap;f.minsOnCards=Math.round(f.perDay*this.stats.avgCard/60);
+    f.newLeft=this.newRemaining();f.newPer=Math.max(1,Math.min(this.newLimit(t),Math.floor(f.perDay/5)));f.days=f.newLeft?Math.ceil(f.newLeft/f.newPer):0;f.ex=ex;
+    if(ex>0){f.onTrack=f.days<=ex;f.need=Math.ceil(Math.ceil(f.newLeft/ex)*5*cycle/60);}return f;
+  }
+};
+function human(days){if(days<1/24)return Math.max(1,Math.round(days*1440))+" min";if(days<1)return Math.round(days*24)+" h";const d=Math.round(days);return d+(d===1?" day":" days");}
+function makeCard(id,deck,f,b,x){return{id,deck,f,b,x:x||"",state:NEW,step:0,s:0,d:0,due:0,last:0,reps:0,lapses:0,skips:0,bounces:0,buriedUntil:-1,grade:null,layout:null,saved:false};}
+
+return{MIN,DAY,NEW,LEARNING,REVIEW,RELEARNING,STATE,DIMS,PIECES,VIBES,LABEL,DIMLABEL,INT,MULT,Engine,Fsrs,makeCard,human,write,hint,gradeOf,fastSkip,engaged,reward,beta,fkey};
+})();
+
+/* Card reel renderer: draws a Show exactly like a reel in the host app. Mirrors app/.../CardView.java. */
+"use strict";
+const Render = (function(){
+const esc = s => String(s == null ? "" : s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+/* Look palettes. Light looks get a night version between 22:00 and 06:00 (no bright white at 1am). */
+const LOOKS = {
+  caption: {bg:"#0e0e10", fg:"#ffffff", acc:"#ffe14d", accfg:"#0e0e10", panel:"rgba(0,0,0,.55)", bubble:"#2a2a30", light:false},
+  subtitle:{bg:"#101014", fg:"#ffffff", acc:"#ffe14d", accfg:"#101014", panel:"rgba(0,0,0,.72)", bubble:"#2a2a30", light:false},
+  clean:   {bg:"#f3f1ec", fg:"#16161a", acc:"#2f6bff", accfg:"#ffffff", panel:"#e2dfd6", bubble:"#ffffff", light:true,
+            night:{bg:"#141312", fg:"#ede7da", acc:"#8fb0ff", accfg:"#0d0d10", panel:"#26231f", bubble:"#2d2a25", light:false}},
+  neon:    {bg:"#0b0620", fg:"#f4f0ff", acc:"#ff4fd8", accfg:"#0b0620", panel:"rgba(35,26,69,.85)", bubble:"#342866", light:false},
+  paper:   {bg:"#fff6d6", fg:"#2b2118", acc:"#e4572e", accfg:"#ffffff", panel:"#f1e5b8", bubble:"#fffbea", light:true,
+            night:{bg:"#1f2a24", fg:"#eef2e6", acc:"#ffd166", accfg:"#1f2a24", panel:"#2b3a31", bubble:"#2f3f35", light:false}} // chalkboard
+};
+function palette(look, night, tint){
+  let L = LOOKS[look] || LOOKS.caption;
+  if (night && L.night) L = L.night;
+  L = Object.assign({}, L);
+  if (tint != null && !L.light) { // match the colour of the reel they just watched (opt-in)
+    L.bg = "hsl(" + tint + " 42% 12%)"; L.panel = "hsla(" + tint + ",40%,8%,.72)"; L.bubble = "hsl(" + tint + " 30% 22%)";
+  }
+  return L;
+}
+
+/* Icons: generic outline shapes drawn for Reelcards (no platform logos). */
+const I = {
+  heart: f => '<svg viewBox="0 0 24 24" fill="'+(f?"currentColor":"none")+'" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 20.5s-7.5-4.6-9.2-9.4C1.6 7.6 3.8 4.2 7.2 4.2c2 0 3.6 1.1 4.8 2.9 1.2-1.8 2.8-2.9 4.8-2.9 3.4 0 5.6 3.4 4.4 6.9-1.7 4.8-9.2 9.4-9.2 9.4z"/></svg>',
+  thumb: f => '<svg viewBox="0 0 24 24" fill="'+(f?"currentColor":"none")+'" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M7 10v11H3V10h4zm0 0 4.5-7.5c1.6 0 2.7 1.3 2.4 2.9L13.2 10H19a2 2 0 0 1 2 2.3l-1.3 7A2 2 0 0 1 17.7 21H7"/></svg>',
+  bubble: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 3.5c5 0 9 3.4 9 7.7s-4 7.7-9 7.7c-1 0-2-.1-2.9-.4L4 20.5l1.3-4C3.8 15 3 13.2 3 11.2 3 6.9 7 3.5 12 3.5z"/><circle cx="8" cy="11.2" r="1" fill="currentColor"/><circle cx="12" cy="11.2" r="1" fill="currentColor"/><circle cx="16" cy="11.2" r="1" fill="currentColor"/></svg>',
+  bookmark: f => '<svg viewBox="0 0 24 24" fill="'+(f?"currentColor":"none")+'" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M6 3.5h12v17l-6-4.2-6 4.2z"/></svg>',
+  share: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M13.5 4.5 21 11l-7.5 6.5v-3.8C8 13.7 5 15.5 3 19.5c.6-5.8 3.6-9.9 10.5-11z"/></svg>',
+  send: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M21 3.5 3 10.2l7.2 2.6L21 3.5zm0 0-7.6 17-3.2-7.7"/></svg>',
+  note: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M9 17.5a3 3 0 1 1-2-2.8V5l11-2v11.5a3 3 0 1 1-2-2.8V7.3l-7 1.3z"/></svg>'
+};
+
+/* The key word in a question: the longest word of 5+ letters (what auto-captions highlight). */
+function keyWord(q){ let best = -1, len = 0; q.split(/\s+/).forEach((w,i)=>{ const b = w.replace(/[^\p{L}\p{N}]/gu,""); if (b.length > len && b.length >= 5) { len = b.length; best = i; } }); return best; }
+function withEm(q, upper){ const words = q.split(/\s+/), k = keyWord(q); return words.map((w,i)=> i===k ? "<em>"+esc(upper?w.toUpperCase():w)+"</em>" : esc(upper?w.toUpperCase():w)).join(" "); }
+
+function questionHTML(it, scale){
+  const look = it.f.look, q = it.s.q;
+  const size = {caption:34, subtitle:27, clean:31, neon:36, paper:40}[look] || 32;
+  // long questions shrink so they always fit the safe zone
+  const len = q.length, fit = len > 110 ? .7 : len > 80 ? .8 : len > 55 ? .9 : 1;
+  // never break a word: the longest word must fit the ~250px text column
+  const longest = Math.max(...q.split(/\s+/).map(w=>w.length));
+  const em = {caption:.66, subtitle:.6, clean:.58, neon:.5, paper:.45}[look] || .6;
+  const px = Math.round(Math.min(size * scale * fit, 244 / (longest * em)));
+  if (look === "subtitle") return '<h2 class="q" style="font-size:'+px+'px"><span>'+withEm(q,false)+'</span></h2>';
+  return '<h2 class="q" style="font-size:'+px+'px">'+withEm(q, look==="caption"||look==="neon")+'</h2>';
+}
+
+function revealOrAnswer(it){
+  const hintChip = it.hinted && !it.revealed ? '<div class="hintchip"><b>Hint</b> '+esc(it.s.hint)+'</div>' : '';
+  if (!it.revealed) return hintChip + revealButton(it);
+  if (it.revealed) return '<div class="ans"><div class="a1">'+esc(it.s.a)+'</div>'+(it.s.x?'<div class="a2">'+esc(it.s.x)+'</div>':'')+'</div>';
+  return revealButton(it);
+}
+function revealButton(it){ return '<button class="reveal" data-act="reveal"><span class="ring">'+(it.count==null?3:it.count)+'</span><span>'+esc(it.s.prompt)+'</span></button>'; }
+
+function bodyHTML(it){
+  const s = it.s, lay = it.f.layout;
+  if (lay === "chat") {
+    return '<div class="chat"><div class="chathead"><i>'+esc(s.name[0])+'</i><span><b>'+esc(s.name)+'</b><small>revision chat · now</small></span></div>'+
+      s.them.map(t=>'<div class="bub them">'+esc(t)+'</div>').join("")+
+      (it.revealed ? s.me.map(t=>'<div class="bub me">'+esc(t)+'</div>').join("")+'<div class="bub them">'+esc(s.after)+'</div>'
+                   : (it.hinted?'<div class="bub me" style="opacity:.8">'+esc(it.s.hint)+'…</div>':'')+'<button class="typing" data-act="reveal" aria-label="Show the reply"><span>•</span> <span>•</span> <span>•</span></button>')+'</div>';
+  }
+  if (lay === "comment") {
+    return '<div class="sticker"><i></i><div><small>Reply to '+esc(s.commentUser)+'’s comment</small><span>'+esc(s.commentText)+'</span></div></div>'+
+      questionHTML(it,.82)+revealOrAnswer(it);
+  }
+  if (lay === "quiz" && s.correct >= 0) {
+    const opts = s.options.map((o,i)=>{ let cls = "opt"; if (it.pick >= 0) { if (i===s.correct) cls += " right"; else if (i===it.pick) cls += " wrong"; else cls += " dim"; }
+      return '<button class="'+cls+'" data-act="pick" data-v="'+i+'"><span class="l">'+"AB"[i]+'</span>'+esc(o)+'</button>'; }).join("");
+    return '<div class="hook">'+esc(s.hook)+'</div><div class="poll"><div class="pq">'+esc(s.q)+'</div>'+(it.hinted&&it.pick<0?'<div class="pollnote"><b>Hint</b> '+esc(s.hint)+'</div>':'')+opts+
+      (it.pick>=0?'<div class="pollnote"><b>'+(it.pick===s.correct?"You got it.":"Classic trap. It's "+esc(s.a)+".")+'</b> '+esc(s.x)+'</div>':'')+'</div>';
+  }
+  if (lay === "captions" && s.beats.length) {
+    const n = it.beat == null ? 0 : it.beat;
+    if (n < s.beats.length && !it.revealed) {
+      const words = s.beats[n].split(" "), hi = s.hl[n];
+      const upper = it.f.look !== "paper" && it.f.look !== "clean";
+      const inner = words.map((w,k)=> k===hi ? "<em>"+esc(upper?w.toUpperCase():w)+"</em>" : esc(upper?w.toUpperCase():w)).join(" ");
+      const bl = Math.max(...words.map(w=>w.length)), bpx = Math.round(Math.min(40, 250 / (bl * (upper ? .66 : .5))));
+      return '<div class="hook">'+esc(s.hook)+'</div><div class="beat" style="font-size:'+bpx+'px">'+(it.f.look==="subtitle"?'<span>'+inner+'</span>':inner)+'</div>'+
+        '<div class="beatcount">'+s.beats.map((_,k)=>'<i class="'+(k<=n?"on":"")+'"></i>').join("")+'</div>';
+    }
+    return '<div class="hook">'+esc(s.hook)+'</div>'+questionHTML(it,.8)+revealOrAnswer(it);
+  }
+  return '<div class="hook">'+esc(s.hook)+'</div>'+questionHTML(it, lay==="split"?.8:1)+revealOrAnswer(it);
+}
+
+function vibeHTML(it){
+  const v = it.s.vibe; if (!v) return "";
+  const good = it.liked || (it.pick>=0 && it.pick===it.s.correct), bad = (it.pick>=0 && it.pick!==it.s.correct) || (it.revealed && !it.liked && it.f.layout!=="quiz" && it.done);
+  switch (v) {
+    case "football": return '<div class="vibe"><div class="score"><span class="t">YOU</span><b>'+(good?1:0)+'–'+(bad?1:0)+'</b><span>EXAM</span></div><span class="vpill" style="background:#101418;color:#fff">90+3′</span></div>';
+    case "gaming": return '<div class="vibe"><div class="hud">LVL 7 <i><b style="width:'+(good?"78%":"35%")+'"></b></i></div></div>';
+    case "music": return '<div class="vibe"><span class="vpill"><span class="eqmini"><i></i><i></i><i></i></span> revision mix</span></div>';
+    case "fitness": return '<div class="vibe"><span class="vpill">'+(good?"PR ✓":"SET 1 · REP 1")+'</span></div>';
+    case "beauty": return '<div class="vibe"><span class="vpill">✦ GRWM · revision edition</span></div>';
+    case "food": return '<div class="vibe"><span class="vpill">let it cook · 0:03</span></div>';
+    case "comedy": return '<div class="vibe"><span class="vpill">no laughing</span></div>';
+    default: return "";
+  }
+}
+
+function railHTML(it, host){
+  const liked = it.liked, s = it.s;
+  const like = host==="youtube" ? I.thumb(liked) : I.heart(liked);
+  const share = host==="instagram" ? I.send : I.share;
+  const initial = esc((it.card.deck||"R").replace(/^(GCSE|A-level)\s+/i,"")[0]||"R");
+  return '<div class="rail"><div class="av" aria-hidden="true">'+initial+'</div>'+
+    '<button data-act="like" class="'+(liked?"on":"")+'" aria-label="Like: I knew it">'+like+'<span>'+(liked?(it.likedBefore?"Easy":"Good"):"Knew it")+'</span></button>'+
+    '<button data-act="hint" aria-label="Hint">'+I.bubble+'<span>Hint</span></button>'+
+    '<button data-act="save" class="'+(it.saved?"saved":"")+'" aria-label="Save for later">'+I.bookmark(it.saved)+'<span>'+(it.saved?"Saved":"Save")+'</span></button>'+
+    '<button data-act="share" aria-label="Share with a friend">'+share+'<span>Share</span></button></div>';
+}
+
+function bandHTML(it, host){
+  const s = it.s, deck = it.card.deck || "Study";
+  const tags = "#" + deck.toLowerCase().replace(/[^a-z0-9 ]/g,"").trim().split(/\s+/).slice(0,2).join(" #");
+  const ini = esc(deck.replace(/^(GCSE|A-level)\s+/i,"")[0]||"R");
+  if (host === "youtube") return '<div class="band"><div class="title">'+esc(s.cap)+' '+esc(tags)+'</div><div class="who"><span class="dot">'+ini+'</span>'+esc(s.account)+' <span class="pill">'+esc(deck.replace(/^GCSE\s+/,""))+'</span></div><div class="sound">'+I.note+'<span>'+esc(s.sound)+'</span></div></div>';
+  if (host === "instagram") return '<div class="band"><div class="who"><span class="dot">'+ini+'</span>'+esc(s.account.slice(1))+' <span class="pill">'+esc(deck.replace(/^GCSE\s+/,""))+'</span></div><div>'+esc(s.cap)+' <span class="tags">'+esc(tags)+'</span></div><div class="sound">'+I.note+'<span>'+esc(s.sound.replace("original sound","Original audio"))+'</span></div></div>';
+  return '<div class="band"><div class="who">'+esc(s.account)+'</div><div>'+esc(s.cap)+' <span class="tags">'+esc(tags)+'</span></div><div class="sound">'+I.note+'<span>'+esc(s.sound)+'</span></div></div>';
+}
+
+/* it: {card, f, s, host, revealed, liked, likedBefore, pick, saved, hinted, beat, count}; opts: {night, tint} */
+function card(it, opts){
+  opts = opts || {};
+  const host = it.host==="instagram"||it.host==="youtube" ? it.host : "tiktok";
+  const sheetLook = it.f.look==="clean"||it.f.look==="paper";
+  const L = palette(it.f.look, opts.night && sheetLook, opts.tint);
+  // light looks are drawn as a notes "sheet" floating over dark footage (like a creator screenshotting
+  // their notes), so the card still reads as a reel rather than a slide
+  const sheet = sheetLook && it.f.layout!=="quiz";
+  const cls = ["card","h-"+host,"k-"+it.f.look,"l-"+it.f.layout, sheet?"sheet":"", opts.night?"night":""].join(" ");
+  const vars = "--fg:"+L.fg+";--acc:"+L.acc+";--accfg:"+L.accfg+";--panel:"+L.panel+";--bubble:"+L.bubble+";--bgc:"+(sheetLook?(opts.tint!=null?"hsl("+opts.tint+" 42% 12%)":"#0f0f12"):L.bg)+";--sheet:"+L.bg;
+  const bg = it.f.bg, split = it.f.layout==="split";
+  const bgOpacity = sheetLook ? .6 : (it.f.look==="subtitle" ? .75 : .42);
+  let back = "";
+  if (split) back += '<div class="splittop"><div class="bgl bg-'+(bg==="plain"?"gameplay":bg)+'"></div></div>'; // split-screen always has footage on top
+  else if (bg!=="plain") back += '<div class="bgl bg-'+bg+'" style="opacity:'+bgOpacity+'"></div>';
+  const badge = it.liked ? (it.hinted ? "With a hint · Hard" : it.likedBefore ? "Knew it · Easy" : "Knew it · Good") : (it.pick>=0 ? (it.pick===it.s.correct ? "Correct" : "Not quite") : "");
+  const coach = opts.coach ? '<div class="coach" aria-hidden="true">Tap to see the answer · Double-tap if you knew it</div>' : '';
+  return '<div class="'+cls+'" data-card style="'+vars+'">'+back+'<div class="scrim"></div>'+vibeHTML(it)+coach+
+    '<div class="body">'+bodyHTML(it)+'</div>'+
+    (badge?'<span class="badge">'+badge+'</span>':'')+
+    railHTML(it, host)+bandHTML(it, host)+'<div class="prog"><i></i></div></div>';
+}
+
+/* A normal reel from someone's feed (the thing the card sits between). */
+function plainReel(n, hue, host){
+  const creators=["@dan.cooks","@footy.clips","@mia.dance","@techtalk","@catsofldn","@gymtok.sam","@fitcheck","@minecraft.builds"],caps=["wait for the ending","day 12 of learning to cook","this goal though","rate this fit","he really did that","tutorial in comments"];
+  return '<div class="reel plain-reel" style="background:radial-gradient(circle at 50% 35%,hsl('+hue+' 45% 30%),hsl('+hue+' 40% 12%))"><div class="big">Reel '+n+'</div><div class="small">(their normal '+({instagram:"Instagram",youtube:"YouTube"}[host]||"TikTok")+' video plays here)</div>'+
+    '<div style="position:absolute;left:18px;bottom:15%;text-align:left;color:#fff;font-size:13px;text-shadow:0 1px 2px #000"><b style="font-size:14px">'+creators[n%8]+'</b><br>'+caps[n%6]+'</div></div>';
+}
+
+return {card, plainReel, esc, LOOKS, I};
+})();
+
+/* The demo app: setup screens, the feed, the dashboard, the judge panels, the design lab and a simulated student. */
+(function(){
+"use strict";
+const $ = id => document.getElementById(id);
+const esc = Render.esc;
+const {MIN, DAY, NEW, REVIEW, STATE, LABEL, PIECES, VIBES} = RC;
+const makeCard = RC.makeCard;
+const DECKS={
+"GCSE Biology":[
+["What does the mitochondria actually do?","Aerobic respiration","It releases energy from glucose for the cell."],
+["What's the difference between osmosis and diffusion?","Osmosis is diffusion of water","Water moves across a partially permeable membrane, from a dilute to a more concentrated solution."],
+["Which enzyme breaks down starch?","Amylase","Made in the salivary glands and pancreas. Starch in, sugars out."],
+["Which organ actually makes bile?","The liver","The gall bladder only stores it."],
+["What do ribosomes do?","Make proteins","They're where protein synthesis happens."],
+["Word equation for photosynthesis?","Carbon dioxide + water → glucose + oxygen","Needs light energy. Happens in the chloroplasts."],
+["What carries oxygen in red blood cells?","Haemoglobin","It becomes oxyhaemoglobin in the lungs."],
+["Where does gas exchange happen in the lungs?","The alveoli","Huge surface area, thin walls and a great blood supply."],
+["Which type of cell division makes gametes?","Meiosis","Four genetically different cells, each with half the chromosomes."],
+["What does insulin do?","Lowers blood glucose","It makes cells take in glucose. The liver and muscles store extra as glycogen."],
+["Which organ releases insulin?","The pancreas","It monitors and controls blood glucose."],
+["What's the job of white blood cells?","Fight pathogens","Phagocytosis, plus making antibodies and antitoxins."],
+["What controls what enters and leaves a cell?","The cell membrane","It's partially permeable."],
+["Where is the genetic material in an animal cell?","In the nucleus","Bacteria have no nucleus: their DNA floats in the cytoplasm."],
+["What are enzymes?","Biological catalysts","They speed up reactions without being used up."],
+["What does lipase break down?","Lipids (fats)","Into fatty acids and glycerol."],
+["What does protease break down?","Proteins","Into amino acids."],
+["Word equation for aerobic respiration?","Glucose + oxygen → carbon dioxide + water","It releases energy."],
+["What does anaerobic respiration in muscles make?","Lactic acid","It builds up and causes an oxygen debt."],
+["What does xylem carry?","Water and mineral ions","From the roots up to the leaves."],
+["What does phloem carry?","Dissolved sugars","Around the plant, both ways. This is translocation."],
+["What are stomata?","Tiny holes in leaves","They let gases in and out. Guard cells open and close them."],
+["What type of pathogen causes measles?","A virus","Spread by droplets from coughs and sneezes."],
+["What do antibiotics kill?","Bacteria","They don't work on viruses."],
+["Which blood vessels carry blood away from the heart?","Arteries","Thick, elastic walls to handle high pressure."],
+["What's the smallest type of blood vessel?","Capillaries","Walls one cell thick, so substances diffuse in and out easily."],
+["Which hormone triggers ovulation?","LH (luteinising hormone)","Released by the pituitary gland."],
+["What's the main male reproductive hormone?","Testosterone","Made in the testes."],
+["What does DNA stand for?","Deoxyribonucleic acid","A polymer made of two strands in a double helix."],
+["What is a gene?","A small section of DNA","It codes for a sequence of amino acids to make a specific protein."]],
+"GCSE Chemistry":[
+["What's the charge on a proton?","+1","Electrons are −1. Neutrons have no charge."],
+["What does the atomic number tell you?","The number of protons","Every atom of an element has the same number."],
+["What's the mass number?","Protons + neutrons","Electrons weigh almost nothing."],
+["What are isotopes?","Same element, different number of neutrons","Same protons, so same chemistry."],
+["What bond forms between a metal and a non-metal?","Ionic bond","Electrons are transferred."],
+["What bond forms between two non-metals?","Covalent bond","Electrons are shared."],
+["What's the pH of a neutral solution?","7","Below 7 is acidic, above 7 is alkaline."],
+["Acid + alkali → ?","Salt + water","That's neutralisation."],
+["What gas do metals make when they react with acids?","Hydrogen","Test: a lit splint gives a squeaky pop."],
+["How do you test for carbon dioxide?","Bubble it through limewater","Limewater turns milky (cloudy)."],
+["How do you test for oxygen?","A glowing splint relights","Oxygen supports combustion."],
+["How do you test for chlorine?","Damp litmus paper is bleached","It turns white."],
+["What are the Group 1 metals called?","The alkali metals","They get more reactive going down the group."],
+["What are the Group 0 elements called?","The noble gases","Unreactive: full outer shell."],
+["What does a catalyst do?","Speeds up a reaction without being used up","It lowers the activation energy."],
+["What's an exothermic reaction?","One that gives out energy","The surroundings get warmer."],
+["Formula of water?","H₂O","Two hydrogen atoms, one oxygen."],
+["Formula of carbon dioxide?","CO₂","One carbon, two oxygens."],
+["What is crude oil mostly made of?","Hydrocarbons","Compounds of hydrogen and carbon only."],
+["General formula of the alkanes?","CₙH₂ₙ₊₂","e.g. methane CH₄, ethane C₂H₆."]],
+"GCSE Spanish":[
+["Spanish for “the weekend”?","el fin de semana","Los fines de semana = at weekends."],
+["Spanish for “I went”?","fui","Preterite of ir. Also means “I was” (ser)."],
+["Spanish for “the beach”?","la playa","Fui a la playa = I went to the beach."],
+["Spanish for “I would like”?","me gustaría","Me gustaría ir a España."],
+["Spanish for “yesterday”?","ayer","A time phrase for the preterite."],
+["Spanish for “tomorrow”?","mañana","Also means “morning”."],
+["Spanish for “to eat”?","comer","Como = I eat. Comí = I ate."],
+["Spanish for “I have”?","tengo","From tener. Tengo que = I have to."],
+["Spanish for “my family”?","mi familia","Mis padres = my parents."],
+["Spanish for “school subject”?","la asignatura","Mi asignatura favorita es…"],
+["Spanish for “boring”?","aburrido","Aburrida for a feminine noun."],
+["Spanish for “fun”?","divertido","Es muy divertido."],
+["Spanish for “because”?","porque","Por qué? (two words, accent) = why?"],
+["Spanish for “however”?","sin embargo","A connective that impresses examiners."],
+["Spanish for “I usually…”?","suelo + infinitive","Suelo ir al cine = I usually go to the cinema."],
+["Spanish for “there is / there are”?","hay","Hay un parque = there is a park."],
+["Spanish for “the environment”?","el medio ambiente","Proteger el medio ambiente."],
+["Spanish for “to help”?","ayudar","Ayudo en casa = I help at home."],
+["Spanish for “healthy”?","sano","Also saludable. Una dieta sana."],
+["Spanish for “last summer”?","el verano pasado","Another preterite time phrase."]]
+};
+const EXAMPLE_NOTES="Osmosis - diffusion of water across a partially permeable membrane\nMitochondria: site of aerobic respiration\nEnzymes are biological catalysts.\nQ: Which organ makes bile?\nA: The liver\nPhotosynthesis = carbon dioxide + water → glucose + oxygen\nChlorophyll - green pigment that absorbs light\nthe bit about the heart i never remember lol";
+
+function parseNotes(text,deck){
+  const out={cards:[],skipped:0};const lines=String(text||"").replace(/\r\n?/g,"\n").split("\n");let pq=null;
+  const words=s=>s.trim()?s.trim().split(/\s+/).length:0;
+  const cap=s=>s?s[0].toUpperCase()+s.slice(1):s;
+  const lf=s=>{if(!s)return s;if(s.length>1&&/[A-Z]/.test(s[1]))return s;const first=s.split(/\s+/)[0];if(first.length>1&&/[A-Z]/.test(first.slice(1)))return s;return s[0].toLowerCase()+s.slice(1);};
+  const asQ=f=>{f=f.trim();if(f.endsWith("?"))return f;if(words(f)<=5&&!/[“"]/.test(f)){const acr=f.length>1&&f===f.toUpperCase();return "What is "+(acr?f:lf(f))+"?";}return f;};
+  const add=(f,b,x)=>{f=f.trim();b=b.trim();if(!f||!b||f.length>200||b.length>220){out.skipped++;return;}let h=0;const key=deck+"|"+f+"|"+b;for(let i=0;i<key.length;i++)h=(h*31+key.charCodeAt(i))|0;out.cards.push(makeCard("notes-"+(h>>>0).toString(16),deck,f,b,x||""));};
+  for(const raw of lines){
+    let line=raw.replace(/<[^>]+>/g," ").replace(/&nbsp;/g," ").replace(/&amp;/g,"&").replace(/^\s*(?:[-*•·▪◦]|\d+[.)]|[a-z][.)])\s+/,"");
+    line=line.split("\t").map(p=>p.replace(/\s+/g," ").trim()).join("\t").trim();
+    if(!line||line.startsWith("#"))continue;
+    const low=line.toLowerCase();
+    let m=line.match(/^(?:q|question)\s*[:.]\s*(.*)$/i);
+    if(m&&(low.startsWith("q:")||low.startsWith("q.")||low.startsWith("question:"))){if(pq!==null)out.skipped++;pq=m[1].trim();continue;}
+    m=line.match(/^(?:a|answer)\s*[:.]\s*(.*)$/i);
+    if(m&&(low.startsWith("a:")||low.startsWith("a.")||low.startsWith("answer:"))){if(pq&&m[1].trim())add(pq,m[1],"");else out.skipped++;pq=null;continue;}
+    if(pq!==null){out.skipped++;pq=null;}
+    if(line.includes("\t")){const cols=line.split("\t");if(cols.length>=2&&cols[0]&&cols[1])add(asQ(cols[0]),cols[1],cols[2]||"");else out.skipped++;continue;}
+    let pair=null;for(const s of[" :: "," - "," – "," — "," = "," -> "," → "]){const i=line.indexOf(s);if(i>0&&i+s.length<line.length){const a=line.slice(0,i).trim(),b=line.slice(i+s.length).trim();if(a&&b&&a.length<=120){pair=[a,b];break;}}}
+    if(!pair){const c=line.indexOf(": ");if(c>0&&c<=60){const a=line.slice(0,c).trim(),b=line.slice(c+2).trim();if(a&&b&&words(a)<=8)pair=[a,b];}}
+    if(pair){add(asQ(pair[0]),cap(pair[1]),"");continue;}
+    m=line.match(/^(.{2,60}?)\s+(is|are)\s+called\s+(.{1,120}?)[.!]?$/i);if(m&&words(m[1])<=8){add("What "+m[2].toLowerCase()+" "+lf(m[1])+" called?",cap(m[3]),line);continue;}
+    m=line.match(/^(.{2,60}?)\s+means\s+(.{2,160}?)[.!]?$/i);if(m&&words(m[1])<=8){add("What does "+lf(m[1])+" mean?",cap(m[2]),"");continue;}
+    m=line.match(/^(.{2,60}?)\s+(is|are)\s+(.{2,160}?)[.!]?$/i);if(m&&words(m[1])<=6&&words(m[3])<=22){add("What "+m[2].toLowerCase()+" "+lf(m[1])+"?",cap(m[3]),"");continue;}
+    out.skipped++;
+  }
+  return out;
+}
+
+
+const PRE = {"GCSE Biology":"bio","GCSE Chemistry":"chem","GCSE Spanish":"es"};
+const deckCards = name => DECKS[name].map((r,i)=>makeCard(PRE[name]+"-"+(i+1), name, r[0], r[1], r[2]));
+const HOSTS = [["tiktok","TikTok"],["instagram","Instagram"],["youtube","YouTube"]];
+
+let E, UI, offset = 0;
+const now = () => Date.now() + offset;
+function freshUI(){ return {screen:"welcome", onboarded:false, addMode:false, decks:new Set(), notes:[], notesDeck:"My notes", notesText:"", notesResult:null,
+  exam:14, intensity:"normal", vibes:new Set(), permission:false, settingsOpen:false, err:"", current:null, reelN:0, why:null, toast:"", confirmReset:false,
+  host:"tiktok", lastHue:null, firstDay:null, coachLeft:2}; }
+function resetAll(){ offset = 0; E = new RC.Engine(); E.settings.minutesPerDay = +$("mins").value; const h = UI ? UI.host : "tiktok"; UI = freshUI(); UI.host = h; }
+
+/* ---------------- night mode + colour match ---------------- */
+function isNight(){ const m = $("night").value; if (m==="on") return true; if (m==="off") return false; const h = new Date(now()).getHours(); return h >= 22 || h < 6; }
+function cardOpts(){ return {night:isNight(), tint: $("tint").checked && UI.lastHue!=null ? UI.lastHue : null}; }
+
+/* ---------------- voiceover (browser speech) ---------------- */
+function speak(t){ if (!$("voice").checked || !window.speechSynthesis) return; try { speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance(t); u.rate = 1.08; speechSynthesis.speak(u); } catch(e){} }
+function hush(){ try { window.speechSynthesis && speechSynthesis.cancel(); } catch(e){} }
+
+/* ---------------- phone screens ---------------- */
+const stepbar = n => '<div class="steplbl">Step '+n+' of 4</div><div class="stepbar">'+[1,2,3,4].map(i=>'<i class="'+(i<=n?"on":"")+'"></i>').join("")+'</div>';
+const choice = (act,val,title,sub,on,dis) => '<button class="choice'+(on?" on":"")+'" data-act="'+act+'" data-v="'+esc(val)+'"'+(dis?" disabled":"")+'><span class="t"><b>'+esc(title)+'</b>'+(sub?'<small>'+esc(sub)+'</small>':'')+'</span><span class="m">'+(on?"✓":"")+'</span></button>';
+const tabs = () => UI.onboarded ? '<div class="tabs"><button data-act="tab" data-v="dash" class="'+(UI.screen==="dash"?"on":"")+'">Reelcards</button><button data-act="tab" data-v="feed" class="'+(UI.screen==="feed"?"on":"")+'">For You</button></div>' : "";
+let timers = [];
+const clearTimers = () => { timers.forEach(clearTimeout); timers = []; };
+
+function renderPhone(anim){
+  clearTimers();
+  const scr = $("screen"); let h = "";
+  switch (UI.screen) {
+    case "welcome":
+      h = '<div class="app"><div class="steplbl">Reelcards</div><h3>Revise without trying</h3><p>Your flashcards slip in between your TikTok, Instagram and YouTube Shorts reels, looking just like another reel. Double-tap if you know it. Swipe if you don\'t.</p>'+
+        '<div class="box"><b>How it feels</b><span class="muted" style="font-size:13px">Reel, reel, reel, <span style="color:var(--accent)">flashcard</span>, reel… Each card is styled for the app you\'re in and the things you watch, so it doesn\'t feel like homework.</span></div>'+
+        '<button class="abtn" data-act="go" data-v="decks">Set up in 1 minute</button><p class="muted" style="font-size:12px">Free. Works offline. Nothing you watch is saved or sent anywhere.</p></div>'; break;
+    case "decks": {
+      const have = n => E.cards.some(c=>c.deck===n);
+      h = '<div class="app">'+(UI.addMode?"":stepbar(1))+'<h3>'+(UI.addMode?"Add cards":"What are you revising?")+'</h3><p class="muted">Pick a ready-made deck, paste your notes, or use your Anki decks. Mix as many as you like.</p><div class="sec">Ready-made decks</div>'+
+        Object.keys(DECKS).map(n=>choice("deck",n,n,have(n)?"Already added":DECKS[n].length+" cards",have(n)||UI.decks.has(n),have(n))).join("")+
+        '<div class="sec">Your own cards</div>'+choice("go","notes","Paste your notes",UI.notes.length?UI.notes.length+" cards ready from “"+UI.notesDeck+"”":"Turns lines like “Osmosis - diffusion of water” into cards",UI.notes.length>0)+
+        choice("anki","","Your Anki decks","In the Android app: reviews sync back to AnkiDroid",false,true)+
+        '<div class="err">'+esc(UI.err)+'</div><button class="abtn" data-act="decksNext">'+(UI.addMode?"Add to my cards":"Next")+'</button></div>'; break; }
+    case "notes": {
+      const r = UI.notesResult;
+      h = '<div class="app"><h3>Paste your notes</h3><p class="muted">One fact per line: “Osmosis - diffusion of water”, “Mitochondria: site of respiration”, “Enzymes are biological catalysts.”, Q:/A: pairs, or tab-separated from Quizlet or Anki.</p>'+
+        '<label for="ndeck">Deck name<input type="text" id="ndeck" value="'+esc(UI.notesDeck)+'"></label><label for="ntext">Notes<textarea id="ntext" placeholder="Paste or type your notes here">'+esc(UI.notesText)+'</textarea></label>'+
+        '<button class="alink" data-act="exampleNotes">Fill with example notes</button><button class="abtn" data-act="makeCards">Make cards</button>';
+      if (r) h += r.cards.length ? '<div class="box"><b style="font-family:var(--display);font-weight:400;font-size:20px">Made '+r.cards.length+' cards</b>'+(r.skipped?'<span class="muted" style="font-size:12.5px">'+r.skipped+(r.skipped===1?" line didn't":" lines didn't")+' look like a fact, so we left '+(r.skipped===1?"it":"them")+' out.</span>':'')+
+        r.cards.slice(0,6).map(c=>'<div class="mini2">'+esc(c.f)+'<br><span class="muted">→ '+esc(c.b)+'</span></div>').join("")+'<button class="abtn" data-act="useNotes">Use these '+r.cards.length+' cards</button></div>' : '<div class="err">No cards yet. Try one fact per line, like “Osmosis - diffusion of water”.</div>';
+      h += '<button class="alink" data-act="go" data-v="decks">Back</button></div>'; break; }
+    case "exam": {
+      const ex = [[7,"In 1 week"],[14,"In 2 weeks"],[30,"In about a month"],[90,"In about 3 months"],[0,"No exam yet"]];
+      h = '<div class="app">'+stepbar(2)+'<h3>Your exam &amp; your feed</h3><p class="muted">Cards get more frequent as the exam gets closer, and nothing gets scheduled past exam day.</p>'+ex.map(e=>choice("exam",e[0],e[1],"",UI.exam===e[0])).join("")+
+        '<div class="sec">What\'s on your For You page?</div><p class="muted" style="font-size:12.5px">Cards borrow the look of what you watch. Pick any.</p><div class="vchips">'+VIBES.map(v=>'<button data-act="vibe" data-v="'+v+'" class="'+(UI.vibes.has(v)?"on":"")+'">'+esc(LABEL[v])+'</button>').join("")+'</div>'+
+        '<div class="sec">How often should cards appear?</div>'+[["chill","Starts at 1 card every 8 reels, up to 60 a day"],["normal","Starts at 1 card every 5 reels, up to 150 a day (recommended)"],["cram","Starts at 1 card every 3 reels, up to 300 a day"]].map(m=>choice("intensity",m[0],m[0][0].toUpperCase()+m[0].slice(1),m[1],UI.intensity===m[0])).join("")+
+        '<p class="muted" style="font-size:12px">It then learns your rhythm: fewer cards if you skip them, more if you answer.</p><button class="abtn" data-act="examNext">Next</button></div>'; break; }
+    case "permission":
+      h = '<div class="app">'+stepbar(3)+'<h3>Switch it on</h3><p class="muted">Reelcards needs to notice when you swipe to a new reel and draw a card on top. Android calls this an accessibility permission. It\'s the only one it asks for.</p>'+
+        '<div class="box"><b>What it can and can\'t do</b><span class="muted" style="font-size:13px">It only reacts to swipes in TikTok, Instagram, YouTube, Snapchat and Facebook. It never reads your messages, never saves what you watch, and nothing leaves your phone.</span></div>'+
+        ['Tap “Open settings” below','Find Reelcards (often under “Installed apps”)','Turn it on, then tap Allow','Come back here. The app notices'].map((s,i)=>'<div class="num"><i>'+(i+1)+'</i><span>'+s+'</span></div>').join("")+
+        '<button class="abtn" data-act="openSettings">Open settings</button><div class="box"><b>Switch greyed out?</b><span class="muted" style="font-size:13px">Android blocks this for apps installed from a file: App info → ⋮ → “Allow restricted settings”, then try again.</span></div></div>'+
+        (UI.settingsOpen?'<div class="settings-sim"><div class="lbl">Simulated phone settings · Accessibility</div><div class="lbl" style="margin-top:8px">Installed apps</div><div class="row2"><span><b>Reelcards</b><br><small style="color:#6b6b75">'+(UI.permission?"On":"Off")+'</small></span><button class="switch'+(UI.permission?" on":"")+'" data-act="toggleSwitch" role="switch" aria-checked="'+UI.permission+'" aria-label="Reelcards accessibility switch"></button></div>'+
+        (UI.permission?'<button class="abtn" data-act="backFromSettings" style="background:#2f6bff;color:#fff">Back to Reelcards</button>':'<p style="font-size:12.5px;color:#6b6b75;margin:0">Tap the switch to turn Reelcards on.</p>')+'</div>':''); break;
+    case "try":
+      h = '<div class="app">'+stepbar(4)+'<h3>It\'s on. Try it</h3><p class="muted">Tap below for a test card. Then scroll as usual: after a short warm-up, a card slips in every few reels, styled for the app you\'re in.</p>'+
+        '<button class="abtn" data-act="testCard">Show me a test card</button><button class="abtn ghost" data-act="finishSetup">Open the feed</button></div>'; break;
+    case "feed": h = feedHTML(); break;
+    case "dash": h = dashHTML(); break;
+  }
+  scr.innerHTML = h;
+  $("phone").classList.toggle("feedmode", UI.screen==="feed");
+  if (anim) { scr.classList.remove("enter"); void scr.offsetWidth; scr.classList.add("enter"); }
+  if (UI.toast) { const t = document.createElement("div"); t.className = "toast"; t.textContent = UI.toast; scr.appendChild(t); timers.push(setTimeout(()=>t.style.opacity="0", 2200)); UI.toast = ""; }
+  startCardTimers();
+}
+
+function feedHTML(){
+  const it = UI.current;
+  if (!it) return tabs()+'<div class="reel plain-reel" style="background:#16161b"><div class="big">For you</div><div class="small">Swipe up to start scrolling</div></div>';
+  if (it.kind === "reel") return tabs()+Render.plainReel(it.n, it.hue, UI.host);
+  return tabs()+Render.card(it, Object.assign(cardOpts(), {coach: it.coach && !it.revealed && !it.liked && it.pick<0}));
+}
+
+/* countdown ring + auto-caption beats, like a real reel's timing */
+function startCardTimers(){
+  const it = UI.current;
+  if (UI.screen!=="feed" || !it || it.kind!=="card" || it.revealed) return;
+  if (it.f.layout==="captions" && it.s.beats.length && (it.beat||0) < it.s.beats.length) {
+    const words = it.s.beats[it.beat||0].split(" ").length;
+    timers.push(setTimeout(()=>{ if (UI.current===it && !it.revealed) { it.beat = (it.beat||0)+1; renderPhone(false); } }, 380 + 330*words));
+    return;
+  }
+  if (it.count == null) it.count = 3;
+  if (it.count > 0) timers.push(setTimeout(()=>{ if (UI.current===it && !it.revealed) { it.count--; const r = $("screen").querySelector(".ring"); if (r) r.textContent = it.count>0 ? it.count : "?"; startCardTimers(); } }, 1000));
+}
+
+function dashHTML(){
+  const t = now(), k = E.dk(t), d = E.day(k), rr = E.recallRate(k,7), f = E.forecast(t);
+  let fs = "At "+f.mins+" min of reels a day you'll see about "+f.perDay+" cards a day"+(f.capped?" (your daily limit)":"")+": about "+f.minsOnCards+" min of revision you barely notice.";
+  if (f.newLeft>0) { fs += " "+f.newLeft+" cards not seen yet: all seen in about "+f.days+(f.days===1?" day.":" days."); if (f.ex>0) fs += f.onTrack ? " That's before your exam." : " Your exam is in "+f.ex+" days, so try Cram or about "+f.need+" min a day."; }
+  else if (E.cards.length) fs += " You've seen every card. Now it's all reviews.";
+  const n = 14; let max = 1; const vals = [];
+  for (let i=0;i<n;i++){ const x = E.stats.days[k-(n-1-i)]; const v = x?[x.reviews,x.skips]:[0,0]; vals.push(v); max = Math.max(max, v[0]+v[1]); }
+  const bars = vals.map((v,i)=>'<div><i style="height:'+(v[1]/max*64)+'px;background:#4a4c5a"></i><i style="height:'+(v[0]/max*64)+'px;background:var(--accent)"></i>'+((i%2===(n-1)%2)?'<span>'+new Date(t-(n-1-i)*DAY).getDate()+'</span>':'')+'</div>').join("");
+  const decks = [...new Set(E.cards.map(c=>c.deck))].map(dk=>{ const cs = E.cards.filter(c=>c.deck===dk); const nw = cs.filter(c=>c.state===NEW).length, ld = cs.filter(c=>c.state===REVIEW).length, lg = cs.length-nw-ld, due = cs.filter(c=>c.state!==NEW&&c.due<=t).length;
+    return '<div class="mini2"><b>'+esc(dk)+'</b><br><span class="muted">'+ld+' learned · '+lg+' learning · '+nw+' new · '+due+' due now</span></div>'; }).join("");
+  const saved = E.cards.filter(c=>c.saved);
+  const favs = RC.DIMS.map(dm=>{ const fv = E.bandit.favourite(dm); if (!fv) return ""; return '<div style="font-size:13px">'+RC.DIMLABEL[dm]+': <b>'+esc(LABEL[fv])+'</b> <span class="muted">('+Math.round(E.bandit.mean(dm,fv)*100)+'% held)</span></div>'; }).join("");
+  const quiet = E.snoozeUntil > t ? " Quiet mode for a few minutes after lots of fast skips." : "";
+  return tabs()+'<div class="app" style="padding-top:52px"><div class="status"><b>On</b><div class="muted" style="font-size:12.5px">Cards appear in TikTok, Instagram, YouTube Shorts, Snapchat and Facebook.'+quiet+'</div></div>'+
+    '<div class="sec">Today</div><div class="tiles"><div class="tile"><b>'+d.reviews+'</b><small>cards done</small></div><div class="tile"><b>'+d.skips+'</b><small>skipped</small></div><div class="tile"><b>'+(rr<0?"–":Math.round(rr*100)+"%")+'</b><small>remembered, last 7 days</small></div><div class="tile"><b>'+E.streak(k)+'</b><small>day streak</small></div></div>'+
+    '<div class="box"><span class="steplbl">Forecast</span><span style="font-size:13px">'+esc(fs)+'</span></div>'+
+    '<div class="box"><span class="steplbl">Rhythm</span><span style="font-size:13px">'+esc(E.rhythmText())+'</span>'+(E.calibration.describe()?'<span class="steplbl" style="margin-top:4px">Your memory</span><span style="font-size:13px">'+esc(E.calibration.describe())+'</span>':'')+'</div>'+
+    '<div class="box"><span class="steplbl">Last 14 days · yellow = reviewed, grey = skipped</span><div class="bars">'+bars+'</div></div>'+
+    (saved.length?'<div class="box"><span class="steplbl">Saved ('+saved.length+')</span>'+saved.slice(0,5).map(c=>'<div class="mini2">'+esc(c.f)+'</div>').join("")+'</div>':'')+
+    '<div class="box"><span class="steplbl">Your cards</span>'+(decks||'<span class="muted">No cards yet.</span>')+'<button class="abtn ghost" data-act="addCards">Add cards</button></div>'+
+    '<div class="box"><span class="steplbl">How often</span><div class="seg">'+["chill","normal","cram","demo"].map(m=>'<button data-act="setIntensity" data-v="'+m+'" class="'+(E.settings.intensity===m?"on":"")+'">'+m[0].toUpperCase()+m.slice(1)+'</button>').join("")+'</div>'+
+    '<span style="font-size:13px">'+(E.settings.examDate?"Exam in "+E.examDaysLeft(t)+" days":"No exam date set")+' · Themes: '+(E.settings.vibes.length?E.settings.vibes.map(v=>LABEL[v]).join(", "):"none")+'</span></div>'+
+    '<div class="box"><span class="steplbl">What the engine has learned about you</span>'+(favs||'<span class="muted" style="font-size:13px">Nothing yet. After a few cards it learns which looks you actually watch.</span>')+'</div>'+
+    '<button class="abtn ghost" data-act="testCard">Show a test card</button><button class="abtn ghost" data-act="resetApp" style="'+(UI.confirmReset?"color:var(--bad)":"")+'">'+(UI.confirmReset?"Tap again to erase everything":"Reset everything")+'</button></div>';
+}
+
+/* ---------------- judge panels ---------------- */
+function renderSide(){
+  const t = now(), k = E.dk(t), due = E.dueCount(t), it = UI.current;
+  const tot = key => Object.values(E.stats.days).reduce((a,d)=>a+d[key],0);
+  $("stats").innerHTML = [["Day",UI.firstDay==null?1:k-UI.firstDay+1],["Exam in",E.settings.examDate?E.examDaysLeft(t)+" d":"–"],["Reels",tot("reels")],["Cards shown",tot("cards")],["Due now",due],
+    ["Next card",!UI.onboarded?"–":it&&it.kind==="card"?"now":E.lastDecision&&E.lastDecision.blocked?"paused":E.lastDecision?"~"+Math.max(0,E.lastDecision.gap-E.reelsSinceCard)+" reels":"–"]]
+    .map(s=>'<div class="stat"><b>'+s[1]+'</b><small>'+s[0]+'</small></div>').join("");
+  const y = UI.why; let w = "";
+  if (!y) w = '<div><dt>–</dt><dd class="muted">Finish setup and swipe the feed. The first card comes after a short warm-up.</dd></div>';
+  else {
+    if (y.prev) w += '<div><dt>LAST</dt><dd>'+esc(y.prev)+'</dd></div>';
+    if (y.noCard) w += '<div><dt>REEL</dt><dd>'+esc(y.noCard)+'</dd></div>';
+    if (y.show) { const sh = y.show;
+      w += '<div><dt>WHEN</dt><dd>'+sh.why.when.map(esc).join("<br>")+'</dd></div><div><dt>WHICH</dt><dd><b>'+esc(sh.card.f)+'</b><br><span class="muted">'+esc(sh.why.which)+'</span></dd></div>'+
+        '<div><dt>LOOK</dt><dd>'+RC.DIMS.map(d=>RC.DIMLABEL[d]+': <b>'+esc(LABEL[sh.f[d]])+'</b> <span class="muted mono">'+esc(sh.detail[d]||"")+'</span>').join("<br>")+
+        '<br>App: <b>'+esc(LABEL[sh.host]||sh.host)+'</b> (layout, rail and caption band follow its safe zones)'+(sh.s.vibe?'<br>Themed for: <b>'+esc(LABEL[sh.s.vibe])+'</b>':'')+(sh.explored?'<br><span class="muted">Explored a random '+RC.DIMLABEL[sh.explored].toLowerCase()+' (about 1 in 10 cards do).</span>':'')+'</dd></div>'+
+        '<div><dt>WORDS</dt><dd class="muted">Written for the hook: “'+esc(sh.s.hook)+'”. Hint ready: '+esc(sh.s.hint)+'.</dd></div>'; }
+  }
+  $("why").innerHTML = w;
+  $("dims").innerHTML = RC.DIMS.map(d=>'<div class="dim"><h3>'+RC.DIMLABEL[d]+'</h3>'+PIECES[d].map(p=>{ const s = E.bandit.sc(d+":"+p), m = s[0]/(s[0]+s[1]), used = UI.lastShow && UI.lastShow.f[d]===p;
+    return '<div class="piece'+(used?' used':'')+'"><span class="nm">'+esc(LABEL[p])+'</span><span class="bar"><i style="width:'+Math.round(m*100)+'%"></i></span><span class="ct">'+Math.round(m*100)+'%</span></div>'; }).join("")+'</div>').join("");
+  const per = HOSTS.map(([h,l])=>{ let best=null,bm=-1; for (const p of PIECES.layout){ const c = E.bandit.scores[h+"|layout:"+p]; if(!c||c[0]+c[1]<4)continue; const m=c[0]/(c[0]+c[1]); if(m>bm){bm=m;best=p;} } return l+": "+(best?LABEL[best]:"not enough data"); });
+  $("perapp").textContent = "Favourite layout per app → " + per.join(" · ");
+  const base = E.I().gap, arms = RC.MULT.map((m,i)=>{ const a=E.rhythm.a[i]||1,b=E.rhythm.b[i]||1; return {gap:Math.max(E.isDemo()?1:2,Math.round(base*m)), v:a/(a+b)/(base*m+1), on:i===E.rhythm.arm}; });
+  const mx = Math.max(...arms.map(a=>a.v), .0001);
+  $("arms").innerHTML = arms.map(a=>'<div class="'+(a.on?"on":"")+'" title="1 card every '+a.gap+' reels"><i style="height:'+Math.round(a.v/mx*70)+'px"></i><span>1/'+a.gap+'</span></div>').join("");
+  $("rhythmText").innerHTML = esc(E.rhythmText())+'<br><span class="muted">Bars: expected answered cards per reel scrolled at each rhythm (Thompson sampling). Yellow = the rhythm in use.</span>';
+  const cal = E.calibration.describe();
+  $("memText").innerHTML = 'Scheduler: <b>FSRS-6</b> with its 21 default parameters (the algorithm Anki uses). Target recall 90%, rising to 92% three weeks before the exam and 95% in the final week.<br>'+
+    'Personal calibration: '+(cal?esc(cal)+' (×'+E.calibration.scale+')':'waits for 100 long-term reviews ('+E.calibration.log.length+' so far) before adjusting.')+'<br>Grading uses response time: a fast “knew it” is Easy, a slow one Good, a hint caps it at Hard.';
+  const rev = tot("reviews"), skips = tot("skips"), shown = tot("cards"), rr = E.recallRate(k,7);
+  $("kpis").innerHTML = [[rev,"cards reviewed"],[E.day(k).reviews,"reviewed today"],[rr<0?"–":Math.round(rr*100)+"%","remembered (not Again)"],[tot("easy")+"/"+tot("good")+"/"+tot("hard")+"/"+tot("again"),"Easy / Good / Hard / Again"],[skips,"skipped"],[tot("fastSkips"),"fast skips (<1 s)"],[shown?Math.round(skips/shown*100)+"%":"–","skip rate"],[E.cards.filter(c=>c.saved).length,"saved cards"],[E.stats.avgReel.toFixed(1)+"s","avg time per reel"]]
+    .map(x=>'<div class="kpi"><b>'+x[0]+'</b><small>'+x[1]+'</small></div>').join("");
+  const f = E.forecast(t);
+  $("forecast").innerHTML = 'At <b>'+f.mins+' min</b> of reels a day, with a card every '+f.gap+' reels: about <b>'+f.perDay+' cards a day</b>'+(f.capped?' (daily cap)':'')+', ~'+f.minsOnCards+' min of actual revision. '+(f.newLeft?f.newLeft+' unseen cards at ~'+f.newPer+' new a day → all seen in <b>'+f.days+' days</b>'+(f.ex>0?(f.onTrack?' <span style="color:var(--good)">(before the exam)</span>':' <span style="color:var(--bad)">(after the exam: needs ~'+f.need+' min a day)</span>'):'')+'.':'Every card has been seen.');
+  $("skiplayout").innerHTML = PIECES.layout.map(l=>{ const v = E.stats.layout[l]||[0,0], r = v[0]?v[1]/v[0]:0; return '<div class="piece"><span class="nm">'+esc(LABEL[l])+'</span><span class="bar"><i style="width:'+Math.round(r*100)+'%;background:var(--bad)"></i></span><span class="ct">'+(v[0]?Math.round(r*100)+"% of "+v[0]:"–")+'</span></div>'; }).join("");
+  const top = E.cards.filter(c=>c.skips>0).sort((a,b)=>b.skips-a.skips).slice(0,5);
+  $("skipcards").innerHTML = top.length ? top.map(c=>'<div class="piece" style="grid-template-columns:minmax(0,1fr) 40px"><span>'+esc(c.f)+'</span><span class="ct">'+c.skips+'×</span></div>').join("") : '<span class="muted">No skips yet.</span>';
+  const order = E.cards.slice().sort((a,b)=>(a.state===NEW)-(b.state===NEW)||a.due-b.due);
+  $("deck").innerHTML = order.length ? order.map(c=>{ const isDue = c.state!==NEW&&c.due<=t; const st = c.state===NEW?'<span class="chip">new</span>':isDue?'<span class="chip due">due</span>':'<span class="chip">'+STATE[c.state]+'</span>';
+    return '<tr><td>'+(c.saved?"★ ":"")+esc(c.f)+'</td><td>'+esc(c.deck)+'</td><td>'+st+'</td><td class="num">'+(c.state===NEW?"–":Math.round(E.fsrs.recallNow(c,t)*100)+"%")+'</td><td class="num">'+(c.state===NEW?"–":RC.human(c.s))+'</td><td class="num">'+(c.state===NEW?"–":(c.due<=t?"due now":"in "+RC.human((c.due-t)/DAY)))+'</td><td>'+(c.grade?'<span class="chip '+c.grade+'">'+c.grade+'</span>':'–')+'</td><td class="num">'+c.skips+'</td></tr>'; }).join("") : '<tr><td colspan="8" class="muted">No cards yet. Finish step 1 on the phone.</td></tr>';
+  $("anki").innerHTML = E.anki.length ? E.anki.map(a=>'<div><span class="chip '+a.g+'" style="margin-right:6px">'+a.g+'</span>'+esc(a.line)+'</div>').join("") : '<span class="muted">Nothing graded yet.</span>';
+  $("hint").hidden = UI.onboarded; $("gestures").hidden = !UI.onboarded;
+  $("hostbar").innerHTML = HOSTS.map(([h,l])=>'<button data-host="'+h+'" class="'+(UI.host===h?"on":"")+'" aria-pressed="'+(UI.host===h)+'">'+(UI.host===h?"Scrolling in ":"")+l+'</button>').join("");
+}
+function render(anim){ renderPhone(anim); renderSide(); }
+
+/* ---------------- feed actions ---------------- */
+function go(s){ UI.screen = s; UI.err = ""; render(true); }
+function finishSetup(){ UI.onboarded = true; if (UI.firstDay==null) UI.firstDay = E.dk(now()); UI.screen = "feed"; render(true); }
+function applyExam(){ E.settings.examDate = UI.exam ? now() + UI.exam*DAY : 0; E.settings.intensity = UI.intensity; E.setVibes([...UI.vibes]); }
+function skipSetup(){ if (!E.cards.length) { E.addCards(deckCards("GCSE Biology")); E.addCards(deckCards("GCSE Chemistry")); } UI.exam = 14; if (!UI.vibes.size) { UI.vibes.add("football"); UI.vibes.add("gaming"); } applyExam(); UI.permission = true; finishSetup(); }
+function outcomeOf(it, dwell){ return {revealed:it.revealed, liked:it.liked, likedBefore:it.likedBefore, pick:it.pick, likeAt:it.likeAt||0, pickAt:it.pickAt||0, hintAt:it.hintAt||0, saved:!!it.saved, shared:!!it.shared, dwell}; }
+function asItem(sh){ return Object.assign({kind:"card", revealed:false, liked:false, likedBefore:false, pick:-1, saved:false, hinted:false, beat:0, count:null, shownAt:performance.now()}, sh); }
+
+function finishCurrent(dwell){
+  const cur = UI.current; if (!cur || cur.kind!=="card") return null;
+  cur.done = true; hush();
+  return E.onCardFinished(cur, outcomeOf(cur, dwell!=null?dwell:performance.now()-cur.shownAt), now()).summary;
+}
+function showItem(sh, prev){ UI.current = asItem(sh); if (UI.coachLeft > 0) { UI.current.coach = true; UI.coachLeft--; } UI.lastShow = sh; UI.why = {show:sh, prev}; speak(sh.s.voice); }
+function swipe(dwell){
+  if (!UI.onboarded) return;
+  UI.screen = "feed";
+  const prev = finishCurrent(dwell);
+  if (UI.current && UI.current.kind==="reel") UI.lastHue = UI.current.hue;
+  UI.reelN++;
+  const sh = E.onReelSwipe(now(), UI.host);
+  if (sh) showItem(sh, prev);
+  else { UI.current = {kind:"reel", n:UI.reelN, hue:(UI.reelN*47)%360}; const d = E.lastDecision; UI.why = {prev, noCard:"Reel "+UI.reelN+": no card. "+(d.blocked||d.reasons.join(" · "))}; }
+  render(true);
+}
+function testCard(){
+  if (!E.cards.length) E.addCards(deckCards("GCSE Biology"));
+  if (!UI.onboarded) finishSetup();
+  const prev = finishCurrent();
+  const sh = E.forceShow(now(), UI.host); if (sh) showItem(sh, prev);
+  UI.screen = "feed"; render(true);
+}
+function burst(x,y){ const h = document.createElement("div"); h.className = "bigheart"; h.style.left = (x==null?"50%":x+"px"); h.style.top = (y==null?"45%":y+"px"); h.innerHTML = UI.host==="youtube"?Render.I.thumb(true):Render.I.heart(true); $("screen").appendChild(h); setTimeout(()=>h.remove(), 700); }
+function el(){ return UI.current && UI.current.kind==="card" ? performance.now()-UI.current.shownAt : 0; }
+function like(x,y){
+  const it = UI.current; if (!it || it.kind!=="card" || UI.screen!=="feed") return;
+  if (it.liked) { burst(x,y); return; }
+  it.liked = true; it.likeAt = el(); it.likedBefore = !it.revealed && it.pick<0;
+  if (it.s.vibe==="gaming" && (it.pick<0 || it.pick===it.s.correct)) { const xp = document.createElement("div"); xp.className="xp"; xp.textContent="+25 XP"; timers.push(setTimeout(()=>{ const c=$("screen").querySelector(".card"); c&&c.appendChild(xp); },10)); }
+  renderPhone(false); burst(x,y);
+  if (it.likedBefore && it.f.layout!=="quiz") setTimeout(()=>{ if (UI.current===it && !it.revealed) { it.revealed = true; it.revealAt = el(); renderPhone(false); } }, 600);
+}
+function reveal(){ const it = UI.current; if (!it || it.kind!=="card" || it.revealed || (it.f.layout==="quiz"&&it.s.correct>=0)) return; it.revealed = true; it.revealAt = el(); renderPhone(false); }
+function toast(msg){ UI.toast = msg; renderPhone(false); }
+
+let tapTimer = null;
+$("screen").addEventListener("click", e => {
+  const b = e.target.closest("[data-act]");
+  if (b) {
+    const a = b.dataset.act, v = b.dataset.v, it = UI.current;
+    switch (a) {
+      case "go": if (v==="notes") UI.notesResult = null; go(v); return;
+      case "tab": UI.screen = v; UI.confirmReset = false; render(true); return;
+      case "deck": UI.decks.has(v) ? UI.decks.delete(v) : UI.decks.add(v); renderPhone(false); return;
+      case "decksNext": { for (const n of UI.decks) E.addCards(deckCards(n)); E.addCards(UI.notes); UI.decks.clear(); UI.notes = [];
+        if (!E.cards.length) { UI.err = "Pick at least one deck, or paste some notes."; renderPhone(false); return; }
+        if (UI.addMode) { UI.addMode = false; UI.screen = "dash"; render(true); } else go("exam"); return; }
+      case "exampleNotes": $("ntext").value = EXAMPLE_NOTES; return;
+      case "makeCards": UI.notesText = $("ntext").value; UI.notesDeck = $("ndeck").value.trim() || "My notes"; UI.notesResult = parseNotes(UI.notesText, UI.notesDeck); renderPhone(false); return;
+      case "useNotes": UI.notes = UI.notesResult.cards; UI.notesText = ""; UI.notesResult = null; go("decks"); return;
+      case "exam": UI.exam = +v; renderPhone(false); return;
+      case "vibe": UI.vibes.has(v) ? UI.vibes.delete(v) : UI.vibes.add(v); renderPhone(false); return;
+      case "intensity": UI.intensity = v; renderPhone(false); return;
+      case "examNext": applyExam(); go(UI.permission ? "try" : "permission"); return;
+      case "openSettings": UI.settingsOpen = true; renderPhone(false); return;
+      case "toggleSwitch": UI.permission = !UI.permission; renderPhone(false); return;
+      case "backFromSettings": UI.settingsOpen = false; go("try"); return;
+      case "testCard": testCard(); return;
+      case "finishSetup": finishSetup(); return;
+      case "addCards": UI.addMode = true; go("decks"); return;
+      case "setIntensity": E.settings.intensity = v; renderPhone(false); renderSide(); return;
+      case "resetApp": if (!UI.confirmReset) { UI.confirmReset = true; renderPhone(false); return; } resetAll(); render(true); return;
+      case "like": { const r = b.getBoundingClientRect(), p = $("screen").getBoundingClientRect(); like(r.left-p.left+r.width/2, r.top-p.top+r.height/2); return; }
+      case "reveal": reveal(); return;
+      case "pick": if (it && it.pick<0) { it.pick = +v; it.pickAt = el(); it.revealed = true; if (it.s.vibe==="gaming" && it.pick===it.s.correct) { UI.toast = "+25 XP"; } renderPhone(false); } return;
+      case "hint": if (it && !it.hinted && !it.revealed && it.pick<0) { it.hinted = true; it.hintAt = el(); renderPhone(false); } else if (it) toast(it.revealed?"Answer's already showing":"Hint's up there ↑"); return;
+      case "save": if (it && !it.saved) { it.saved = true; toast("Saved: it'll come back within a day"); } return;
+      case "share": if (it) { it.shared = true; const txt = "Can you answer this? “"+it.s.q+"” (answer: tap to see) · made with Reelcards";
+        try { navigator.clipboard.writeText(txt).then(()=>toast("Copied: paste it to a friend"), ()=>toast("Share: "+it.s.q.slice(0,30)+"…")); } catch(err) { toast("Share: "+it.s.q.slice(0,30)+"…"); } } return;
+    }
+    return;
+  }
+  if (e.target.closest("[data-card]")) { clearTimeout(tapTimer); tapTimer = setTimeout(reveal, 260); }
+});
+$("screen").addEventListener("dblclick", e => { if (!e.target.closest("[data-card]") || e.target.closest("[data-act]")) return; clearTimeout(tapTimer); const p = $("screen").getBoundingClientRect(); like(e.clientX-p.left, e.clientY-p.top); });
+$("screen").addEventListener("input", e => { if (e.target.id==="ntext") UI.notesText = e.target.value; if (e.target.id==="ndeck") UI.notesDeck = e.target.value; });
+$("hostbar").addEventListener("click", e => { const b = e.target.closest("[data-host]"); if (!b) return; UI.host = b.dataset.host; if (UI.current && UI.current.kind==="card") UI.current.host = UI.host; render(false); });
+
+let busy = false, ty = null;
+$("phone").addEventListener("wheel", e => { if (UI.screen!=="feed") return; e.preventDefault(); if (busy || Math.abs(e.deltaY) < 20) return; busy = true; swipe(); setTimeout(()=>busy=false, 450); }, {passive:false});
+$("phone").addEventListener("touchstart", e => { ty = UI.screen==="feed" ? e.touches[0].clientY : null; }, {passive:true});
+$("phone").addEventListener("touchend", e => { if (ty==null) return; const dy = e.changedTouches[0].clientY - ty; ty = null; if (dy < -50) swipe(); }, {passive:true});
+document.addEventListener("keydown", e => { const tag = document.activeElement.tagName; if ((e.key==="ArrowDown"||e.key==="j") && !["SELECT","INPUT","TEXTAREA"].includes(tag) && UI.screen==="feed") { e.preventDefault(); swipe(); } });
+$("swipe").onclick = () => { if (auto) return; if (!UI.onboarded) { skipSetup(); return; } swipe(); };
+$("skipSetup").onclick = () => skipSetup();
+$("nextday").onclick = () => { if (auto) return; if (!UI.onboarded) skipSetup(); const prev = finishCurrent(3000); const t = now(); const nx = new Date(t); nx.setDate(nx.getDate()+1); nx.setHours(8,0,0,0); offset += nx.getTime()-t; E.lastSwipeAt = 0; UI.current = null; UI.why = {prev:(prev?prev+" · ":"")+"Jumped to 8:00 tomorrow. New session."}; render(true); };
+$("reset").onclick = () => { if (auto) return; resetAll(); render(true); };
+$("mins").oninput = e => { E.settings.minutesPerDay = +e.target.value; $("minsOut").textContent = e.target.value+" min"; renderSide(); if (UI.screen==="dash") renderPhone(false); };
+["night","tint"].forEach(id => $(id).addEventListener("change", () => { if (UI.screen==="feed") renderPhone(false); renderLab(); }));
+
+/* ---------------- simulated student ---------------- */
+const TASTE = {quiz:{"layout:quiz":.9,"hook:mostwrong":.85,"hook:rate":.6,"layout:comment":.5}, chat:{"layout:chat":.9,"hook:text2am":.9,"layout:comment":.8,"hook:pov":.6}, gamer:{"bg:gameplay":.95,"layout:split":.75,"hook:waitforit":.65,"layout:captions":.6}, random:{}};
+let auto = null, sinceCard = 0;
+function simAct(){
+  const it = UI.current; if (!it || it.kind!=="card") { sinceCard++; return null; }
+  const P = TASTE[$("persona").value]; let n = 0, sum = 0; for (const d of RC.DIMS) { const v = P[d+":"+it.f[d]]; if (v!=null) { sum += v; n++; } }
+  let p = n ? sum/n*.9+.05 : ($("persona").value==="random" ? .55 : .18);
+  const tolerance = 7; if (sinceCard+1 < tolerance) p *= .55 + .45*(sinceCard+1)/tolerance; // cards too close together annoy
+  sinceCard = 0;
+  if (Math.random() > p) return 300 + Math.random()*700;
+  const c = it.card, known = c.state===NEW ? .2 : Math.min(.95, .35 + .6*E.fsrs.recallNow(c, now())), knows = Math.random() < known;
+  const read = 1500 + 45*c.f.length;
+  if (it.f.layout==="quiz" && it.s.correct>=0) { it.revealed = true; it.pick = knows || Math.random()<.5 ? it.s.correct : 1-it.s.correct; it.pickAt = read*(knows?.8:1.6); }
+  else if (knows) { if (Math.random()<.5) { it.liked = true; it.likedBefore = true; it.likeAt = read*(Math.random()<.7?.7:1.8); } else { it.revealed = true; it.liked = true; it.revealAt = read; it.likeAt = read+900; } }
+  else { if (Math.random()<.25) { it.hinted = true; it.hintAt = read*.6; } it.revealed = true; it.revealAt = read*1.2; if (it.hinted && Math.random()<.5) { it.liked = true; it.likeAt = read*1.5; } }
+  if (Math.random()<.04) it.saved = true;
+  return 3000 + Math.random()*4000;
+}
+function quietSwipe(dwell){
+  const prev = finishCurrent(dwell!=null?dwell:1000);
+  if (UI.current && UI.current.kind==="reel") UI.lastHue = UI.current.hue;
+  UI.reelN++; const sh = E.onReelSwipe(now(), UI.host);
+  if (sh) { UI.current = asItem(sh); UI.lastShow = sh; UI.why = {show:sh, prev}; }
+  else { UI.current = {kind:"reel", n:UI.reelN, hue:(UI.reelN*47)%360}; const d = E.lastDecision; UI.why = {prev:prev||(UI.why&&UI.why.prev), noCard:"Reel "+UI.reelN+": no card. "+(d.blocked||d.reasons.join(" · "))}; }
+}
+function runAuto(total, perDayMins){
+  if (auto) return; if (!UI.onboarded) skipSetup(); UI.screen = "feed"; hush();
+  let left = total, dayLeft = perDayMins ? perDayMins*60 : Infinity;
+  ["auto","autoWeek","swipe","nextday","reset"].forEach(id=>$(id).disabled=true);
+  const step = () => {
+    for (let i=0; i<(perDayMins?30:1); i++) {
+      let dwell = simAct(); const isCard = dwell!=null; if (!isCard) dwell = (Math.random()<.1 ? 30+Math.random()*30 : 4+Math.random()*12)*1000;
+      offset += dwell; dayLeft -= dwell/1000; quietSwipe(isCard?dwell:null);
+      if (perDayMins && dayLeft<=0) { left--; dayLeft = perDayMins*60; if (left>0) { const t = now(); const nx = new Date(t); nx.setDate(nx.getDate()+1); nx.setHours(8,0,0,0); offset += nx.getTime()-t; E.lastSwipeAt = 0; } break; }
+      if (!perDayMins) left--;
+      if (left<=0) break;
+    }
+    render(false);
+    if (left<=0) { clearInterval(auto); auto = null; ["auto","autoWeek","swipe","nextday","reset"].forEach(id=>$(id).disabled=false); }
+  };
+  auto = setInterval(step, perDayMins?25:70);
+}
+$("auto").onclick = () => runAuto(80, 0);
+$("autoWeek").onclick = () => runAuto(7, 60);
+
+/* ---------------- design lab ---------------- */
+let labSeed = 1;
+function renderLab(){
+  const host = $("labHost").value, vibe = $("labVibe").value, state = $("labState").value, night = $("labNight").checked;
+  const pool = deckCards("GCSE Biology").concat(deckCards("GCSE Chemistry"));
+  let s = labSeed; const rnd = () => { s = (s*16807)%2147483647; return (s-1)/2147483646; };
+  const looks = PIECES.look, hooks = PIECES.hook;
+  const vibeBg = {football:"pitch",gaming:"gameplay",beauty:"glow",music:"equalizer",fitness:"citywalk",food:"satisfying",comedy:"plain"}[vibe];
+  const cards = [3,14,0,9,20,1,5,16].map(i=>pool[i%pool.length]);
+  const layouts = ["bigtext","captions","chat","comment","split","quiz","bigtext","captions"];
+  let html = "";
+  layouts.forEach((lay,i)=>{
+    const f = {hook:hooks[(i+labSeed)%hooks.length], layout:lay, look:looks[(i+labSeed)%looks.length], bg:vibeBg||PIECES.bg[(i*3+labSeed)%PIECES.bg.length]};
+    const c = cards[i];
+    const sc = RC.write(c, f, pool, rnd, "due today", vibe?[vibe]:[]);
+    if (vibe && !sc.vibe) sc.vibe = vibe;
+    if (lay==="quiz" && sc.correct<0) return;
+    const it = {kind:"card", card:c, f, s:sc, host, revealed:state!=="q", liked:state==="liked", likedBefore:false, pick:(lay==="quiz"&&state!=="q")?sc.correct:-1, saved:false, hinted:false, beat:lay==="captions"&&state==="q"?1:sc.beats.length, count:2};
+    html += '<figure><div class="mini"><div class="scaler">'+Render.card(it,{night})+'</div></div><figcaption><b>'+esc(LABEL[lay])+'</b> · '+esc(LABEL[f.look])+'<br>'+esc(LABEL[f.bg])+' · hook “'+esc(LABEL[f.hook])+'”</figcaption></figure>';
+  });
+  $("lab").innerHTML = html;
+  fitLab();
+}
+function fitLab(){ document.querySelectorAll(".lab .mini").forEach(m => { const sc = m.querySelector(".scaler"); if (sc) sc.style.transform = "scale(" + (m.clientWidth/360) + ")"; }); }
+VIBES.forEach(v => { const o = document.createElement("option"); o.value = v; o.textContent = LABEL[v]; $("labVibe").appendChild(o); });
+["labHost","labVibe","labState","labNight"].forEach(id => $(id).addEventListener("change", renderLab));
+$("labShuffle").onclick = () => { labSeed = labSeed % 30 + 1; renderLab(); };
+window.addEventListener("resize", fitLab);
+
+resetAll(); render(true); renderLab();
+})();
+
+</script>
+</body>
+</html>

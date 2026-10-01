@@ -1,0 +1,48 @@
+name: Build
+
+# Every push and pull request: run the engine checks and build the APK (download it from the run's
+# Artifacts). Pushing a version tag (git tag v1.0.0 && git push --tags) also publishes a GitHub
+# Release with the APK attached.
+on:
+  push:
+    branches: ["**"]
+    tags: ["v*"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write   # only used to publish releases on version tags
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Engine checks (plain Java)
+        run: ./gradlew :engine:engineChecks --no-daemon
+
+      - name: Build APK
+        run: ./gradlew :app:assembleDebug --no-daemon
+
+      - name: Name the APK
+        run: cp app/build/outputs/apk/debug/app-debug.apk Reelcards.apk
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Reelcards-apk
+          path: Reelcards.apk
+
+      - name: Publish release (version tags only)
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: Reelcards.apk
+          generate_release_notes: true

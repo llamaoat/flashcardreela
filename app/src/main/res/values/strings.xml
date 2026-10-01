@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Reelcards</string>
+    <string name="service_label">Reelcards</string>
+    <string name="service_description">Reelcards notices when you swipe to a new reel in TikTok, Instagram, YouTube Shorts, Snapchat or Facebook, and every few reels shows one of your flashcards as a reel. It only watches for swipes. It never reads your messages, and it never saves or sends what you watch.</string>
+</resources>

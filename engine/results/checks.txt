@@ -1,0 +1,68 @@
+
+FSRS-6 matches py-fsrs (the reference implementation)
+  PASS  27/27 review steps identical (state, stability, difficulty, interval; worst diff 4.8e-11)
+  PASS  R(S, S) = 90%
+  PASS  interval(S, 90%) = S
+  PASS  no interval jumps past the day before the exam (3 d with exam in 4 d)
+  PASS  target recall 90% -> 92% within 3 weeks -> 95% in the final week
+  PASS  fuzz spreads cards learned together over different days
+Grading from reel gestures (response-time aware)
+  PASS  quick like before the answer = Easy
+  PASS  slow like before the answer = Good (slow recall is weaker)
+  PASS  like after the reveal = Good
+  PASS  reveal, no like = Again
+  PASS  swipe past = not graded, and a fast skip
+  PASS  quiz right & quick = Good, wrong = Again
+  PASS  quiz right but slow = Hard
+  PASS  quiz: early like then wrong pick = Again
+When: rhythm, tolerance, natural breaks
+  PASS  no card during warm-up; first card at reel 5 (got 5)
+  PASS  demo mode: a card every 2 reels (10 in 20 swipes)
+  PASS  learns each student's rhythm: patient student -> 1 card every 9 reels, keen student -> every 3
+  PASS  waits for a natural break after an absorbing reel, then shows the card
+  PASS  shows a card a reel early when the student is skimming (reel 4, normal would be 5)
+Skipping
+  PASS  skip is not graded and nothing is scheduled
+  PASS  skipped card comes back 3+ reels later (after 5)
+  PASS  ...in a different layout (chat -> captions)
+  PASS  skipped twice in a session -> saved for the next session
+  PASS  5 fast skips in a row -> quiet mode
+  PASS  no cards during quiet mode
+Which card: priority, mixing subjects, exam pacing
+  PASS  lowest predicted recall first (bio-1)
+  PASS  mixes subjects: after Biology picks Chemistry when recall is close (chem-1)
+  PASS  exam pacing raises new cards per day to cover the deck (25 -> 32 with an exam in 2 days)
+Personal memory calibration
+  PASS  fits how fast a student forgets (slow forgetter: true x1.6 -> fitted x1.40; fast: true x0.7 -> x0.75)
+  PASS  ...and applies it to scheduling
+  PASS  doesn't fit on too little data
+Format engine (recovering, contextual bandit)
+  PASS  never the same combination twice in a row
+  PASS  learns a taste for quiz layouts
+  PASS  favourite shows most often (132/200) but still rotates (longest run 2)
+  PASS  learns per app: chat in TikTok (91/100), split-screen in YouTube (92/100)
+  PASS  a gamer starts with gameplay backgrounds more often (21/60 vs ~10 by chance)
+Reel-native copy
+  PASS  word-by-word captions split into short beats [Which organ actually, makes bile?]
+  PASS  reply-to-comment format: "Replying to @notes.pls" / "which organ actually makes bile help"
+  PASS  themed hook for a football fan: "POV: last minute of the mock, extra time"
+  PASS  voiceover reads the hook and question
+  PASS  hint gives the shape, not the answer: "Starts with “A” · 7 letters" / "Starts with “The…” · 2 words"
+Rail buttons: hint, save, share
+  PASS  used a hint, then knew it = Hard
+  PASS  used a hint and still had to look = Again
+  PASS  saving a card flags it and brings it back within a day (saved: back within a day)
+  PASS  sharing counts as full engagement for the look, even with a quick exit
+Notes to cards
+        What is osmosis?  |  Diffusion of water across a partially permeable membrane
+        What is mitochondria?  |  Site of aerobic respiration
+        Which organ makes bile?  |  The liver
+        What are enzymes?  |  Biological catalysts
+        What is photosynthesis?  |  CO2 + water -> glucose + oxygen
+  PASS  5 cards from 6 facts, 1 non-fact line skipped
+  PASS  "X is Y" becomes a question
+Forecast
+        210 min/day -> 150 cards/day, 25 new/day, deck in 2 days
+  PASS  3.5 h of reels ~ 150 cards a day at the default rhythm (the Normal cap)
+
+48 passed, 0 failed
