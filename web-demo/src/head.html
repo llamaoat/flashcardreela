@@ -175,13 +175,13 @@ input[type=text]{width:100%;min-height:42px;border-radius:12px;border:1px solid 
 .card.h-youtube{--st:6.3%;--sb:15.6%;--sl:4.4%;--sr:8.9%;--hf:var(--f-youtube)}
 .card .bgl{position:absolute;inset:0;z-index:0}
 .card .scrim{position:absolute;inset:0;z-index:1;pointer-events:none;background:linear-gradient(to top,rgba(0,0,0,.62) 0%,rgba(0,0,0,0) 34%),linear-gradient(to bottom,rgba(0,0,0,.35) 0%,rgba(0,0,0,0) 18%)}
-.card .body{position:absolute;z-index:3;left:calc(var(--sl) + 12px);right:calc(var(--sr) + 30px);top:calc(var(--st) + 44px);bottom:calc(var(--sb) + 104px);display:flex;flex-direction:column;gap:14px;justify-content:flex-start}
+.card .body{position:absolute;z-index:3;box-sizing:border-box;left:calc(var(--sl) + 12px);right:calc(var(--sr) + 30px);top:calc(var(--st) + 44px);bottom:calc(var(--sb) + 104px);display:flex;flex-direction:column;gap:calc(14px * var(--fit,1));justify-content:flex-start;transition:filter .25s}
 .card.l-split .body{top:44%;bottom:calc(var(--sb) + 96px)}
 .card.l-bigtext .body,.card.l-captions .body{justify-content:center;padding-bottom:6%}
 .card .splittop{position:absolute;left:0;right:0;top:0;height:42%;z-index:2;overflow:hidden;border-bottom:3px solid #000}
 
 /* hook pill: the first thing read, top of the safe zone */
-.card .hook{align-self:flex-start;max-width:100%;padding:7px 13px;border-radius:10px;font-size:16.5px;font-weight:800;background:var(--panel);color:var(--fg);line-height:1.22;letter-spacing:-.1px}
+.card .hook{align-self:flex-start;max-width:100%;box-sizing:border-box;padding:7px 13px;border-radius:10px;font-size:calc(16.5px * var(--fit,1));font-weight:800;background:var(--panel);color:var(--fg);line-height:1.22;letter-spacing:-.1px}
 .card .q{margin:0;line-height:1.02;overflow-wrap:normal;word-break:normal;hyphens:manual;font-weight:900}
 .card .tag{display:inline}
 
@@ -205,8 +205,9 @@ input[type=text]{width:100%;min-height:42px;border-radius:12px;border:1px solid 
 .card.k-paper .q{font-family:'Caveat','Comic Sans MS',cursive;font-weight:700;font-size:40px;line-height:1.02}
 .card.k-paper .q em{font-style:normal;background:linear-gradient(transparent 55%,color-mix(in srgb,var(--acc) 55%,transparent) 55%)}
 /* sheet: light looks float as a notes page over the footage */
-.card.sheet .body{background:var(--sheet);border-radius:18px;padding:18px 16px 16px;bottom:auto;box-shadow:0 24px 48px -20px rgba(0,0,0,.85);transform:rotate(-.6deg)}
-.card.sheet.l-bigtext .body,.card.sheet.l-captions .body{top:calc(var(--st) + 70px)}
+.card.sheet .body{background:var(--sheet);border-radius:18px;padding:18px 16px 16px;bottom:auto;max-height:calc(100% - var(--st) - 44px - var(--sb) - 104px);box-shadow:0 24px 48px -20px rgba(0,0,0,.85);transform:rotate(-.6deg)}
+.card.sheet.l-bigtext .body,.card.sheet.l-captions .body{top:calc(var(--st) + 70px);max-height:calc(100% - var(--st) - 70px - var(--sb) - 104px)}
+.card.sheet.rv.mp .body{top:calc(var(--st) + 44px);max-height:calc(100% - var(--st) - 44px - var(--sb) - 104px)}
 .card.sheet.k-paper .body{background:
   linear-gradient(90deg,transparent 30px,rgba(228,87,46,.5) 30px,rgba(228,87,46,.5) 32px,transparent 32px),
   repeating-linear-gradient(to bottom,var(--sheet) 0 29px,rgba(47,107,255,.25) 29px 30px);padding-left:42px}
@@ -228,8 +229,8 @@ input[type=text]{width:100%;min-height:42px;border-radius:12px;border:1px solid 
 @keyframes spin{to{transform:rotate(1080deg)}}
 .card .ans{padding:13px 15px;border-radius:16px;display:flex;flex-direction:column;gap:4px;background:var(--acc);color:var(--accfg);animation:drop .32s cubic-bezier(.2,1.4,.4,1);box-shadow:0 10px 24px -12px rgba(0,0,0,.6)}
 @keyframes drop{from{transform:translateY(-10px) scale(.94);opacity:0}to{transform:none;opacity:1}}
-.card .ans .a1{font-weight:900;font-size:20px;line-height:1.15}
-.card .ans .a2{font-size:14.5px;line-height:1.35;font-weight:500}
+.card .ans .a1{font-weight:900;font-size:calc(20px * var(--fit,1));line-height:1.15}
+.card .ans .a2{font-size:calc(14.5px * var(--fit,1));line-height:1.35;font-weight:500}
 
 /* captions: auto-caption beats, one at a time */
 .card .beat{font-family:var(--hf);font-weight:900;font-size:40px;line-height:1.02;text-transform:uppercase;text-align:center;align-self:center;margin-top:14%;
@@ -249,10 +250,20 @@ input[type=text]{width:100%;min-height:42px;border-radius:12px;border:1px solid 
 .card .chathead b{display:block;font-size:14px}.card .chathead small{font-size:11px;opacity:.6}
 .card .bub{max-width:84%;padding:8px 12px;border-radius:18px;font-size:14.5px;line-height:1.3;font-family:var(--hf)}
 .card .bub.them{align-self:flex-start;border-bottom-left-radius:5px;background:var(--bubble);color:var(--fg)}
-.card .bub.me{align-self:flex-end;border-bottom-right-radius:5px;background:var(--acc);color:var(--accfg);animation:drop .25s ease-out}
+.card .bub.me{align-self:flex-end;border-bottom-right-radius:5px;background:var(--acc);color:var(--accfg);animation:drop .3s ease-out both}
 .card .typing{align-self:flex-end;border:none;min-height:44px;padding:6px 18px;border-radius:18px;border-bottom-right-radius:5px;background:var(--acc);color:var(--accfg);font-weight:900;letter-spacing:3px;font-size:18px}
 .card .typing span{display:inline-block;animation:dot 1s infinite}.card .typing span:nth-child(2){animation-delay:.15s}.card .typing span:nth-child(3){animation-delay:.3s}
 @keyframes dot{0%,60%,100%{transform:none;opacity:.6}30%{transform:translateY(-4px);opacity:1}}
+
+.card .chat{max-height:100%;min-height:0;box-sizing:border-box}
+/* a chat that gets long scrolls its oldest messages off the top, like a real thread */
+.card .msgs{display:flex;flex-direction:column;gap:6px;justify-content:flex-end;overflow:hidden;min-height:0;flex:1 1 auto}
+.card .msgs.over{-webkit-mask-image:linear-gradient(to bottom,transparent 0,#000 36px);mask-image:linear-gradient(to bottom,transparent 0,#000 36px)}
+.card button.bub{border:none;font:inherit;font-family:var(--hf);font-size:14.5px;text-align:left;position:relative;cursor:pointer}
+.card .bub .tb{position:absolute;top:-10px;left:-10px;width:22px;height:22px;border-radius:50%;background:var(--panel);color:var(--acc);border:2px solid var(--acc);font-style:normal;font-size:12px;font-weight:900;display:flex;align-items:center;justify-content:center;animation:pop2 .3s cubic-bezier(.2,1.6,.4,1)}
+@keyframes pop2{from{transform:scale(.2)}to{transform:none}}
+.card .bub.late,.card .sysmsg{animation:drop .3s ease-out both}
+.card .sysmsg{align-self:center;font-size:11.5px;font-weight:700;opacity:.75;padding:2px 0}
 
 /* comment: "replying to" sticker */
 .card .sticker{align-self:flex-start;max-width:92%;background:#fff;color:#111;border-radius:14px;padding:10px 12px;display:flex;gap:9px;align-items:flex-start;box-shadow:0 10px 26px -10px rgba(0,0,0,.6);transform:rotate(-1.5deg)}
@@ -269,6 +280,67 @@ input[type=text]{width:100%;min-height:42px;border-radius:12px;border:1px solid 
 .card .opt.wrong{border-color:#e23b55;background:#fde7eb}.card .opt.wrong .l{background:#e23b55}
 .card .opt.dim{opacity:.45}
 .card .pollnote{font-size:13.5px;line-height:1.35;color:#333;padding:0 4px}
+
+/* ---- long answers ----
+   Points drop in one after another (the "3 things…" listicle), each with a tick for self-marking.
+   A long question's set-up sits in a quoted box. The fit pass (data-fit) shrinks everything a step
+   at a time if the content would spill out of the safe zone. */
+.card[data-fit="1"]{--fit:.92}.card[data-fit="2"]{--fit:.84}.card[data-fit="3"]{--fit:.76}.card[data-fit="4"]{--fit:.68}.card[data-fit="5"]{--fit:.6}
+.card .ctx{font-size:calc(15px * var(--fit,1));line-height:1.32;font-weight:600;padding:8px 12px;border-left:3px solid var(--acc);background:var(--panel);border-radius:4px 12px 12px 4px;
+  display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:6;overflow:hidden;flex-shrink:0}
+.card.rv.mp .ctx{-webkit-line-clamp:1;opacity:.8}
+.card.sheet .ctx{background:rgba(127,127,127,.12)}
+.card.k-subtitle .ctx{background:#111;color:#fff}
+.card .marks{align-self:flex-start;font-size:12px;font-weight:900;letter-spacing:.07em;text-transform:uppercase;padding:4px 10px;border-radius:8px;border:2px solid var(--acc);color:var(--acc);background:rgba(0,0,0,.35);line-height:1.2}
+.card.sheet .marks{background:none}
+.card.l-bigtext .marks,.card.l-captions .marks{align-self:flex-start}
+.card.rv.mp .hook{display:none}
+.card .pts{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:calc(7px * var(--fit,1))}
+.card .pts li{position:relative}
+.card .pt{width:100%;display:flex;align-items:flex-start;gap:10px;text-align:left;box-sizing:border-box;padding:calc(9px * var(--fit,1)) 10px calc(9px * var(--fit,1)) 9px;border-radius:14px;border:2px solid transparent;
+  background:var(--panel);color:var(--fg);font-family:var(--hf);font-weight:700;font-size:calc(var(--ptpx,16px) * var(--fit,1));line-height:1.24;cursor:pointer;
+  animation:ptin .42s cubic-bezier(.2,1.25,.4,1) both;box-shadow:0 8px 20px -14px rgba(0,0,0,.7);transition:border-color .15s,background .15s}
+@keyframes ptin{from{opacity:0;transform:translateY(12px) scale(.95)}to{opacity:1;transform:none}}
+.card .pt .n{flex-shrink:0;min-width:24px;height:24px;border-radius:7px;background:var(--acc);color:var(--accfg);font-size:13px;font-weight:900;display:flex;align-items:center;justify-content:center;font-family:var(--hf)}
+.card .pt .tx{flex:1;min-width:0;padding-top:1px}
+.card .pt .tx b{color:var(--acc);font-weight:900}
+.card .pt .tk{flex-shrink:0;width:20px;height:20px;border-radius:50%;border:2px solid currentColor;opacity:.4;position:relative;margin-top:1px}
+.card .pt.got{border-color:var(--acc)}
+.card .pt.got .tk{opacity:1;background:var(--acc);border-color:var(--acc)}
+.card .pt.got .tk::after{content:"";position:absolute;left:5.5px;top:1.5px;width:5px;height:10px;border:solid var(--accfg);border-width:0 2.5px 2.5px 0;transform:rotate(45deg)}
+.card .pts.steps .n{border-radius:50%}
+.card .pts.steps li:not(:last-child)::after{content:"";position:absolute;left:22px;top:calc(100% - 3px);height:calc(7px * var(--fit,1) + 6px);width:2px;background:var(--acc);z-index:1}
+.card .pt.slot{animation:none;align-items:center;box-shadow:none;cursor:default}
+.card .redact{display:block;height:.9em;border-radius:5px;background:repeating-linear-gradient(135deg,currentColor 0 5px,transparent 5px 9px);opacity:.32}
+.card .hintx{opacity:.9;font-style:italic}
+.card .selfcheck{align-self:flex-start;display:flex;align-items:center;gap:6px;font-size:12.5px;font-weight:800;padding:5px 11px;border-radius:999px;background:rgba(0,0,0,.5);color:#fff;animation:ptin .42s ease both;text-shadow:none}
+.card .selfcheck::before{content:"";width:12px;height:12px;border-radius:50%;border:2px solid currentColor;opacity:.7}
+.card.sheet .selfcheck{background:rgba(127,127,127,.16);color:var(--fg)}
+.card .selfcheck.on::before{background:var(--acc);border-color:var(--acc);opacity:1}
+.card.settled .pt,.card.settled .selfcheck,.card.settled .bub.me,.card.settled .bub.late,.card.settled .sysmsg,.card.settled .ans{animation:none!important}
+.card .ans.t2 .a1{font-size:calc(18px * var(--fit,1))}
+.card .ans.t3 .a1{font-size:calc(16.5px * var(--fit,1));font-weight:800}
+/* looks */
+.card.k-caption .pt{background:rgba(0,0,0,.62)}
+.card.k-subtitle .pt{background:#fff;color:#111}
+.card.k-subtitle .pt .n{color:#111}
+.card.k-subtitle .pt .tx b{color:#111;background:var(--acc);border-radius:4px;padding:0 3px}
+.card.k-neon .pt{border-color:color-mix(in srgb,var(--acc) 45%,transparent);box-shadow:0 0 18px -6px var(--acc)}
+.card.k-neon .pt.got{border-color:var(--acc)}
+.card.sheet .pt{background:none;box-shadow:none;border:none;border-radius:8px;padding-left:2px;padding-right:4px;border-bottom:1.5px dashed rgba(127,127,127,.35)}
+.card.sheet .pt.got{background:color-mix(in srgb,var(--acc) 16%,transparent);border-bottom-color:transparent}
+.card.sheet .pt.slot{border-bottom-style:solid}
+.card.k-clean .pt{font-family:'Fraunces',Georgia,serif;font-weight:600;line-height:1.2}
+.card.k-paper .pt{font-family:'Caveat',cursive;font-weight:700;font-size:calc(var(--ptpx,16px) * 1.38 * var(--fit,1));line-height:1.02;padding-top:4px;padding-bottom:4px}
+.card.k-paper .pt .n{background:none;color:var(--acc);font-family:'Caveat',cursive;font-size:25px;min-width:16px;height:auto;line-height:1}
+.card.k-paper .pts.steps li:not(:last-child)::after{left:9px;opacity:.5}
+.card.k-paper .pt .tx b{color:var(--fg);background:linear-gradient(transparent 55%,color-mix(in srgb,var(--acc) 45%,transparent) 55%)}
+/* "more": the explanation opens over a dimmed card, like an expanded caption */
+.card .band .morebtn{background:none;border:none;color:#fff;font:inherit;font-weight:800;padding:6px 4px;margin:-6px -4px;cursor:pointer;text-shadow:inherit}
+.card .band .mtxt{font-weight:500}
+.card.moreopen .band{max-height:52%;overflow-y:auto;z-index:8;scrollbar-width:none;font-size:15px;line-height:1.38}
+.card.moreopen .scrim{background:linear-gradient(to top,rgba(0,0,0,.92) 0%,rgba(0,0,0,.78) 45%,rgba(0,0,0,.55) 100%);transition:background .25s}
+.card.moreopen .body,.card.moreopen .vibe,.card.moreopen .badge{filter:brightness(.3) saturate(.6);opacity:.6}
 
 /* the host app's rail: our four actions in the host's positions and icon style */
 .card .rail{position:absolute;z-index:6;right:max(6px, calc(var(--sr) - 48px));bottom:calc(var(--sb) - 2px);display:flex;flex-direction:column;gap:14px;align-items:center}

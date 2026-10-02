@@ -122,6 +122,16 @@ public final class FormatBandit {
      * @param allowCaptions false for long questions (word-by-word would drag)
      */
     public Pick pick(Random rnd, String context, String avoidLayout, boolean allowQuiz, boolean allowCaptions) {
+        java.util.Set<String> allowed = new java.util.HashSet<>(java.util.Arrays.asList(Format.LAYOUTS));
+        if (!allowQuiz) allowed.remove("quiz");
+        if (!allowCaptions) allowed.remove("captions");
+        return pick(rnd, context, avoidLayout, allowed);
+    }
+
+    /**
+     * @param allowed the layouts this card's shape can use (AnswerShape.layoutsFor); null = all
+     */
+    public Pick pick(Random rnd, String context, String avoidLayout, java.util.Set<String> allowed) {
         Pick out = new Pick();
         Format f = new Format();
         String exploreDim = rnd.nextDouble() < EXPLORE ? Format.DIMS[rnd.nextInt(Format.DIMS.length)] : null;
@@ -130,8 +140,7 @@ public final class FormatBandit {
             List<String> cands = new ArrayList<>();
             for (String p : Format.pieces(dim)) {
                 if ("layout".equals(dim)) {
-                    if (!allowQuiz && "quiz".equals(p)) continue;
-                    if (!allowCaptions && "captions".equals(p)) continue;
+                    if (allowed != null && !allowed.contains(p)) continue;
                     if (p.equals(avoidLayout)) continue;
                 }
                 if (runFull(dim, p)) continue;

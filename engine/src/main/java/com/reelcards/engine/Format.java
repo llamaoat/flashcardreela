@@ -2,14 +2,15 @@ package com.reelcards.engine;
 
 /**
  * How a card reel looks: one piece from each of four interchangeable dimensions.
- * 6 hooks x 6 layouts x 5 looks x 7 backgrounds = 1,260 combinations.
+ * 6 hooks x 7 layouts x 5 looks x 7 backgrounds = 1,470 combinations.
  */
 public final class Format {
     public static final String[] DIMS = {"hook", "layout", "look", "bg"};
 
     public static final String[] HOOKS = {"pov", "waitforit", "mostwrong", "text2am", "rate", "storytime"};
-    /** captions = word-by-word animated captions; comment = "replying to a comment" format. */
-    public static final String[] LAYOUTS = {"bigtext", "captions", "chat", "comment", "split", "quiz"};
+    /** captions = word-by-word animated captions; comment = "replying to a comment" format;
+     *  list = numbered list with one blank per point (only for answers with 2+ points). */
+    public static final String[] LAYOUTS = {"bigtext", "captions", "chat", "comment", "split", "quiz", "list"};
     public static final String[] LOOKS = {"caption", "subtitle", "clean", "neon", "paper"};
     public static final String[] BGS = {"satisfying", "gameplay", "citywalk", "pitch", "glow", "equalizer", "plain"};
 
@@ -75,6 +76,7 @@ public final class Format {
             case "comment": return "Reply to a comment";
             case "split": return "Split-screen";
             case "quiz": return "Quiz buttons";
+            case "list": return "Numbered list";
             case "caption": return "Bold captions";
             case "subtitle": return "Subtitle boxes";
             case "clean": return "Clean serif";

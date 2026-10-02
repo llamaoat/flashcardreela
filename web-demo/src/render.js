@@ -38,38 +38,87 @@ const I = {
 function keyWord(q){ let best = -1, len = 0; q.split(/\s+/).forEach((w,i)=>{ const b = w.replace(/[^\p{L}\p{N}]/gu,""); if (b.length > len && b.length >= 5) { len = b.length; best = i; } }); return best; }
 function withEm(q, upper){ const words = q.split(/\s+/), k = keyWord(q); return words.map((w,i)=> i===k ? "<em>"+esc(upper?w.toUpperCase():w)+"</em>" : esc(upper?w.toUpperCase():w)).join(" "); }
 
-function questionHTML(it, scale){
-  const look = it.f.look, q = it.s.q;
+/* ---- long answers: shape helpers ---- */
+const isMulti = it => !!(it.s.points && it.s.points.length >= 2);
+const answered = it => it.revealed || it.pick >= 0;
+// once a multi-point answer is showing, the question shrinks up out of the way (like a caption morphing)
+const compact = it => isMulti(it) && answered(it);
+const gotCount = it => it.liked ? it.s.points.length : (it.got || []).filter(Boolean).length;
+const readMs = t => 1500 + 45 * (t ? t.length : 0);
+/* seconds on the "think" ring: grows with how long the question takes to read */
+function thinkSecs(s){ return Math.max(3, Math.min(7, Math.ceil((readMs((s.ctx||"") + " " + (s.qMain||s.q)) - 1000) / 1000))); }
+/* when each point drops in: quicker for short points, slower for long ones */
+function ptDelays(s){ const d = []; let t = 0; for (const p of s.points) { d.push(t); t += Math.max(500, Math.min(1500, 380 + 26*p.length)); } d.push(t); return d; }
+function ptSize(s){ const m = Math.max(...s.points.map(p=>p.length)); return m <= 28 ? 17.5 : m <= 60 ? 15.5 : 14.5; }
+function ptLabel(p){ const m = p.match(/^([^:]{1,24}):\s+(.+)$/); return m ? '<b>'+esc(m[1])+'</b> '+esc(m[2]) : esc(p); }
+
+function qPx(look, text, scale){
   const size = {caption:34, subtitle:27, clean:31, neon:36, paper:40}[look] || 32;
   // long questions shrink so they always fit the safe zone
-  const len = q.length, fit = len > 110 ? .7 : len > 80 ? .8 : len > 55 ? .9 : 1;
+  const len = text.length, fit = len > 110 ? .7 : len > 80 ? .8 : len > 55 ? .9 : 1;
   // never break a word: the longest word must fit the ~250px text column
-  const longest = Math.max(...q.split(/\s+/).map(w=>w.length));
+  const longest = Math.max(...text.split(/\s+/).map(w=>w.length));
   const em = {caption:.66, subtitle:.6, clean:.58, neon:.5, paper:.45}[look] || .6;
-  const px = Math.round(Math.min(size * scale * fit, 244 / (longest * em)));
-  if (look === "subtitle") return '<h2 class="q" style="font-size:'+px+'px"><span>'+withEm(q,false)+'</span></h2>';
-  return '<h2 class="q" style="font-size:'+px+'px">'+withEm(q, look==="caption"||look==="neon")+'</h2>';
+  return Math.round(Math.min(size * scale * fit, 244 / (longest * em)));
+}
+function marksHTML(it){ return it.s.marks && !compact(it) ? '<div class="marks">'+it.s.marks+' marks</div>' : ''; }
+function questionHTML(it, scale){
+  const look = it.f.look, s = it.s, q = s.ctx ? s.qMain : s.q;
+  const px = qPx(look, q, scale * (compact(it) ? .6 : 1));
+  const inner = look === "subtitle" ? '<span>'+withEm(q,false)+'</span>' : withEm(q, look==="caption"||look==="neon");
+  // a long question's set-up sits in a small quoted box; the actual question stays big
+  return (s.ctx ? '<div class="ctx">'+esc(s.ctx)+'</div>' : '') +
+    '<h2 class="q" style="font-size:calc('+px+'px * var(--fit,1))">'+inner+'</h2>' + (it.f.layout==="list" ? '' : marksHTML(it));
 }
 
-function revealOrAnswer(it){
-  const hintChip = it.hinted && !it.revealed ? '<div class="hintchip"><b>Hint</b> '+esc(it.s.hint)+'</div>' : '';
-  if (!it.revealed) return hintChip + revealButton(it);
-  if (it.revealed) return '<div class="ans"><div class="a1">'+esc(it.s.a)+'</div>'+(it.s.x?'<div class="a2">'+esc(it.s.x)+'</div>':'')+'</div>';
-  return revealButton(it);
+/* the answer as points, dropping in one after another; tap the ones you got */
+function pointsHTML(it){
+  const s = it.s, n = s.points.length, d = ptDelays(s), got = it.got || [], k = gotCount(it);
+  const lis = s.points.map((p,i)=>{ const on = it.liked || got[i];
+    return '<li><button class="pt'+(on?' got':'')+'" data-act="tick" data-v="'+i+'" style="animation-delay:'+d[i]+'ms" aria-pressed="'+(!!on)+'" aria-label="Point '+(i+1)+': '+esc(p)+'. Tap if you got it"><b class="n">'+(i+1)+'</b><span class="tx">'+ptLabel(p)+'</span><i class="tk" aria-hidden="true"></i></button></li>'; }).join("");
+  const note = k ? (k >= n ? 'Got all '+n : 'Got '+k+' of '+n) : 'Tap the ones you got';
+  return '<ol class="pts'+(s.shape==="steps"?' steps':'')+'" style="--ptpx:'+ptSize(s)+'px">'+lis+'</ol><div class="selfcheck'+(k?' on':'')+'" style="animation-delay:'+d[n]+'ms">'+note+'</div>';
 }
-function revealButton(it){ return '<button class="reveal" data-act="reveal"><span class="ring">'+(it.count==null?3:it.count)+'</span><span>'+esc(it.s.prompt)+'</span></button>'; }
+/* numbered list layout, before the reveal: one blank per point, so you know how many to recall */
+function slotsHTML(it){
+  const s = it.s;
+  return '<ol class="pts slots'+(s.shape==="steps"?' steps':'')+'" style="--ptpx:'+ptSize(s)+'px">'+s.points.map((p,i)=>'<li><div class="pt slot"><b class="n">'+(i+1)+'</b>'+
+    (it.hinted ? '<span class="tx hintx">'+esc(s.starts[i])+'…</span>' : '<span class="redact" style="width:'+Math.round(Math.min(86, 24 + p.length*1.2))+'%"></span>')+'</div></li>').join("")+'</ol>';
+}
+function revealOrAnswer(it){
+  if (!it.revealed) {
+    const hintChip = it.hinted && it.f.layout!=="list" ? '<div class="hintchip"><b>Hint</b> '+esc(it.s.hint)+'</div>' : '';
+    return hintChip + revealButton(it);
+  }
+  if (isMulti(it)) return pointsHTML(it);
+  const a = it.s.a, tier = a.length > 40 ? ' t3' : a.length > 22 ? ' t2' : '';
+  return '<div class="ans'+tier+'"><div class="a1">'+esc(a)+'</div>'+(it.s.x?'<div class="a2">'+esc(it.s.x)+'</div>':'')+'</div>';
+}
+function revealButton(it){ return '<button class="reveal" data-act="reveal"><span class="ring">'+(it.count==null?thinkSecs(it.s):it.count)+'</span><span>'+esc(it.s.prompt)+'</span></button>'; }
 
 function bodyHTML(it){
   const s = it.s, lay = it.f.layout;
   if (lay === "chat") {
-    return '<div class="chat"><div class="chathead"><i>'+esc(s.name[0])+'</i><span><b>'+esc(s.name)+'</b><small>revision chat · now</small></span></div>'+
-      s.them.map(t=>'<div class="bub them">'+esc(t)+'</div>').join("")+
-      (it.revealed ? s.me.map(t=>'<div class="bub me">'+esc(t)+'</div>').join("")+'<div class="bub them">'+esc(s.after)+'</div>'
-                   : (it.hinted?'<div class="bub me" style="opacity:.8">'+esc(it.s.hint)+'…</div>':'')+'<button class="typing" data-act="reveal" aria-label="Show the reply"><span>•</span> <span>•</span> <span>•</span></button>')+'</div>';
+    let mine;
+    if (!it.revealed) mine = (it.hinted?'<div class="bub me" style="opacity:.8">'+esc(it.s.hint)+'…</div>':'')+'<button class="typing" data-act="reveal" aria-label="Show the reply"><span>•</span> <span>•</span> <span>•</span></button>';
+    else if (isMulti(it)) {
+      // a long answer arrives the way people text: one message per point. React ✓ to the ones you got
+      const d = ptDelays(s), got = it.got || [], n = s.points.length, k = gotCount(it);
+      mine = s.me.map((t,i)=>{ const on = it.liked || got[i]; return '<button class="bub me'+(on?' got':'')+'" data-act="tick" data-v="'+i+'" style="animation-delay:'+d[i]+'ms" aria-pressed="'+(!!on)+'">'+esc(t)+(on?'<i class="tb" aria-hidden="true">✓</i>':'')+'</button>'; }).join("")+
+        '<div class="sysmsg" style="animation-delay:'+d[n]+'ms">'+(k ? (k>=n ? 'You got all '+n : 'You got '+k+' of '+n) : 'Tap the messages you got')+'</div>';
+    } else mine = s.me.map(t=>'<div class="bub me">'+esc(t)+'</div>').join("")+'<div class="bub them late" style="animation-delay:500ms">'+esc(s.after)+'</div>';
+    // once a long answer arrives, the small talk drops out so the question stays in view above it
+    const them = it.revealed && isMulti(it) && s.themQ ? s.themQ : s.them;
+    return '<div class="chat"><div class="chathead"><i>'+esc(s.name[0])+'</i><span><b>'+esc(s.name)+'</b><small>revision chat · now</small></span></div><div class="msgs">'+
+      them.map(t=>'<div class="bub them">'+esc(t)+'</div>').join("")+mine+'</div></div>';
   }
   if (lay === "comment") {
+    // a long question is carried by the comment itself, so it isn't repeated in big text
     return '<div class="sticker"><i></i><div><small>Reply to '+esc(s.commentUser)+'’s comment</small><span>'+esc(s.commentText)+'</span></div></div>'+
-      questionHTML(it,.82)+revealOrAnswer(it);
+      (s.q.length <= 90 ? questionHTML(it,.82) : marksHTML(it))+revealOrAnswer(it);
+  }
+  if (lay === "list" && isMulti(it)) {
+    return '<div class="hook">'+esc(s.hook)+'</div>'+questionHTML(it,.86)+(it.revealed ? pointsHTML(it) : slotsHTML(it)+revealButton(it));
   }
   if (lay === "quiz" && s.correct >= 0) {
     const opts = s.options.map((o,i)=>{ let cls = "opt"; if (it.pick >= 0) { if (i===s.correct) cls += " right"; else if (i===it.pick) cls += " wrong"; else cls += " dim"; }
@@ -84,7 +133,7 @@ function bodyHTML(it){
       const upper = it.f.look !== "paper" && it.f.look !== "clean";
       const inner = words.map((w,k)=> k===hi ? "<em>"+esc(upper?w.toUpperCase():w)+"</em>" : esc(upper?w.toUpperCase():w)).join(" ");
       const bl = Math.max(...words.map(w=>w.length)), bpx = Math.round(Math.min(40, 250 / (bl * (upper ? .66 : .5))));
-      return '<div class="hook">'+esc(s.hook)+'</div><div class="beat" style="font-size:'+bpx+'px">'+(it.f.look==="subtitle"?'<span>'+inner+'</span>':inner)+'</div>'+
+      return '<div class="hook">'+esc(s.hook)+'</div><div class="beat" style="font-size:calc('+bpx+'px * var(--fit,1))">'+(it.f.look==="subtitle"?'<span>'+inner+'</span>':inner)+'</div>'+
         '<div class="beatcount">'+s.beats.map((_,k)=>'<i class="'+(k<=n?"on":"")+'"></i>').join("")+'</div>';
     }
     return '<div class="hook">'+esc(s.hook)+'</div>'+questionHTML(it,.8)+revealOrAnswer(it);
@@ -94,7 +143,7 @@ function bodyHTML(it){
 
 function vibeHTML(it){
   const v = it.s.vibe; if (!v) return "";
-  const good = it.liked || (it.pick>=0 && it.pick===it.s.correct), bad = (it.pick>=0 && it.pick!==it.s.correct) || (it.revealed && !it.liked && it.f.layout!=="quiz" && it.done);
+  const good = it.liked || (it.pick>=0 && it.pick===it.s.correct) || (isMulti(it) && gotCount(it) >= it.s.points.length), bad = (it.pick>=0 && it.pick!==it.s.correct) || (it.revealed && !it.liked && it.f.layout!=="quiz" && it.done);
   switch (v) {
     case "football": return '<div class="vibe"><div class="score"><span class="t">YOU</span><b>'+(good?1:0)+'–'+(bad?1:0)+'</b><span>EXAM</span></div><span class="vpill" style="background:#101418;color:#fff">90+3′</span></div>';
     case "gaming": return '<div class="vibe"><div class="hud">LVL 7 <i><b style="width:'+(good?"78%":"35%")+'"></b></i></div></div>';
@@ -119,13 +168,22 @@ function railHTML(it, host){
     '<button data-act="share" aria-label="Share with a friend">'+share+'<span>Share</span></button></div>';
 }
 
+/* The caption line. Once the answer is showing, a long explanation lives here behind "more",
+   the way a long caption does on every reel app; tapping it opens the caption over a dimmed card. */
+function capLine(it, tags){
+  const s = it.s;
+  if (!answered(it) || !s.more) return esc(s.cap)+' <span class="tags">'+esc(tags)+'</span>';
+  if (it.moreOpen || s.more.length <= 64) return '<span class="mtxt">'+esc(s.more)+'</span> <span class="tags">'+esc(tags)+'</span>'+(s.more.length > 64 ? ' <button class="morebtn" data-act="more">less</button>' : '');
+  const sp = s.more.lastIndexOf(" ", 58), cut = s.more.slice(0, sp > 24 ? sp : 58).replace(/[\s,;:.]+$/,"");
+  return '<span class="mtxt">'+esc(cut)+'…</span> <button class="morebtn" data-act="more" aria-label="Show the full explanation">more</button>';
+}
 function bandHTML(it, host){
   const s = it.s, deck = it.card.deck || "Study";
   const tags = "#" + deck.toLowerCase().replace(/[^a-z0-9 ]/g,"").trim().split(/\s+/).slice(0,2).join(" #");
   const ini = esc(deck.replace(/^(GCSE|A-level)\s+/i,"")[0]||"R");
-  if (host === "youtube") return '<div class="band"><div class="title">'+esc(s.cap)+' '+esc(tags)+'</div><div class="who"><span class="dot">'+ini+'</span>'+esc(s.account)+' <span class="pill">'+esc(deck.replace(/^GCSE\s+/,""))+'</span></div><div class="sound">'+I.note+'<span>'+esc(s.sound)+'</span></div></div>';
-  if (host === "instagram") return '<div class="band"><div class="who"><span class="dot">'+ini+'</span>'+esc(s.account.slice(1))+' <span class="pill">'+esc(deck.replace(/^GCSE\s+/,""))+'</span></div><div>'+esc(s.cap)+' <span class="tags">'+esc(tags)+'</span></div><div class="sound">'+I.note+'<span>'+esc(s.sound.replace("original sound","Original audio"))+'</span></div></div>';
-  return '<div class="band"><div class="who">'+esc(s.account)+'</div><div>'+esc(s.cap)+' <span class="tags">'+esc(tags)+'</span></div><div class="sound">'+I.note+'<span>'+esc(s.sound)+'</span></div></div>';
+  if (host === "youtube") return '<div class="band"><div class="title">'+capLine(it, tags)+'</div><div class="who"><span class="dot">'+ini+'</span>'+esc(s.account)+' <span class="pill">'+esc(deck.replace(/^GCSE\s+/,"").split(":")[0])+'</span></div><div class="sound">'+I.note+'<span>'+esc(s.sound)+'</span></div></div>';
+  if (host === "instagram") return '<div class="band"><div class="who"><span class="dot">'+ini+'</span>'+esc(s.account.slice(1))+' <span class="pill">'+esc(deck.replace(/^GCSE\s+/,"").split(":")[0])+'</span></div><div class="capline">'+capLine(it, tags)+'</div><div class="sound">'+I.note+'<span>'+esc(s.sound.replace("original sound","Original audio"))+'</span></div></div>';
+  return '<div class="band"><div class="who">'+esc(s.account)+'</div><div class="capline">'+capLine(it, tags)+'</div><div class="sound">'+I.note+'<span>'+esc(s.sound)+'</span></div></div>';
 }
 
 /* it: {card, f, s, host, revealed, liked, likedBefore, pick, saved, hinted, beat, count}; opts: {night, tint} */
@@ -137,19 +195,25 @@ function card(it, opts){
   // light looks are drawn as a notes "sheet" floating over dark footage (like a creator screenshotting
   // their notes), so the card still reads as a reel rather than a slide
   const sheet = sheetLook && it.f.layout!=="quiz";
-  const cls = ["card","h-"+host,"k-"+it.f.look,"l-"+it.f.layout, sheet?"sheet":"", opts.night?"night":""].join(" ");
+  const cls = ["card","h-"+host,"k-"+it.f.look,"l-"+it.f.layout, sheet?"sheet":"", opts.night?"night":"",
+    answered(it)?"rv":"", isMulti(it)?"mp":"", it.moreOpen?"moreopen":"", it.settled?"settled":""].join(" ").replace(/\s+/g," ");
   const vars = "--fg:"+L.fg+";--acc:"+L.acc+";--accfg:"+L.accfg+";--panel:"+L.panel+";--bubble:"+L.bubble+";--bgc:"+(sheetLook?(opts.tint!=null?"hsl("+opts.tint+" 42% 12%)":"#0f0f12"):L.bg)+";--sheet:"+L.bg;
   const bg = it.f.bg, split = it.f.layout==="split";
   const bgOpacity = sheetLook ? .6 : (it.f.look==="subtitle" ? .75 : .42);
   let back = "";
   if (split) back += '<div class="splittop"><div class="bgl bg-'+(bg==="plain"?"gameplay":bg)+'"></div></div>'; // split-screen always has footage on top
   else if (bg!=="plain") back += '<div class="bgl bg-'+bg+'" style="opacity:'+bgOpacity+'"></div>';
-  const badge = it.liked ? (it.hinted ? "With a hint · Hard" : it.likedBefore ? "Knew it · Easy" : "Knew it · Good") : (it.pick>=0 ? (it.pick===it.s.correct ? "Correct" : "Not quite") : "");
+  const n = isMulti(it) ? it.s.points.length : 1, k = isMulti(it) ? gotCount(it) : 0;
+  const partGrade = k >= n ? "Good" : k*2 >= n ? "Hard" : "Again";
+  const badge = it.liked ? (it.hinted ? "With a hint · Hard" : it.likedBefore ? "Knew it · Easy" : "Knew it · Good") : (it.pick>=0 ? (it.pick===it.s.correct ? "Correct" : "Not quite") :
+    k ? (k>=n ? "All "+n : k+"/"+n)+" · "+(it.hinted && partGrade==="Good" ? "Hard" : partGrade) : "");
+  // the progress line runs for as long as the card takes to read
+  const dur = Math.max(10, Math.min(30, (readMs(it.s.q) + readMs(it.s.points ? it.s.points.join(" ") : it.s.a) + 3000) / 1000));
   const coach = opts.coach ? '<div class="coach" aria-hidden="true">Tap to see the answer · Double-tap if you knew it</div>' : '';
   return '<div class="'+cls+'" data-card style="'+vars+'">'+back+'<div class="scrim"></div>'+vibeHTML(it)+coach+
     '<div class="body">'+bodyHTML(it)+'</div>'+
     (badge?'<span class="badge">'+badge+'</span>':'')+
-    railHTML(it, host)+bandHTML(it, host)+'<div class="prog"><i></i></div></div>';
+    railHTML(it, host)+bandHTML(it, host)+'<div class="prog"><i style="animation-duration:'+dur.toFixed(1)+'s"></i></div></div>';
 }
 
 /* A normal reel from someone's feed (the thing the card sits between). */
@@ -159,5 +223,5 @@ function plainReel(n, hue, host){
     '<div style="position:absolute;left:18px;bottom:15%;text-align:left;color:#fff;font-size:13px;text-shadow:0 1px 2px #000"><b style="font-size:14px">'+creators[n%8]+'</b><br>'+caps[n%6]+'</div></div>';
 }
 
-return {card, plainReel, esc, LOOKS, I};
+return {card, plainReel, esc, LOOKS, I, thinkSecs, ptDelays};
 })();

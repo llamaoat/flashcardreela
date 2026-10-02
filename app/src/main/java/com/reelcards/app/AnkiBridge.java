@@ -214,7 +214,7 @@ final class AnkiBridge implements Engine.GradeSink {
                 .replaceAll("(?i)<hr[^>]*>", "\n");
         String t = Html.fromHtml(s, Html.FROM_HTML_MODE_LEGACY).toString();
         t = t.replace(' ', ' ').replaceAll("[ \\t]+", " ").replaceAll("\\n\\s*\\n+", "\n").trim();
-        if (t.length() > 220) t = t.substring(0, 219) + "…";
+        if (t.length() > 900) t = t.substring(0, 899) + "…"; // long answers are split into points on the card
         return t;
     }
 

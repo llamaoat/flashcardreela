@@ -44,6 +44,7 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import com.reelcards.engine.CardScript;
+import com.reelcards.engine.Grade;
 import com.reelcards.engine.Outcome;
 import com.reelcards.engine.Show;
 
@@ -63,6 +64,11 @@ import java.util.Locale;
  * tools), a layout, a hook and a looping background, plus a small badge themed to what the student
  * watches (a football scorebug, a game HUD, …). Light looks float as a notes "sheet" over dark
  * footage so the card still reads as a reel, not a slide; after 10pm they switch to dark versions.
+ *
+ * Long answers (2+ points, see AnswerShape) are revealed one point at a time, like a "3 things…"
+ * reel, and the student taps the points they got (part marks). A long question's set-up sits in a
+ * quoted box. A long explanation goes behind "more" in the caption. If anything would spill out of
+ * the safe zone, a fit pass shrinks the text a step at a time.
  *
  * Mirrors web-demo/src/render.js. The engine decides everything; this only draws a Show and reports
  * an Outcome (with timings, for response-time grading).
@@ -139,12 +145,29 @@ final class CardView extends FrameLayout {
     private final GestureDetector gestures;
     private final int slop;
     private VelocityTracker velocity;
-    private float downY;
+    private float downY, lastUpX, lastUpY;
     private boolean dragging, finished, built, touchOnControl;
 
     // what the student has done so far (the body is redrawn from this)
     private boolean hinted, justRevealed, justHinted, justPicked;
-    private int beat, count = 3;
+    private int beat, count;
+    // long answers: points ticked, the "more" caption, and whether the points have finished dropping in
+    private final boolean[] got;
+    private boolean moreOpen, settled;
+    // fit pass: 0 = full size, 5 = smallest (see FIT)
+    private static final float[] FIT = {1f, 0.92f, 0.84f, 0.76f, 0.68f, 0.6f};
+    private int fitLevel;
+    private float fit = 1f;
+    private int regionW, regionH;
+    private boolean centredBody;
+    private TextView capView;
+    private View dim;
+    private int chatSkip;          // oldest friend messages dropped so a long chat keeps its newest in view
+    private int focusPoint = -1;   // point to give accessibility focus back to after a redraw
+    private View focusView;        // that point's view in the latest draw
+    private float capDownX, capDownY;
+    private int capDownScroll;
+    private boolean touchOnCaption;
 
     // geometry, in px, set once the card knows its size
     private int W, H, st, sb, sl, sr;
@@ -171,11 +194,13 @@ final class CardView extends FrameLayout {
         this.sheet = sheetLook && !"quiz".equals(layout);
         this.night = sheetLook && Store.engine(c).settings.nightAt(Calendar.getInstance().get(Calendar.HOUR_OF_DAY));
         this.slop = ViewConfiguration.get(c).getScaledTouchSlop();
+        this.got = new boolean[Math.max(1, s.points.size())];
+        this.count = thinkSecs(s);
         setClickable(true);
         setClipChildren(true);
         gestures = new GestureDetector(c, new GestureDetector.SimpleOnGestureListener() {
             @Override public boolean onDown(MotionEvent e) { return true; }
-            @Override public boolean onSingleTapConfirmed(MotionEvent e) { if (!show.isQuiz()) reveal(); return true; }
+            @Override public boolean onSingleTapConfirmed(MotionEvent e) { reveal(); return true; }
             @Override public boolean onDoubleTapEvent(MotionEvent e) {
                 // like on the second finger-up, and only if that touch didn't turn into a swipe
                 if (e.getActionMasked() == MotionEvent.ACTION_UP && !dragging) like(e.getX(), e.getY());
@@ -192,7 +217,36 @@ final class CardView extends FrameLayout {
         if ("captions".equals(l) && s.beats.isEmpty()) return "bigtext";
         if ("comment".equals(l) && s.commentText == null) return "bigtext";
         if ("chat".equals(l) && s.chatName == null) return "bigtext";
+        if ("list".equals(l) && !s.multi()) return "bigtext";
         return l;
+    }
+
+    /** Seconds on the "think" ring: grows with how long the question takes to read (3 to 7). */
+    static int thinkSecs(CardScript s) {
+        String main = s.questionMain != null ? s.questionMain : s.question;
+        long ms = Grade.readingMs((s.context == null ? "" : s.context) + " " + main);
+        return Math.max(3, Math.min(7, (int) Math.ceil((ms - 1000) / 1000.0)));
+    }
+
+    /** When each point drops in (ms): quicker for short points, slower for long ones. Last entry = after all. */
+    static long[] pointDelays(List<String> points) {
+        long[] d = new long[points.size() + 1];
+        long t = 0;
+        for (int i = 0; i < points.size(); i++) { d[i] = t; t += Math.max(500, Math.min(1500, 380 + 26L * points.get(i).length())); }
+        d[points.size()] = t;
+        return d;
+    }
+
+    private boolean multi() { return s.multi(); }
+
+    /** Once a multi-point answer is showing, the question shrinks up out of the way. */
+    private boolean compact() { return multi() && (outcome.revealed || outcome.quizPick >= 0); }
+
+    private int gotCount() {
+        if (outcome.liked) return s.points.size();
+        int n = 0;
+        for (int i = 0; i < s.points.size(); i++) if (got[i]) n++;
+        return n;
     }
 
     /** Opt-in "match my feed's colours": hue (0..360) of the reel just watched; NaN for none. Call before it's shown. */
@@ -225,6 +279,9 @@ final class CardView extends FrameLayout {
         t.setLineSpacing(0, 1.22f);
         return t;
     }
+
+    /** Text inside the body: shrinks with the fit pass. */
+    private TextView tvb(CharSequence text, float sp, int color, Typeface tf) { return tv(text, sp * fit, color, tf); }
 
     private Typeface black() { return Fonts.hostBlack(getContext(), host); }
     private Typeface bold() { return Fonts.hostBold(getContext(), host); }
@@ -288,11 +345,14 @@ final class CardView extends FrameLayout {
         rl.rightMargin = sr + u(30);
         rl.topMargin = "split".equals(layout) ? Math.round(H * 0.44f) : st + u(sheet && ("bigtext".equals(layout) || "captions".equals(layout)) ? 70 : 44);
         rl.bottomMargin = sb + u("split".equals(layout) ? 96 : 104);
+        regionW = W - rl.leftMargin - rl.rightMargin;
+        regionH = H - rl.topMargin - rl.bottomMargin;
         addView(region, rl);
         body = new LinearLayout(c);
         body.setOrientation(LinearLayout.VERTICAL);
         body.setClipChildren(false);
         boolean centred = !sheet && ("bigtext".equals(layout) || "captions".equals(layout));
+        centredBody = centred;
         LayoutParams bl = new LayoutParams(-1, -2, centred ? Gravity.CENTER_VERTICAL : Gravity.TOP);
         if (centred) bl.bottomMargin = Math.round(H * 0.06f);
         region.addView(body, bl);
@@ -303,6 +363,12 @@ final class CardView extends FrameLayout {
             body.setElevation(u(14));
             body.setRotation(-0.6f);
         }
+
+        // dims the card when the caption is opened ("more"); sits under the rail and caption band
+        dim = new View(c);
+        dim.setBackground(new GradientDrawable(GradientDrawable.Orientation.BOTTOM_TOP, new int[]{0xEB000000, 0xC7000000, 0x8C000000}));
+        dim.setAlpha(0f);
+        addView(dim, new LayoutParams(-1, -1));
 
         buildRail();
         buildBand();
@@ -341,15 +407,69 @@ final class CardView extends FrameLayout {
         bar.setScaleX(0);
         addView(bar, new LayoutParams(-1, u(3), Gravity.BOTTOM));
         ObjectAnimator a = ObjectAnimator.ofFloat(bar, "scaleX", 0f, 1f);
-        a.setDuration(12000);
+        // runs for as long as the card takes to read
+        StringBuilder ans = new StringBuilder();
+        for (String pt : s.points) ans.append(pt).append(' ');
+        long ms = Grade.readingMs(s.question) + Grade.readingMs(ans.toString().trim()) + 3000;
+        a.setDuration(Math.max(10000, Math.min(30000, ms)));
         a.setInterpolator(new LinearInterpolator());
         a.start();
     }
 
     // ------------------------------------------------------------------ body (redrawn on every change)
 
+    /**
+     * Draws the body from the current state. Fit pass: if it's taller than the safe zone leaves room
+     * for, everything in it shrinks a step (FIT) and it's drawn again, before anything reaches the
+     * screen; a long chat then drops its oldest friend messages. Starts from full size every time,
+     * so the text grows back when there's room again (after a long answer collapses the question).
+     */
     private void renderBody() {
         if (body == null) return;
+        final boolean jr = justRevealed, jh = justHinted, jp = justPicked;
+        fitLevel = 0; fit = FIT[0]; chatSkip = 0;
+        placeRegion();
+        for (int guard = 0; guard < 20; guard++) {
+            justRevealed = jr; justHinted = jh; justPicked = jp;
+            drawBody();
+            if (fits()) break;
+            if (fitLevel < FIT.length - 1) { fitLevel++; fit = FIT[fitLevel]; }
+            else if ("chat".equals(layout) && chatSkip < chatThemShown() - 1) chatSkip++;
+            else break;
+        }
+        justRevealed = justHinted = justPicked = false;
+        body.requestLayout(); // the measures in fits() were probes: let the real layout pass measure again
+        if (focusView != null) { // after a tick, screen-reader focus goes back to that point
+            final View v = focusView;
+            focusView = null;
+            focusPoint = -1;
+            v.post(new Runnable() { @Override public void run() { v.performAccessibilityAction(android.view.accessibility.AccessibilityNodeInfo.ACTION_ACCESSIBILITY_FOCUS, null); } });
+        }
+    }
+
+    /** Light-look sheets sit a little lower for big text, and move up once a long answer is showing. */
+    private void placeRegion() {
+        if (region == null || !sheet || !("bigtext".equals(layout) || "captions".equals(layout))) return;
+        LayoutParams rl = (LayoutParams) region.getLayoutParams();
+        int top = st + u(compact() ? 44 : 70);
+        if (rl.topMargin == top) return;
+        rl.topMargin = top;
+        regionH = H - rl.topMargin - rl.bottomMargin;
+        region.setLayoutParams(rl);
+    }
+
+    private boolean fits() {
+        if (regionW <= 0) return true;
+        int avail = regionH - (centredBody ? Math.round(H * 0.06f) : 0);
+        body.measure(MeasureSpec.makeMeasureSpec(regionW, MeasureSpec.EXACTLY), MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED));
+        return body.getMeasuredHeight() <= avail + u(2);
+    }
+
+    private int chatThemShown() {
+        return (outcome.revealed && multi() && !s.chatThemQuestion.isEmpty() ? s.chatThemQuestion : s.chatThem).size();
+    }
+
+    private void drawBody() {
         body.removeAllViews();
         bodyControls.clear();
         if (typingPulse != null) { typingPulse.cancel(); typingPulse = null; }
@@ -358,25 +478,63 @@ final class CardView extends FrameLayout {
             case "comment": renderComment(); break;
             case "quiz": renderQuiz(); break;
             case "captions": renderCaptions(); break;
+            case "list": renderList(); break;
             default: {
-                addToBody(hook(s.hookLine));
-                addToBody(question(s.question, "split".equals(layout) ? 0.8f : 1f));
+                if (!compact()) addToBody(hook(s.hookLine));
+                addQuestion("split".equals(layout) ? 0.8f : 1f);
                 addRevealOrAnswer();
             }
         }
-        justRevealed = justHinted = justPicked = false;
     }
 
     private void addToBody(View v) { addToBody(v, false); }
 
     private void addToBody(View v, boolean fullWidth) {
-        int gap = body.getChildCount() == 0 ? 0 : u(14);
+        int gap = body.getChildCount() == 0 ? 0 : Math.round(u(14) * fit);
         body.addView(v, fullWidth ? fullLp(gap) : wrapLp(gap));
+    }
+
+    /** The question: a long question's set-up in a quoted box, then the question, then "3 marks". */
+    private void addQuestion(float scale) {
+        if (s.context != null && !s.context.isEmpty()) addToBody(contextBox(), true);
+        String q = s.context != null && !s.context.isEmpty() && s.questionMain != null ? s.questionMain : s.question;
+        addToBody(question(q, scale * (compact() ? 0.6f : 1f)));
+        if (!"list".equals(layout)) addMarks();
+    }
+
+    private void addMarks() {
+        if (s.marks <= 0 || compact()) return;
+        TextView m = tvb(s.marks + " MARKS", 12, P.acc, black());
+        m.setLetterSpacing(0.07f);
+        m.setBackground(Ui.outline(sheet ? 0x00000000 : 0x59000000, P.acc, u(2), u(8)));
+        m.setPadding(u(10), u(4), u(10), u(4));
+        addToBody(m);
+    }
+
+    private View contextBox() {
+        boolean sub = "subtitle".equals(look);
+        TextView t = tvb(s.context, 15, sub ? 0xFFFFFFFF : P.fg, bold());
+        t.setLineSpacing(0, 1.32f);
+        int fill = sub ? 0xFF111111 : sheet ? 0x1F808080 : P.panel;
+        GradientDrawable g = new GradientDrawable();
+        g.setColor(fill);
+        float r = u(12), small = u(4);
+        g.setCornerRadii(new float[]{small, small, r, r, r, r, small, small});
+        // accent bar down the left edge, like a quote
+        android.graphics.drawable.LayerDrawable box = new android.graphics.drawable.LayerDrawable(new Drawable[]{g, Ui.round(P.acc, 0)});
+        box.setLayerInset(1, 0, 0, 0, 0);
+        box.setLayerWidth(1, u(3));
+        t.setBackground(box);
+        t.setPadding(u(15), u(8), u(12), u(8));
+        t.setMaxLines(compact() ? 1 : 6);
+        t.setEllipsize(TextUtils.TruncateAt.END);
+        if (compact()) t.setAlpha(0.8f);
+        return t;
     }
 
     private TextView hook(String text) {
         boolean sub = "subtitle".equals(look);
-        TextView t = tv(text, 16.5f, sub ? 0xFFFFFFFF : P.fg, bold());
+        TextView t = tvb(text, 16.5f, sub ? 0xFFFFFFFF : P.fg, bold());
         t.setBackground(round(sub ? 0xFF111111 : P.panel, u(10)));
         t.setPadding(u(13), u(7), u(13), u(7));
         return t;
@@ -444,7 +602,7 @@ final class CardView extends FrameLayout {
         float fit = len > 110 ? 0.7f : len > 80 ? 0.8f : len > 55 ? 0.9f : 1f;
         Typeface tf = questionFace();
         boolean sub = "subtitle".equals(look);
-        float size = fitSize(q, tf, tpx(baseSize() * scale * fit), column(), sub ? u(22) : u(8), upper());
+        float size = fitSize(q, tf, tpx(baseSize() * scale * fit * this.fit), column(), sub ? u(22) : u(8), upper());
         CharSequence text = emphasised(q, upper());
 
         TextView t = tv(text, 10, sub ? 0xFF111111 : P.fg, tf);
@@ -519,8 +677,10 @@ final class CardView extends FrameLayout {
 
     private void addRevealOrAnswer() {
         if (!outcome.revealed) {
-            if (hinted) addToBody(hintChip());
+            if (hinted && !"list".equals(layout)) addToBody(hintChip());
             addToBody(revealButton());
+        } else if (multi()) {
+            addPoints();
         } else {
             View a = answerBox();
             addToBody(a, true);
@@ -532,7 +692,7 @@ final class CardView extends FrameLayout {
         SpannableStringBuilder b = new SpannableStringBuilder("Hint  ");
         b.setSpan(new ForegroundColorSpan(0xFFE4572E), 0, 4, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
         b.append(s.hint == null ? "" : s.hint);
-        TextView t = tv(b, 14, 0xFF111111, bold());
+        TextView t = tvb(b, 14, 0xFF111111, bold());
         GradientDrawable g = new GradientDrawable();
         g.setColor(0xFFFFFFFF);
         float r = u(12), small = u(4);
@@ -571,11 +731,12 @@ final class CardView extends FrameLayout {
         box.setBackground(round(P.acc, u(16)));
         box.setPadding(u(15), u(13), u(15), u(14));
         box.setElevation(u(6));
-        TextView a1 = tv(s.answer, 20, P.accFg, black());
+        int len = s.answer == null ? 0 : s.answer.length();
+        TextView a1 = tvb(s.answer, len > 40 ? 16.5f : len > 22 ? 18 : 20, P.accFg, len > 40 ? bold() : black());
         a1.setLineSpacing(0, 1.15f);
         box.addView(a1);
         if (s.explanation != null && !s.explanation.isEmpty()) {
-            TextView a2 = tv(s.explanation, 14.5f, P.accFg, regular());
+            TextView a2 = tvb(s.explanation, 14.5f, P.accFg, regular());
             a2.setLineSpacing(0, 1.3f);
             LinearLayout.LayoutParams lp = fullLp(u(4));
             box.addView(a2, lp);
@@ -583,10 +744,195 @@ final class CardView extends FrameLayout {
         return box;
     }
 
+    // --- long answers: points drop in one after another; tap the ones you got
+
+    private Typeface pointFace() {
+        if ("clean".equals(look)) return Fonts.fraunces(getContext());
+        if ("paper".equals(look)) return Fonts.caveat(getContext());
+        return bold();
+    }
+
+    private float pointSize() {
+        int m = 0;
+        for (String p : s.points) m = Math.max(m, p.length());
+        float sz = m <= 28 ? 17.5f : m <= 60 ? 15.5f : 14.5f;
+        return "paper".equals(look) ? sz * 1.38f : sz;
+    }
+
+    /** "Solid: regular pattern" -> "Solid regular pattern" with the label picked out in the look's style. */
+    private CharSequence pointText(String p) {
+        int colon = p.indexOf(": ");
+        if (colon <= 0 || colon > 24) return p;
+        SpannableStringBuilder b = new SpannableStringBuilder(p.substring(0, colon)).append(' ').append(p.substring(colon + 2));
+        if ("subtitle".equals(look)) b.setSpan(new BackgroundColorSpan(P.acc), 0, colon, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        else if ("paper".equals(look)) { // one marker stroke per word, so a long label can still wrap
+            int a = 0;
+            while (a < colon) {
+                int e = p.indexOf(' ', a);
+                if (e < 0 || e > colon) e = colon;
+                if (e > a) b.setSpan(new MarkerSpan((P.acc & 0x00FFFFFF) | 0x73000000), a, e, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                a = e + 1;
+            }
+        }
+        else b.setSpan(new ForegroundColorSpan(P.acc), 0, colon, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        if (!sheetLook) b.setSpan(new FaceSpan(black()), 0, colon, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE); // host sans, heavier
+        return b;
+    }
+
+    /** Point rows read as checkboxes to screen readers. */
+    private static void checkable(View v, final boolean on) {
+        v.setAccessibilityDelegate(new AccessibilityDelegate() {
+            @Override public void onInitializeAccessibilityNodeInfo(View host, android.view.accessibility.AccessibilityNodeInfo info) {
+                super.onInitializeAccessibilityNodeInfo(host, info);
+                info.setCheckable(true);
+                info.setChecked(on);
+            }
+        });
+    }
+
+    /** Remembers the view for the point that was just ticked; renderBody() gives it focus once the fit pass is done. */
+    private void keepFocus(View v, int i) { if (i == focusPoint) focusView = v; }
+
+    /** A tap on a point that hasn't dropped in yet shows the rest; it doesn't mark it. */
+    private void tapPoint(View v, int i) {
+        if (!settled && v.getAlpha() < 1f) { reveal(); return; }
+        tick(i);
+    }
+
+    private int pointFg() { return "subtitle".equals(look) ? 0xFF111111 : P.fg; }
+
+    /** One row: number, text (or a blank for the numbered-list layout), tick. */
+    private LinearLayout pointRow(int i, CharSequence text, boolean slot, boolean on) {
+        Context c = getContext();
+        LinearLayout row = new LinearLayout(c);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        row.setGravity(slot ? Gravity.CENTER_VERTICAL : Gravity.TOP);
+        if (!slot) row.setMinimumHeight(u(48)); // a comfortable tap target at any fit step
+        int pad = Math.round(u(9) * fit);
+        row.setPadding(sheet ? u(2) : u(9), pad, sheet ? u(4) : u(10), pad);
+        int fill = sheet ? (on ? (P.acc & 0x00FFFFFF) | 0x29000000 : 0x00000000)
+                 : "subtitle".equals(look) ? 0xFFFFFFFF : "caption".equals(look) ? 0x9E000000 : P.panel;
+        int stroke = on ? P.acc : "neon".equals(look) ? (P.acc & 0x00FFFFFF) | 0x73000000 : 0x00000000;
+        row.setBackground(sheet && !on ? round(0x00000000, u(8)) : Ui.outline(fill, stroke, sheet ? 0 : u(2), u(sheet ? 8 : 14)));
+        if (!sheet) row.setElevation(u(3));
+
+        boolean steps = "steps".equals(s.shape);
+        TextView n = tvb(String.valueOf(i + 1), "paper".equals(look) ? 25 : 13, "paper".equals(look) ? P.acc : P.accFg, "paper".equals(look) ? Fonts.caveat(c) : black());
+        n.setGravity(Gravity.CENTER);
+        if (!"paper".equals(look)) {
+            GradientDrawable g = new GradientDrawable();
+            g.setColor(P.acc);
+            if (steps) g.setShape(GradientDrawable.OVAL); else g.setCornerRadius(u(7));
+            n.setBackground(g);
+            row.addView(n, new LinearLayout.LayoutParams(u(24), u(24)));
+        } else row.addView(n, new LinearLayout.LayoutParams(u(18), -2));
+
+        LinearLayout.LayoutParams tl = new LinearLayout.LayoutParams(0, -2, 1);
+        tl.leftMargin = u(10);
+        if (slot && text == null) {
+            RedactView r = new RedactView(c, pointFg());
+            LinearLayout.LayoutParams rl = new LinearLayout.LayoutParams(0, Math.round(tpx(pointSize()) * fit * 0.9f), 1);
+            rl.leftMargin = u(10);
+            row.addView(r, rl);
+            r.fraction = Math.min(0.86f, 0.24f + s.points.get(i).length() * 0.012f);
+        } else {
+            TextView t = tvb(text, pointSize(), pointFg(), pointFace());
+            t.setLineSpacing(0, "paper".equals(look) ? 1.02f : 1.2f);
+            if (slot) t.setAlpha(0.9f);
+            row.addView(t, tl);
+        }
+        if (!slot) {
+            TickView tick = new TickView(c, on, pointFg());
+            LinearLayout.LayoutParams kl = new LinearLayout.LayoutParams(u(20), u(20));
+            kl.leftMargin = u(8);
+            kl.topMargin = u(1);
+            row.addView(tick, kl);
+        }
+        return row;
+    }
+
+    /** The answer's points, dropping in one after another, each tappable as "got it". */
+    private void addPoints() {
+        final long[] d = pointDelays(s.points);
+        boolean animate = justRevealed && !settled;
+        LinearLayout list = new LinearLayout(getContext());
+        list.setOrientation(LinearLayout.VERTICAL);
+        list.setClipChildren(false);
+        boolean steps = "steps".equals(s.shape);
+        for (int i = 0; i < s.points.size(); i++) {
+            final int idx = i;
+            boolean on = outcome.liked || got[i];
+            LinearLayout row = pointRow(i, pointText(s.points.get(i)), false, on);
+            row.setContentDescription("Point " + (i + 1) + ": " + s.points.get(i) + ". Tap if you got it");
+            checkable(row, on);
+            row.setOnClickListener(new OnClickListener() { @Override public void onClick(View v) { tapPoint(v, idx); } });
+            bodyControls.add(row);
+            keepFocus(row, i);
+            int gap = Math.round(u(7) * fit);
+            if (i > 0 && steps && !sheet) { // a short line joins the steps
+                View line = new View(getContext());
+                line.setBackgroundColor(P.acc);
+                LinearLayout.LayoutParams ll = new LinearLayout.LayoutParams(u(2), gap);
+                ll.leftMargin = u(9) + u(12) - u(1);
+                list.addView(line, ll);
+                gap = 0;
+            } else if (i > 0 && sheet) { // a faint rule between lines on the notes sheet
+                View rule = new View(getContext());
+                rule.setBackgroundColor(0x2E808080);
+                LinearLayout.LayoutParams ll = new LinearLayout.LayoutParams(-1, Math.max(1, u(1)));
+                ll.topMargin = gap / 2;
+                list.addView(rule, ll);
+                gap = gap / 2;
+            }
+            list.addView(row, fullLp(gap));
+            if (animate) popIn(row, d[i]);
+        }
+        addToBody(list, true);
+        int k = gotCount(), n = s.points.size();
+        TextView check = tvb((k > 0 ? "●  " : "○  ") + (k > 0 ? (k >= n ? "Got all " + n : "Got " + k + " of " + n) : "Tap the ones you got"), 12.5f,
+                sheet ? P.fg : 0xFFFFFFFF, black());
+        check.setBackground(round(sheet ? 0x29808080 : 0x80000000, u(99)));
+        check.setPadding(u(11), u(5), u(11), u(5));
+        addToBody(check);
+        if (animate) popIn(check, d[n]);
+        if (animate) postDelayed(new Runnable() { @Override public void run() { settled = true; } }, d[n] + 600);
+    }
+
+    private void popIn(View v, long delay) {
+        v.setAlpha(0f);
+        v.setTranslationY(u(12));
+        v.setScaleX(0.95f); v.setScaleY(0.95f);
+        v.animate().alpha(1f).translationY(0).scaleX(1f).scaleY(1f).setStartDelay(delay).setDuration(420)
+                .setInterpolator(new OvershootInterpolator(1.25f)).start();
+    }
+
+    /** Numbered-list layout: one blank per point before the reveal, so you know how many to recall. */
+    private void renderList() {
+        if (!compact()) addToBody(hook(s.hookLine));
+        addQuestion(0.86f);
+        if (outcome.revealed) { addPoints(); return; }
+        LinearLayout list = new LinearLayout(getContext());
+        list.setOrientation(LinearLayout.VERTICAL);
+        for (int i = 0; i < s.points.size(); i++) {
+            String start = hinted && i < s.pointStarts.size() ? s.pointStarts.get(i) + "…" : null;
+            CharSequence text = null;
+            if (start != null) {
+                SpannableStringBuilder b = new SpannableStringBuilder(start);
+                b.setSpan(new android.text.style.StyleSpan(Typeface.ITALIC), 0, b.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                text = b;
+            }
+            LinearLayout row = pointRow(i, text, true, false);
+            row.setElevation(0);
+            list.addView(row, fullLp(i == 0 ? 0 : Math.round(u(7) * fit)));
+        }
+        addToBody(list, true);
+        addToBody(revealButton());
+    }
+
     // --- captions: the question arrives in short beats, key word highlighted, then the reveal
 
     private void renderCaptions() {
-        addToBody(hook(s.hookLine));
+        if (!compact()) addToBody(hook(s.hookLine));
         if (beat < s.beats.size() && !outcome.revealed && !hinted) {
             String raw = s.beats.get(beat);
             boolean up = !"paper".equals(look) && !"clean".equals(look);
@@ -601,7 +947,7 @@ final class CardView extends FrameLayout {
             }
             if ("subtitle".equals(look)) b.setSpan(new LineBoxSpan(0xFFFFFFFF, u(9), u(10), true), 0, b.length(), Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
             Typeface tf = "paper".equals(look) ? Fonts.caveat(getContext()) : "clean".equals(look) ? Fonts.fraunces(getContext()) : black();
-            float size = fitSize(raw, tf, tpx("clean".equals(look) ? 34 : 40), column(), u(22), up);
+            float size = fitSize(raw, tf, tpx("clean".equals(look) ? 34 : 40) * fit, column(), u(22), up);
             TextView t = tv(b, 10, "subtitle".equals(look) ? 0xFF111111 : P.fg, tf);
             t.setTextSize(TypedValue.COMPLEX_UNIT_PX, size);
             t.setLineSpacing(0, "subtitle".equals(look) ? 1.4f : 1.02f);
@@ -626,7 +972,7 @@ final class CardView extends FrameLayout {
             body.addView(dots, dl);
             return;
         }
-        addToBody(question(s.question, 0.8f));
+        addQuestion(0.8f);
         addRevealOrAnswer();
     }
 
@@ -649,6 +995,7 @@ final class CardView extends FrameLayout {
         Context c = getContext();
         LinearLayout chat = new LinearLayout(c);
         chat.setOrientation(LinearLayout.VERTICAL);
+        chat.setClipChildren(false); // the ✓ reaction sits over a bubble's corner
         chat.setBackground(round(P.panel, u(22)));
         chat.setPadding(u(12), u(12), u(12), u(12));
         chat.setElevation(u(8));
@@ -677,8 +1024,51 @@ final class CardView extends FrameLayout {
         chat.addView(rule, new LinearLayout.LayoutParams(-1, Math.max(1, u(1))));
 
         int maxW = Math.round((column() - u(24)) * 0.84f);
-        for (String line : s.chatThem) addBubble(chat, bubble(line, false, maxW), false, false);
-        if (outcome.revealed) {
+        // once a long answer arrives, the small talk drops out so the question stays in view above it
+        List<String> them = outcome.revealed && multi() && !s.chatThemQuestion.isEmpty() ? s.chatThemQuestion : s.chatThem;
+        // a long thread scrolls its oldest messages away, like a real chat (set by the fit pass)
+        for (int i = Math.min(chatSkip, Math.max(0, them.size() - 1)); i < them.size(); i++) addBubble(chat, bubble(them.get(i), false, maxW), false, false);
+        if (outcome.revealed && multi()) {
+            // one message per point; tap a message you got to react ✓ (part marks). Each bubble sits
+            // 5dp inside a taller tap area, so the margins are trimmed to keep the usual 6dp gap
+            long[] d = pointDelays(s.points);
+            boolean animate = justRevealed && !settled;
+            for (int i = 0; i < s.chatMe.size(); i++) {
+                final int idx = i;
+                boolean on = outcome.liked || (i < got.length && got[i]);
+                FrameLayout wrap = new FrameLayout(c);
+                wrap.setClipChildren(false);
+                wrap.setClipToPadding(false);
+                wrap.setPadding(0, u(5), 0, u(5)); // a taller tap target than the bubble itself
+                TextView b = bubble(s.chatMe.get(i), true, maxW);
+                wrap.addView(b);
+                if (on) {
+                    TextView tb = tv("✓", 12, P.acc, black());
+                    tb.setGravity(Gravity.CENTER);
+                    tb.setBackground(Ui.outline(P.panel | 0xFF000000, P.acc, u(2), u(11)));
+                    LayoutParams tl = new LayoutParams(u(22), u(22));
+                    wrap.addView(tb, tl);
+                    tb.setTranslationX(-u(10)); tb.setTranslationY(-u(5));
+                }
+                wrap.setContentDescription(s.chatMe.get(i) + ". Tap if you got it");
+                checkable(wrap, on);
+                wrap.setOnClickListener(new OnClickListener() { @Override public void onClick(View v) { tapPoint(v, idx); } });
+                bodyControls.add(wrap);
+                keepFocus(wrap, i);
+                addBubble(chat, wrap, true, false);
+                ((LinearLayout.LayoutParams) wrap.getLayoutParams()).topMargin = u(i == 0 ? 1 : -4); // padding already spaces them
+                if (animate) popIn(wrap, d[i]);
+            }
+            int k = gotCount(), n = s.points.size();
+            TextView sys = tvb(k > 0 ? (k >= n ? "You got all " + n : "You got " + k + " of " + n) : "Tap the messages you got", 11.5f, P.fg, bold());
+            sys.setAlpha(0.75f);
+            LinearLayout.LayoutParams sl = new LinearLayout.LayoutParams(-2, -2);
+            sl.gravity = Gravity.CENTER_HORIZONTAL;
+            sl.topMargin = u(6);
+            chat.addView(sys, sl);
+            if (animate) popIn(sys, d[n]);
+            if (animate) postDelayed(new Runnable() { @Override public void run() { settled = true; } }, d[n] + 600);
+        } else if (outcome.revealed) {
             for (String line : s.chatMe) addBubble(chat, bubble(line, true, maxW), true, justRevealed);
             if (s.chatAfter != null) addBubble(chat, bubble(s.chatAfter, false, maxW), false, justRevealed);
         } else {
@@ -704,7 +1094,7 @@ final class CardView extends FrameLayout {
     }
 
     private TextView bubble(String text, boolean mine, int maxW) {
-        TextView b = tv(text, 14.5f, mine ? P.accFg : P.fg, regular());
+        TextView b = tvb(text, 14.5f, mine ? P.accFg : P.fg, regular());
         b.setLineSpacing(0, 1.3f);
         GradientDrawable g = new GradientDrawable();
         g.setColor(mine ? P.acc : P.bubble);
@@ -742,7 +1132,7 @@ final class CardView extends FrameLayout {
         LinearLayout texts = new LinearLayout(c);
         texts.setOrientation(LinearLayout.VERTICAL);
         texts.addView(tv("Reply to " + s.commentUser + "’s comment", 11.5f, 0xFF666666, bold()));
-        TextView said = tv(s.commentText, 15, 0xFF111111, bold());
+        TextView said = tvb(s.commentText, 15, 0xFF111111, bold());
         said.setLineSpacing(0, 1.25f);
         texts.addView(said, fullLp(u(2)));
         LinearLayout.LayoutParams tl = new LinearLayout.LayoutParams(-2, -2);
@@ -751,7 +1141,8 @@ final class CardView extends FrameLayout {
         LinearLayout.LayoutParams sl2 = wrapLp(0);
         sl2.rightMargin = Math.round(column() * 0.08f);
         body.addView(sticker, sl2);
-        addToBody(question(s.question, 0.82f));
+        // a long question is carried by the comment itself, so it isn't repeated in big text
+        if (s.question.length() <= 90) addQuestion(0.82f); else addMarks();
         addRevealOrAnswer();
     }
 
@@ -844,7 +1235,7 @@ final class CardView extends FrameLayout {
         updateVibe();
     }
 
-    private boolean good() { return outcome.liked || (outcome.quizPick >= 0 && outcome.quizPick == s.correct); }
+    private boolean good() { return outcome.liked || (outcome.quizPick >= 0 && outcome.quizPick == s.correct) || (multi() && gotCount() >= s.points.size()); }
 
     private boolean bad() { return outcome.quizPick >= 0 && outcome.quizPick != s.correct; }
 
@@ -1012,6 +1403,68 @@ final class CardView extends FrameLayout {
         return b;
     }
 
+    /**
+     * Once the answer is showing, a long explanation lives in the caption behind "more", the way a
+     * long caption does on every reel app; tapping it opens the caption over a dimmed card.
+     */
+    private void updateCaption() {
+        if (capView == null) return;
+        boolean answered = outcome.revealed || outcome.quizPick >= 0;
+        if (!answered || s.more == null || s.more.isEmpty()) { capView.setText(captionLine()); return; }
+        SpannableStringBuilder b = new SpannableStringBuilder();
+        boolean longer = s.more.length() > 64;
+        if (moreOpen || !longer) {
+            b.append(s.more).append(' ');
+            int st0 = b.length();
+            b.append(tags());
+            b.setSpan(new FaceSpan(bold()), st0, b.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            if (longer) { int l0 = b.length(); b.append("  less"); b.setSpan(new FaceSpan(black()), l0, b.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE); }
+        } else {
+            int sp = s.more.lastIndexOf(' ', 58);
+            String cut = s.more.substring(0, sp > 24 ? sp : 58).replaceAll("[\\s,;:.]+$", "");
+            b.append(cut).append("… ");
+            int m0 = b.length();
+            b.append("more");
+            b.setSpan(new FaceSpan(black()), m0, b.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        }
+        capView.setText(b);
+        capView.setTextSize(TypedValue.COMPLEX_UNIT_PX, tpx(moreOpen ? 15 : 14));
+        if (moreOpen) { // up to about half the screen, then it scrolls
+            int lines = Math.max(4, Math.round(H * 0.5f / capView.getLineHeight()));
+            capView.setMaxLines(lines);
+            capView.setEllipsize(null);
+            capView.setMovementMethod(new android.text.method.ScrollingMovementMethod());
+        } else {
+            capView.setMaxLines(2);
+            capView.setEllipsize(TextUtils.TruncateAt.END);
+            capView.setMovementMethod(null);
+            capView.scrollTo(0, 0);
+        }
+        capView.setClickable(longer);
+        capView.setFocusable(longer);
+        if (longer && !controls.contains(capView)) controls.add(capView);
+        // screen readers read the caption itself; the tap is labelled as an action
+        capView.setAccessibilityDelegate(!longer ? null : new AccessibilityDelegate() {
+            @Override public void onInitializeAccessibilityNodeInfo(View host, android.view.accessibility.AccessibilityNodeInfo info) {
+                super.onInitializeAccessibilityNodeInfo(host, info);
+                info.addAction(new android.view.accessibility.AccessibilityNodeInfo.AccessibilityAction(
+                        android.view.accessibility.AccessibilityNodeInfo.ACTION_CLICK, moreOpen ? "close the explanation" : "show the full explanation"));
+            }
+        });
+    }
+
+    void toggleMore() {
+        if (finished || s.more == null || s.more.length() <= 64) return;
+        moreOpen = !moreOpen;
+        updateCaption();
+        float to = moreOpen ? 1f : 0f;
+        if (dim != null) dim.animate().alpha(to).setDuration(220).start();
+        float fade = moreOpen ? 0.25f : 1f;
+        if (region != null) region.animate().alpha(fade).setDuration(220).start();
+        if (vibeBox != null) vibeBox.animate().alpha(fade).setDuration(220).start();
+        if (badge != null) badge.animate().alpha(fade).setDuration(220).start();
+    }
+
     private View whoRow(boolean dot, String name, boolean pill, boolean filledPill) {
         Context c = getContext();
         LinearLayout row = new LinearLayout(c);
@@ -1034,7 +1487,7 @@ final class CardView extends FrameLayout {
         n.setEllipsize(TextUtils.TruncateAt.END);
         row.addView(n, new LinearLayout.LayoutParams(-2, -2, 0));
         if (pill) {
-            String deck = show.card.deck == null ? "Study" : show.card.deck.replaceFirst("^GCSE\\s+", "");
+            String deck = show.card.deck == null ? "Study" : show.card.deck.replaceFirst("^GCSE\\s+", "").split(":")[0];
             TextView p = tv(deck, 12, filledPill ? 0xFF0F0F0F : 0xFFFFFFFF, bold());
             p.setSingleLine(true);
             p.setBackground(filledPill ? round(0xFFFFFFFF, u(99)) : Ui.outline(0x00000000, 0xFFFFFFFF, Math.max(1, Math.round(u(1.5f))), u(8)));
@@ -1074,6 +1527,22 @@ final class CardView extends FrameLayout {
         cap.setShadowLayer(u(2), 0, u(1), 0x8C000000);
         cap.setMaxLines(2);
         cap.setEllipsize(TextUtils.TruncateAt.END);
+        capView = cap;
+        cap.setOnTouchListener(new OnTouchListener() {
+            @Override public boolean onTouch(View v, MotionEvent e) {
+                if (e.getActionMasked() == MotionEvent.ACTION_DOWN) { capDownX = e.getRawX(); capDownY = e.getRawY(); capDownScroll = v.getScrollY(); }
+                return false;
+            }
+        });
+        cap.setOnClickListener(new OnClickListener() {
+            @Override public void onClick(View v) {
+                // scrolling the open caption isn't a tap on it
+                if (v.getScrollY() != capDownScroll) return;
+                if (Math.abs(lastUpX - capDownX) > slop || Math.abs(lastUpY - capDownY) > slop) return;
+                toggleMore();
+            }
+        });
+        cap.setClickable(false);
         if ("youtube".equals(host)) {
             cap.setTypeface(bold());
             band.addView(cap);
@@ -1136,9 +1605,13 @@ final class CardView extends FrameLayout {
     private void updateBadge() {
         if (badge == null) return;
         String text;
+        int k = multi() ? gotCount() : 0, n = s.points.size();
         if (outcome.liked) text = hinted ? "With a hint · Hard" : outcome.likedBeforeReveal ? "Knew it · Easy" : "Knew it · Good";
         else if (outcome.quizPick >= 0) text = outcome.quizPick == s.correct ? "Correct" : "Not quite";
-        else return;
+        else if (k > 0) {
+            String g = k >= n ? (hinted ? "Hard" : "Good") : k * 2 >= n ? "Hard" : "Again";
+            text = (k >= n ? "All " + n : k + "/" + n) + " · " + g;
+        } else { badge.setVisibility(GONE); return; }
         boolean was = badge.getVisibility() == VISIBLE;
         badge.setText(text);
         badge.setVisibility(VISIBLE);
@@ -1181,11 +1654,39 @@ final class CardView extends FrameLayout {
     // ------------------------------------------------------------------ actions
 
     void reveal() {
-        if (outcome.revealed || finished || show.isQuiz()) return;
+        if (finished) return;
+        if (moreOpen) { toggleMore(); return; }
+        if (outcome.revealed) { // a tap shows the rest of the points straight away
+            if (multi() && !settled) { settled = true; renderBody(); }
+            return;
+        }
+        if (show.isQuiz()) return;
         outcome.revealed = true;
         outcome.revealAtMs = elapsed();
         justRevealed = true;
         renderBody();
+        updateCaption();
+    }
+
+    /** Self-marking a long answer: tap a point you got. Unticking a point on a liked card turns it into part marks. */
+    void tick(int i) {
+        if (finished || !outcome.revealed || !multi() || i < 0 || i >= s.points.size()) return;
+        if (outcome.liked) {
+            for (int j = 0; j < s.points.size(); j++) got[j] = true;
+            outcome.liked = false;
+            outcome.likedBeforeReveal = false;
+            if (likeIcon != null) { likeIcon.setFilled(false); likeLabel.setText("Knew it"); }
+        }
+        got[i] = !got[i];
+        focusPoint = i;
+        int k = 0;
+        for (int j = 0; j < s.points.size(); j++) if (got[j]) k++;
+        outcome.pointsGot = k;
+        settled = true;
+        performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY);
+        renderBody();
+        updateBadge();
+        updateVibe();
     }
 
     void pick(int i) {
@@ -1198,6 +1699,7 @@ final class CardView extends FrameLayout {
         renderBody();
         updateVibe();
         updateBadge();
+        updateCaption();
         if (i == s.correct) xp();
     }
 
@@ -1213,6 +1715,7 @@ final class CardView extends FrameLayout {
         if (likeIcon != null) { likeIcon.setFilled(true); likeLabel.setText(before ? "Easy" : "Good"); }
         updateBadge();
         updateVibe();
+        if (multi() && outcome.revealed) { settled = true; renderBody(); } // all points show as got
         if (outcome.quizPick < 0 || outcome.quizPick == s.correct) xp();
         if (before && !show.isQuiz()) postDelayed(new Runnable() { @Override public void run() { revealAfterLike(); } }, 600);
     }
@@ -1224,6 +1727,7 @@ final class CardView extends FrameLayout {
         outcome.revealAtMs = elapsed();
         justRevealed = true;
         renderBody();
+        updateCaption();
     }
 
     void hint() {
@@ -1335,9 +1839,16 @@ final class CardView extends FrameLayout {
     @Override
     public boolean dispatchTouchEvent(MotionEvent ev) {
         if (velocity == null) velocity = VelocityTracker.obtain();
+        if (ev.getActionMasked() == MotionEvent.ACTION_UP) { lastUpX = ev.getRawX(); lastUpY = ev.getRawY(); }
         if (ev.getActionMasked() == MotionEvent.ACTION_DOWN) {
             velocity.clear();
             touchOnControl = onControl(ev);
+            touchOnCaption = false;
+            if (moreOpen && capView != null) {
+                int[] loc = new int[2];
+                capView.getLocationOnScreen(loc);
+                touchOnCaption = ev.getRawX() >= loc[0] && ev.getRawX() <= loc[0] + capView.getWidth() && ev.getRawY() >= loc[1] && ev.getRawY() <= loc[1] + capView.getHeight();
+            }
             // inside a scrolling screen (the welcome preview), keep vertical swipes for the card
             if (getParent() != null) getParent().requestDisallowInterceptTouchEvent(true);
         }
@@ -1356,6 +1867,7 @@ final class CardView extends FrameLayout {
             case MotionEvent.ACTION_DOWN:
                 downY = ev.getRawY(); dragging = false; return false;
             case MotionEvent.ACTION_MOVE:
+                if (touchOnCaption) return false; // the open caption scrolls
                 if (!dragging && downY - ev.getRawY() > slop * 2) { dragging = true; return true; }
                 return dragging;
             default:
@@ -1424,6 +1936,58 @@ final class CardView extends FrameLayout {
             p.setTextAlign(Paint.Align.CENTER);
             String label = count > 0 ? String.valueOf(count) : "?";
             c.drawText(label, w / 2, h / 2 - (p.ascent() + p.descent()) / 2, p);
+        }
+    }
+
+    /** Tick for a point: an empty ring, or a filled circle with a check once it's marked "got it". */
+    private final class TickView extends View {
+        private final Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
+        private final boolean on;
+        private final int ink;
+        private final android.graphics.Path path = new android.graphics.Path();
+
+        TickView(Context c, boolean on, int ink) { super(c); this.on = on; this.ink = ink; }
+
+        @Override
+        protected void onDraw(Canvas c) {
+            float w = getWidth(), h = getHeight(), stroke = u(2), r = Math.min(w, h) / 2f - stroke / 2f;
+            if (!on) {
+                p.setStyle(Paint.Style.STROKE); p.setStrokeWidth(stroke); p.setColor((ink & 0x00FFFFFF) | 0x73000000);
+                c.drawCircle(w / 2, h / 2, r, p);
+                return;
+            }
+            p.setStyle(Paint.Style.FILL); p.setColor(P.acc);
+            c.drawCircle(w / 2, h / 2, r + stroke / 2f, p);
+            p.setStyle(Paint.Style.STROKE); p.setStrokeWidth(u(2.5f)); p.setColor(P.accFg);
+            p.setStrokeCap(Paint.Cap.ROUND); p.setStrokeJoin(Paint.Join.ROUND);
+            path.reset();
+            path.moveTo(w * 0.28f, h * 0.52f); path.lineTo(w * 0.44f, h * 0.68f); path.lineTo(w * 0.73f, h * 0.36f);
+            c.drawPath(path, p);
+        }
+    }
+
+    /** A blank for a point not yet revealed: a striped "censor bar" sized to the answer. */
+    static final class RedactView extends View {
+        private final Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
+        private final RectF r = new RectF();
+        float fraction = 0.6f;
+
+        RedactView(Context c, int ink) { super(c); p.setColor((ink & 0x00FFFFFF) | 0x52000000); p.setStrokeWidth(0); }
+
+        @Override
+        protected void onDraw(Canvas c) {
+            float w = getWidth() * fraction, h = getHeight(), stripe = h * 0.55f;
+            c.save();
+            r.set(0, 0, w, h);
+            android.graphics.Path clip = new android.graphics.Path();
+            clip.addRoundRect(r, h * 0.3f, h * 0.3f, android.graphics.Path.Direction.CW);
+            c.clipPath(clip);
+            for (float x = -h; x < w + h; x += stripe * 1.8f) {
+                android.graphics.Path band = new android.graphics.Path();
+                band.moveTo(x, h); band.lineTo(x + stripe, h); band.lineTo(x + stripe + h, 0); band.lineTo(x + h, 0); band.close();
+                c.drawPath(band, p);
+            }
+            c.restore();
         }
     }
 

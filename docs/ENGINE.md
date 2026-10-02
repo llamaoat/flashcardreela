@@ -57,11 +57,12 @@ A card reel is a combination of four pieces ([`Format.java`](../engine/src/main/
 | Dimension | Pieces |
 |---|---|
 | Hook | "POV…", "Wait for it…", "Most people get this wrong", "text at 2am", "Rate my answer", "Storytime" |
-| Layout | big text, word-by-word captions, group chat, reply-to-a-comment, split-screen, quiz poll |
+| Layout | big text, word-by-word captions, group chat, reply-to-a-comment, split-screen, quiz poll, numbered list |
 | Look | bold captions, highlight boxes, clean notes page, neon, handwritten notes |
 | Background | satisfying clip, gameplay, city walk, football pitch, soft glow, music visualiser, plain |
 
-That's 6 × 6 × 5 × 7 = 1,260 combinations. [`FormatBandit.java`](../engine/src/main/java/com/reelcards/engine/FormatBandit.java) picks one per card:
+That's 6 × 7 × 5 × 7 = 1,470 combinations. [`FormatBandit.java`](../engine/src/main/java/com/reelcards/engine/FormatBandit.java) picks one per card,
+from the layouts the card's **answer shape** allows (below):
 
 - **Thompson sampling** on a Beta belief per piece. The reward is fractional: a like or share = 1,
   a save 0.85, a quiz answer 0.9, a reveal read for 2 s+ 0.7, down to 0 for a sub-second swipe-away.
@@ -77,6 +78,19 @@ That's 6 × 6 × 5 × 7 = 1,260 combinations. [`FormatBandit.java`](../engine/sr
   student's behaviour takes over.
 - Old evidence fades (×0.98), and about 1 card in 10 explores a random piece in one dimension.
 
+**Answer shapes** ([`AnswerShape.java`](../engine/src/main/java/com/reelcards/engine/AnswerShape.java)).
+Before picking a look, the engine reads the shape of the card. Answers are *short* (up to 48
+characters), *medium* (one long sentence), or split into 2–6 points: a *list*, *steps* or *prose*.
+Points come from line breaks (including Anki's `<br>` and `<li>`), numbered steps that run 1, 2, 3 in
+order, semicolons, arrows (3+ parts, so a word equation stays whole), sentences (not after "e.g."),
+"A, B, C and D" lists of short items, or one long sentence at ", so" or "because". Questions over 90
+characters with a set-up are split into the set-up and the question (the trailing question or
+command sentences: "Explain…", "Name…", "…?"). The shape decides the layouts: quiz buttons only for
+short answers with short wrong answers, word-by-word captions only for questions up to 140 characters
+with no set-up, split-screen only for short answers, and the numbered list only for 2+ points. This
+follows SuperMemo's [minimum information principle](https://www.supermemo.com/en/archives1990-2015/articles/20rules):
+long answers are recalled more reliably as their parts.
+
 [`CopyWriter.java`](../engine/src/main/java/com/reelcards/engine/CopyWriter.java) writes the words for
 the chosen hook and layout (hook line, chat messages, comment, caption, hashtags, hint, voiceover). It's
 templated today, and it's the plug-in point for on-device AI.
@@ -86,7 +100,8 @@ templated today, and it's the plug-in point for on-device AI.
 Normal reel gestures become Anki grades ([`Grade.java`](../engine/src/main/java/com/reelcards/engine/Grade.java)).
 Speed matters: a fast correct answer means a stronger memory than a slow one, the idea behind
 response-time-based scheduling such as ARTS ([Mettler, Massey & Kellman, 2016](https://www.apa.org/pubs/journals/features/xge-xge0000170.pdf)).
-"Fast" is relative to reading time: 1.5 s + 45 ms per character of the question.
+"Fast" is relative to reading time: 1.5 s + 45 ms per character of the question, plus 1.2 s for each
+extra point the answer has.
 
 | What happened | Grade |
 |---|---|
@@ -94,7 +109,8 @@ response-time-based scheduling such as ARTS ([Mettler, Massey & Kellman, 2016](h
 | Liked before the answer showed, slower | Good |
 | Revealed, then liked | Good |
 | Quiz: right option within reading time of question and options + 4 s / slower | Good / Hard |
-| Used the hint, then liked or answered | Hard |
+| Long answer (2+ points), ticked point by point: all / at least half / fewer | Good / Hard / Again |
+| Used the hint, then liked, answered or ticked every point | Hard |
 | Revealed with no like, or picked the wrong option | Again |
 | Swiped past without revealing | not graded; comes back later |
 
@@ -130,7 +146,7 @@ due and sends each grade back as a normal review through
 
 ## Evaluation
 
-[`EngineChecks`](../engine/src/test/java/EngineChecks.java) runs 48 checks:
+[`EngineChecks`](../engine/src/test/java/EngineChecks.java) runs 80 checks:
 [`results/checks.txt`](../engine/results/checks.txt).
 
 [`Simulate`](../engine/src/test/java/Simulate.java) runs simulated students on the real engine for 30
@@ -165,6 +181,7 @@ versions fairly; real effect sizes need a pilot with real students.
 
 - Open Spaced Repetition: [FSRS algorithm](https://github.com/open-spaced-repetition/awesome-fsrs/wiki/The-Algorithm), [py-fsrs](https://github.com/open-spaced-repetition/py-fsrs), [SRS benchmark](https://github.com/open-spaced-repetition/srs-benchmark)
 - Yancey, K. P. & Settles, B. (2020). [A Sleeping, Recovering Bandit Algorithm for Optimizing Recurring Notifications](https://research.duolingo.com/papers/yancey.kdd20.pdf). KDD 2020 ([ACM](https://dl.acm.org/doi/10.1145/3394486.3403351))
+- Wozniak, P. (1999). [Effective learning: Twenty rules of formulating knowledge](https://www.supermemo.com/en/archives1990-2015/articles/20rules) (the minimum information principle)
 - Mettler, E., Massey, C. M. & Kellman, P. J. (2016). [A Comparison of Adaptive and Fixed Schedules of Practice](https://www.apa.org/pubs/journals/features/xge-xge0000170.pdf). *Journal of Experimental Psychology: General*
 - Chiossi, F. et al. (2023). Short-Form Videos Degrade Our Capacity to Retain Intentions: Effect of Context Switching On Prospective Memory. CHI 2023 ([code and data](https://github.com/mimuc/media-prospective-memory))
 - AnkiDroid: [AnkiDroid API wiki](https://github.com/ankidroid/Anki-Android/wiki/AnkiDroid-API)

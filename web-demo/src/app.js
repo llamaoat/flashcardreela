@@ -7,7 +7,7 @@ const {MIN, DAY, NEW, REVIEW, STATE, LABEL, PIECES, VIBES} = RC;
 const makeCard = RC.makeCard;
 /*__DECKS__*/
 /*__NOTES__*/
-const PRE = {"GCSE Biology":"bio","GCSE Chemistry":"chem","GCSE Spanish":"es"};
+const PRE = {"GCSE Biology":"bio","GCSE Chemistry":"chem","GCSE Spanish":"es","GCSE Science: longer answers":"sci"};
 const deckCards = name => DECKS[name].map((r,i)=>makeCard(PRE[name]+"-"+(i+1), name, r[0], r[1], r[2]));
 const HOSTS = [["tiktok","TikTok"],["instagram","Instagram"],["youtube","YouTube"]];
 
@@ -76,6 +76,7 @@ function renderPhone(anim){
     case "dash": h = dashHTML(); break;
   }
   scr.innerHTML = h;
+  fitCards(scr);
   $("phone").classList.toggle("feedmode", UI.screen==="feed");
   if (anim) { scr.classList.remove("enter"); void scr.offsetWidth; scr.classList.add("enter"); }
   if (UI.toast) { const t = document.createElement("div"); t.className = "toast"; t.textContent = UI.toast; scr.appendChild(t); timers.push(setTimeout(()=>t.style.opacity="0", 2200)); UI.toast = ""; }
@@ -89,6 +90,22 @@ function feedHTML(){
   return tabs()+Render.card(it, Object.assign(cardOpts(), {coach: it.coach && !it.revealed && !it.liked && it.pick<0}));
 }
 
+/* Fit pass: if a card's content would spill out of the host app's safe zone, shrink it a step at a
+   time (data-fit 1-5). Measured from layout boxes, so entry animations don't fool it. */
+function fitCards(root){
+  root.querySelectorAll(".card").forEach(card => {
+    card.removeAttribute("data-fit");
+    const body = card.querySelector(".body"); if (!body) return;
+    // content height from the layout boxes vs the body's box (a sheet's box stops growing at its max-height)
+    const over = () => { const k = [...body.children].filter(e => e.offsetParent !== null); if (!k.length) return false; const cs = getComputedStyle(body);
+      const used = k[k.length-1].offsetTop + k[k.length-1].offsetHeight - k[0].offsetTop;
+      return used > body.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom) + 2; };
+    for (let f = 1; f <= 5 && over(); f++) card.setAttribute("data-fit", f);
+    const m = card.querySelector(".msgs"); if (m) m.classList.toggle("over", m.scrollHeight > m.clientHeight + 2);
+  });
+}
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { fitCards($("screen")); fitCards($("lab")); });
+
 /* countdown ring + auto-caption beats, like a real reel's timing */
 function startCardTimers(){
   const it = UI.current;
@@ -98,7 +115,7 @@ function startCardTimers(){
     timers.push(setTimeout(()=>{ if (UI.current===it && !it.revealed) { it.beat = (it.beat||0)+1; renderPhone(false); } }, 380 + 330*words));
     return;
   }
-  if (it.count == null) it.count = 3;
+  if (it.count == null) it.count = Render.thinkSecs(it.s);
   if (it.count > 0) timers.push(setTimeout(()=>{ if (UI.current===it && !it.revealed) { it.count--; const r = $("screen").querySelector(".ring"); if (r) r.textContent = it.count>0 ? it.count : "?"; startCardTimers(); } }, 1000));
 }
 
@@ -179,9 +196,10 @@ function render(anim){ renderPhone(anim); renderSide(); }
 function go(s){ UI.screen = s; UI.err = ""; render(true); }
 function finishSetup(){ UI.onboarded = true; if (UI.firstDay==null) UI.firstDay = E.dk(now()); UI.screen = "feed"; render(true); }
 function applyExam(){ E.settings.examDate = UI.exam ? now() + UI.exam*DAY : 0; E.settings.intensity = UI.intensity; E.setVibes([...UI.vibes]); }
-function skipSetup(){ if (!E.cards.length) { E.addCards(deckCards("GCSE Biology")); E.addCards(deckCards("GCSE Chemistry")); } UI.exam = 14; if (!UI.vibes.size) { UI.vibes.add("football"); UI.vibes.add("gaming"); } applyExam(); UI.permission = true; finishSetup(); }
-function outcomeOf(it, dwell){ return {revealed:it.revealed, liked:it.liked, likedBefore:it.likedBefore, pick:it.pick, likeAt:it.likeAt||0, pickAt:it.pickAt||0, hintAt:it.hintAt||0, saved:!!it.saved, shared:!!it.shared, dwell}; }
-function asItem(sh){ return Object.assign({kind:"card", revealed:false, liked:false, likedBefore:false, pick:-1, saved:false, hinted:false, beat:0, count:null, shownAt:performance.now()}, sh); }
+function skipSetup(){ if (!E.cards.length) { E.addCards(deckCards("GCSE Biology")); E.addCards(deckCards("GCSE Chemistry")); E.addCards(deckCards("GCSE Science: longer answers")); } UI.exam = 14; if (!UI.vibes.size) { UI.vibes.add("football"); UI.vibes.add("gaming"); } applyExam(); UI.permission = true; finishSetup(); }
+function outcomeOf(it, dwell){ return {revealed:it.revealed, liked:it.liked, likedBefore:it.likedBefore, pick:it.pick, likeAt:it.likeAt||0, pickAt:it.pickAt||0, hintAt:it.hintAt||0, saved:!!it.saved, shared:!!it.shared,
+  got:(it.got||[]).filter(Boolean).length, dwell}; }
+function asItem(sh){ return Object.assign({kind:"card", revealed:false, liked:false, likedBefore:false, pick:-1, saved:false, hinted:false, beat:0, count:null, got:[], moreOpen:false, settled:false, shownAt:performance.now()}, sh); }
 
 function finishCurrent(dwell){
   const cur = UI.current; if (!cur || cur.kind!=="card") return null;
@@ -212,12 +230,25 @@ function el(){ return UI.current && UI.current.kind==="card" ? performance.now()
 function like(x,y){
   const it = UI.current; if (!it || it.kind!=="card" || UI.screen!=="feed") return;
   if (it.liked) { burst(x,y); return; }
-  it.liked = true; it.likeAt = el(); it.likedBefore = !it.revealed && it.pick<0;
+  it.liked = true; it.likeAt = el(); it.likedBefore = !it.revealed && it.pick<0; if (it.revealed) it.settled = true;
   if (it.s.vibe==="gaming" && (it.pick<0 || it.pick===it.s.correct)) { const xp = document.createElement("div"); xp.className="xp"; xp.textContent="+25 XP"; timers.push(setTimeout(()=>{ const c=$("screen").querySelector(".card"); c&&c.appendChild(xp); },10)); }
   renderPhone(false); burst(x,y);
   if (it.likedBefore && it.f.layout!=="quiz") setTimeout(()=>{ if (UI.current===it && !it.revealed) { it.revealed = true; it.revealAt = el(); renderPhone(false); } }, 600);
 }
-function reveal(){ const it = UI.current; if (!it || it.kind!=="card" || it.revealed || (it.f.layout==="quiz"&&it.s.correct>=0)) return; it.revealed = true; it.revealAt = el(); renderPhone(false); }
+function reveal(){
+  const it = UI.current; if (!it || it.kind!=="card") return;
+  if (it.moreOpen) { it.moreOpen = false; renderPhone(false); return; }
+  if (it.revealed) { if (!it.settled) { it.settled = true; renderPhone(false); } return; } // a tap shows the rest of the points now
+  if (it.f.layout==="quiz"&&it.s.correct>=0) return;
+  it.revealed = true; it.revealAt = el(); renderPhone(false);
+  const total = Render.ptDelays(it.s).pop() + 600; timers.push(setTimeout(()=>{ if (UI.current===it) it.settled = true; }, total));
+}
+/* self-marking: tap a point you got. Unticking a point on a card you'd liked turns it into part marks */
+function tick(i){
+  const it = UI.current; if (!it || it.kind!=="card" || !it.revealed || !it.s.points || it.s.points.length < 2) return;
+  if (it.liked) { it.got = it.s.points.map(()=>true); it.liked = false; it.likedBefore = false; }
+  it.got[i] = !it.got[i]; it.settled = true; renderPhone(false);
+}
 function toast(msg){ UI.toast = msg; renderPhone(false); }
 
 let tapTimer = null;
@@ -249,6 +280,9 @@ $("screen").addEventListener("click", e => {
       case "resetApp": if (!UI.confirmReset) { UI.confirmReset = true; renderPhone(false); return; } resetAll(); render(true); return;
       case "like": { const r = b.getBoundingClientRect(), p = $("screen").getBoundingClientRect(); like(r.left-p.left+r.width/2, r.top-p.top+r.height/2); return; }
       case "reveal": reveal(); return;
+      // a tap on a point that hasn't dropped in yet just shows the rest; it doesn't mark it
+      case "tick": if (it && !it.settled && parseFloat(getComputedStyle(b).opacity) < .99) { it.settled = true; renderPhone(false); return; } tick(+v); return;
+      case "more": if (it) { it.moreOpen = !it.moreOpen; it.settled = true; renderPhone(false); } return;
       case "pick": if (it && it.pick<0) { it.pick = +v; it.pickAt = el(); it.revealed = true; if (it.s.vibe==="gaming" && it.pick===it.s.correct) { UI.toast = "+25 XP"; } renderPhone(false); } return;
       case "hint": if (it && !it.hinted && !it.revealed && it.pick<0) { it.hinted = true; it.hintAt = el(); renderPhone(false); } else if (it) toast(it.revealed?"Answer's already showing":"Hint's up there ↑"); return;
       case "save": if (it && !it.saved) { it.saved = true; toast("Saved: it'll come back within a day"); } return;
@@ -289,7 +323,9 @@ function simAct(){
   const read = 1500 + 45*c.f.length;
   if (it.f.layout==="quiz" && it.s.correct>=0) { it.revealed = true; it.pick = knows || Math.random()<.5 ? it.s.correct : 1-it.s.correct; it.pickAt = read*(knows?.8:1.6); }
   else if (knows) { if (Math.random()<.5) { it.liked = true; it.likedBefore = true; it.likeAt = read*(Math.random()<.7?.7:1.8); } else { it.revealed = true; it.liked = true; it.revealAt = read; it.likeAt = read+900; } }
-  else { if (Math.random()<.25) { it.hinted = true; it.hintAt = read*.6; } it.revealed = true; it.revealAt = read*1.2; if (it.hinted && Math.random()<.5) { it.liked = true; it.likeAt = read*1.5; } }
+  else { if (Math.random()<.25) { it.hinted = true; it.hintAt = read*.6; } it.revealed = true; it.revealAt = read*1.2;
+    if (it.s.points.length >= 2) it.got = it.s.points.map(()=>Math.random() < known + .25); // long answers: often partly right
+    else if (it.hinted && Math.random()<.5) { it.liked = true; it.likeAt = read*1.5; } }
   if (Math.random()<.04) it.saved = true;
   return 3000 + Math.random()*4000;
 }
@@ -323,13 +359,14 @@ $("autoWeek").onclick = () => runAuto(7, 60);
 /* ---------------- design lab ---------------- */
 let labSeed = 1;
 function renderLab(){
-  const host = $("labHost").value, vibe = $("labVibe").value, state = $("labState").value, night = $("labNight").checked;
-  const pool = deckCards("GCSE Biology").concat(deckCards("GCSE Chemistry"));
+  const host = $("labHost").value, vibe = $("labVibe").value, state = $("labState").value, night = $("labNight").checked, long = $("labCards").value==="long";
+  const sci = deckCards("GCSE Science: longer answers"), pool = deckCards("GCSE Biology").concat(deckCards("GCSE Chemistry"), sci);
   let s = labSeed; const rnd = () => { s = (s*16807)%2147483647; return (s-1)/2147483646; };
   const looks = PIECES.look, hooks = PIECES.hook;
   const vibeBg = {football:"pitch",gaming:"gameplay",beauty:"glow",music:"equalizer",fitness:"citywalk",food:"satisfying",comedy:"plain"}[vibe];
-  const cards = [3,14,0,9,20,1,5,16].map(i=>pool[i%pool.length]);
-  const layouts = ["bigtext","captions","chat","comment","split","quiz","bigtext","captions"];
+  // long mode: list, steps, paragraphs and long questions, in every layout their shape allows
+  const cards = long ? [5,3,4,0,12,2,8,11].map(i=>sci[i]) : [3,14,0,9,20,1,5,16].map(i=>pool[i%pool.length]);
+  const layouts = long ? ["list","bigtext","chat","captions","comment","list","bigtext","chat"] : ["bigtext","captions","chat","comment","split","quiz","bigtext","captions"];
   let html = "";
   layouts.forEach((lay,i)=>{
     const f = {hook:hooks[(i+labSeed)%hooks.length], layout:lay, look:looks[(i+labSeed)%looks.length], bg:vibeBg||PIECES.bg[(i*3+labSeed)%PIECES.bg.length]};
@@ -337,15 +374,18 @@ function renderLab(){
     const sc = RC.write(c, f, pool, rnd, "due today", vibe?[vibe]:[]);
     if (vibe && !sc.vibe) sc.vibe = vibe;
     if (lay==="quiz" && sc.correct<0) return;
-    const it = {kind:"card", card:c, f, s:sc, host, revealed:state!=="q", liked:state==="liked", likedBefore:false, pick:(lay==="quiz"&&state!=="q")?sc.correct:-1, saved:false, hinted:false, beat:lay==="captions"&&state==="q"?1:sc.beats.length, count:2};
-    html += '<figure><div class="mini"><div class="scaler">'+Render.card(it,{night})+'</div></div><figcaption><b>'+esc(LABEL[lay])+'</b> · '+esc(LABEL[f.look])+'<br>'+esc(LABEL[f.bg])+' · hook “'+esc(LABEL[f.hook])+'”</figcaption></figure>';
+    const shown = state!=="q" && state!=="hint", n = sc.points.length;
+    const got = state==="part" && n>=2 ? sc.points.map((_,k)=>k<n-1) : [];
+    const it = {kind:"card", card:c, f, s:sc, host, revealed:shown, liked:state==="liked", likedBefore:false, pick:(lay==="quiz"&&shown)?(state==="part"?1-sc.correct:sc.correct):-1, saved:false,
+      hinted:state==="hint", hintAt:state==="hint"?1:0, beat:lay==="captions"&&!shown?(state==="hint"?sc.beats.length:1):sc.beats.length, count:2, got, moreOpen:state==="more", settled:true};
+    html += '<figure><div class="mini"><div class="scaler">'+Render.card(it,{night})+'</div></div><figcaption><b>'+esc(LABEL[lay])+'</b> · '+esc(LABEL[f.look])+(n>=2?' · '+n+' points ('+esc(sc.shape)+')':'')+(sc.ctx?' · long question':'')+'<br>'+esc(LABEL[f.bg])+' · hook “'+esc(LABEL[f.hook])+'”</figcaption></figure>';
   });
   $("lab").innerHTML = html;
-  fitLab();
+  fitLab(); fitCards($("lab"));
 }
 function fitLab(){ document.querySelectorAll(".lab .mini").forEach(m => { const sc = m.querySelector(".scaler"); if (sc) sc.style.transform = "scale(" + (m.clientWidth/360) + ")"; }); }
 VIBES.forEach(v => { const o = document.createElement("option"); o.value = v; o.textContent = LABEL[v]; $("labVibe").appendChild(o); });
-["labHost","labVibe","labState","labNight"].forEach(id => $(id).addEventListener("change", renderLab));
+["labCards","labHost","labVibe","labState","labNight"].forEach(id => $(id).addEventListener("change", renderLab));
 $("labShuffle").onclick = () => { labSeed = labSeed % 30 + 1; renderLab(); };
 window.addEventListener("resize", fitLab);
 

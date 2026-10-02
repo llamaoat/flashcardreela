@@ -1,4 +1,3 @@
-
 FSRS-6 matches py-fsrs (the reference implementation)
   PASS  27/27 review steps identical (state, stability, difficulty, interval; worst diff 4.8e-11)
   PASS  R(S, S) = 90%
@@ -40,8 +39,8 @@ Format engine (recovering, contextual bandit)
   PASS  never the same combination twice in a row
   PASS  learns a taste for quiz layouts
   PASS  favourite shows most often (132/200) but still rotates (longest run 2)
-  PASS  learns per app: chat in TikTok (91/100), split-screen in YouTube (92/100)
-  PASS  a gamer starts with gameplay backgrounds more often (21/60 vs ~10 by chance)
+  PASS  learns per app: chat in TikTok (100/100), split-screen in YouTube (100/100)
+  PASS  a gamer starts with gameplay backgrounds more often (19/60 vs ~10 by chance)
 Reel-native copy
   PASS  word-by-word captions split into short beats [Which organ actually, makes bile?]
   PASS  reply-to-comment format: "Replying to @notes.pls" / "which organ actually makes bile help"
@@ -53,6 +52,42 @@ Rail buttons: hint, save, share
   PASS  used a hint and still had to look = Again
   PASS  saving a card flags it and brings it back within a day (saved: back within a day)
   PASS  sharing counts as full engagement for the look, even with a quick exit
+Long answers and long questions
+  PASS  semicolons -> 3 points: [The active site changes shape (the enzyme is denatured), The substrate no longer fits the active site, So the reaction stops]
+  PASS  arrows -> 5 steps: [Receptor, Sensory neurone, Relay neurone, Motor neurone, Effector]
+  PASS  sentences -> 3 points (prose)
+  PASS  "A, B, C and D" -> 4 points: [Red blood cells, White blood cells, Platelets, Plasma]
+  PASS  one long sentence splits at ", so": [No atoms are lost or made in a reaction, So the mass of the products equals the mass of the reactants]
+  PASS  inline "1. … 2. …" -> 4 steps
+  PASS  one point per line -> 3 points
+  PASS  long question split into set-up and question: "Explain why its mass goes down."
+  PASS  the question keeps every command sentence: "Name the gas, and describe a test for it."
+  PASS  Anki HTML lists and line breaks become points: [Red blood cells, White blood cells]
+  PASS  a word equation stays one short answer
+  PASS  every short-answer card in the other decks stays short 
+  PASS  "e.g." and "i.e." don't end a sentence
+  PASS  numbered steps split only where the numbers run 1, 2, 3 (not at "100. ")
+  PASS  more than 6 points: the rest go behind "more"
+The shape picks the layouts
+  PASS  a 3-point answer: no quiz buttons or split-screen, numbered list allowed [chat, comment, bigtext, list, captions]
+  PASS  a short answer: quiz and split allowed, no numbered list
+  PASS  a long question: no word-by-word captions
+  PASS  quiz distractors are never long answers
+  PASS  in a real session, long cards (26) never get quiz or split, short ones never get a numbered list
+Words for long answers
+  PASS  chat: one message per point, question kept for after the reveal
+  PASS  numbered-list hook counts the points: "3 marks. Can you get all 3?"
+  PASS  hint for a long answer: "3 points: “Active…” “Substrate…” “Reaction…”"
+  PASS  points that start alike get longer hints [Aerobic, Aerobic makes, Aerobic releases]
+  PASS  a long explanation goes behind "more"
+Part marks for long answers
+  PASS  all 3 points ticked = Good
+  PASS  2 of 3 = Hard
+  PASS  1 of 3 = Again
+  PASS  2 of 4 = Hard (half counts)
+  PASS  all points but with a hint = Hard
+  PASS  knowing 3 points takes longer: a like at reading time + 4.5 s is still Easy
+  PASS  the engine grades by points ticked: "Graded Again (1 of 3 points) → next in 1 min"
 Notes to cards
         What is osmosis?  |  Diffusion of water across a partially permeable membrane
         What is mitochondria?  |  Site of aerobic respiration
@@ -65,4 +100,4 @@ Forecast
         210 min/day -> 150 cards/day, 25 new/day, deck in 2 days
   PASS  3.5 h of reels ~ 150 cards a day at the default rhythm (the Normal cap)
 
-48 passed, 0 failed
+80 passed, 0 failed

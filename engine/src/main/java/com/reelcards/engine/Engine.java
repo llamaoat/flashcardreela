@@ -429,10 +429,10 @@ public final class Engine {
         Pick p = pickCard(now, force);
         if (p == null) return null;
         Card c = p.card;
-        boolean allowQuiz = CopyWriter.hasDistractor(c, cards);
-        boolean allowCaptions = c.front.length() <= 140;
+        // the answer's shape decides which layouts can draw it (no quiz buttons for a 3-mark answer)
+        java.util.Set<String> allowed = AnswerShape.layoutsFor(AnswerShape.of(c), c.back, CopyWriter.hasDistractor(c, cards));
         String avoid = (c.sessionBounces > 0 || (c.skips > 0 && c.lastGrade == null)) ? c.lastLayout : null;
-        FormatBandit.Pick fp = bandit.pick(rnd, lastHost, avoid, allowQuiz, allowCaptions);
+        FormatBandit.Pick fp = bandit.pick(rnd, lastHost, avoid, allowed);
         CardScript sc = writer.write(c, fp.format, cards, rnd, p.shortWhy, settings.vibes);
         if ("quiz".equals(fp.format.layout) && sc.correct < 0) {
             fp.format.layout = "bigtext";
@@ -464,7 +464,8 @@ public final class Engine {
         rollDay(now);
         Card c = s.card;
         Result res = new Result();
-        Grade g = Grade.fromOutcome(o, s.isQuiz(), s.script.correct, c.front, s.script.optionsText());
+        int points = s.script.points.size();
+        Grade g = Grade.fromOutcome(o, s.isQuiz(), s.script.correct, s.script.question, s.script.optionsText(), points);
         res.grade = g;
         Stats.Day day = stats.day(currentDayKey);
         stats.onCard(currentDayKey, o.dwellMs / 1000.0);
@@ -483,7 +484,7 @@ public final class Engine {
                     calibration.add((now - c.lastReview) / (double) DAY, c.stability, g != Grade.AGAIN);
                 }
                 res.intervalDays = fsrs.review(c, g, now, settings.examDate);
-                res.summary = "Graded " + cap(g.label()) + timingNote(o, g) + " → next in " + human(res.intervalDays);
+                res.summary = "Graded " + cap(g.label()) + timingNote(o, g, points) + " → next in " + human(res.intervalDays);
                 if (calibration.maybeRefit(fsrs)) res.summary += " · memory calibration updated (×" + calibration.scale + ")";
             }
             if (c.isLeech() && g == Grade.AGAIN) res.summary += " · flagged as a tricky card";
@@ -538,10 +539,12 @@ public final class Engine {
         return res;
     }
 
-    static String timingNote(Outcome o, Grade g) {
+    static String timingNote(Outcome o, Grade g, int points) {
+        String pts = points >= 2 && o.pointsGot > 0 && !o.liked ? " (" + o.pointsGot + " of " + points + " points)" : "";
+        if (!pts.isEmpty() && o.hintAtMs == 0) return pts;
         if (g == Grade.GOOD && o.likedBeforeReveal) return " (knew it, but slowly)";
         if (g == Grade.HARD) return o.hintAtMs > 0 ? " (with a hint)" : " (right, but slowly)";
-        return "";
+        return pts;
     }
 
     // ------------------------------------------------------------------ helpers

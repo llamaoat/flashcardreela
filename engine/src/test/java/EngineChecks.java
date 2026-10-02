@@ -63,6 +63,7 @@ public class EngineChecks {
         calibration();
         formats();
         copy();
+        longAnswers();
         notes();
         forecast();
         System.out.println();
@@ -384,6 +385,104 @@ public class EngineChecks {
         Outcome shr = new Outcome(); shr.shared = true; shr.dwellMs = 900;
         check("sharing counts as full engagement for the look, even with a quick exit", shr.reward() == 1.0 && shr.engaged() && !shr.fastSkip());
     }
+
+    // ------------------------------------------------------------------ long answers
+
+    static AnswerShape sci(int i) { Card c = SampleDecks.get(SampleDecks.SCIENCE_LONG).get(i); return AnswerShape.of(c); }
+
+    static void longAnswers() {
+        System.out.println("Long answers and long questions");
+        AnswerShape enz = sci(0), reflex = sci(2), potato = sci(3), blood = sci(5), mass = sci(7), copper = sci(8), states = sci(11), mg = sci(12);
+        check("semicolons -> 3 points: " + enz.points, "list".equals(enz.kind) && enz.points.size() == 3 && enz.points.get(2).equals("So the reaction stops"));
+        check("arrows -> 5 steps: " + reflex.points, "steps".equals(reflex.kind) && reflex.points.size() == 5 && reflex.points.get(0).equals("Receptor"));
+        check("sentences -> 3 points (prose)", "prose".equals(potato.kind) && potato.points.size() == 3);
+        check("\"A, B, C and D\" -> 4 points: " + blood.points, "list".equals(blood.kind) && blood.points.size() == 4 && blood.points.get(3).equals("Plasma"));
+        check("one long sentence splits at \", so\": " + mass.points, "prose".equals(mass.kind) && mass.points.size() == 2 && mass.points.get(1).startsWith("So the mass"));
+        check("inline \"1. … 2. …\" -> 4 steps", "steps".equals(copper.kind) && copper.points.size() == 4 && copper.points.get(1).equals("Filter off the leftover copper oxide"));
+        check("one point per line -> 3 points", "list".equals(states.kind) && states.points.size() == 3 && states.points.get(0).startsWith("Solid:"));
+        check("long question split into set-up and question: \"" + potato.questionMain + "\"",
+                potato.context.startsWith("A potato cylinder") && potato.questionMain.equals("Explain why its mass goes down."));
+        check("the question keeps every command sentence: \"" + mg.questionMain + "\"", mg.questionMain.equals("Name the gas, and describe a test for it.") && mg.points.size() == 2);
+        AnswerShape html = AnswerShape.of("Name two blood cells", "<ul><li>Red blood cells</li><li>White&nbsp;blood cells</li></ul>", "");
+        AnswerShape br = AnswerShape.of("Two facts", "Fact one<br>Fact two<br/>", "");
+        check("Anki HTML lists and line breaks become points: " + html.points, html.points.size() == 2 && html.points.get(1).equals("White blood cells") && br.points.size() == 2);
+        check("a word equation stays one short answer", "short".equals(AnswerShape.splitPoints("Carbon dioxide + water → glucose + oxygen").kind));
+        boolean allShort = true; String odd = "";
+        for (String deck : new String[]{SampleDecks.BIOLOGY, SampleDecks.CHEMISTRY, SampleDecks.SPANISH})
+            for (Card c : SampleDecks.get(deck)) { AnswerShape a = AnswerShape.of(c); if (!"short".equals(a.kind) || !a.context.isEmpty()) { allShort = false; odd = c.back; } }
+        check("every short-answer card in the other decks stays short " + odd, allShort);
+        check("\"e.g.\" and \"i.e.\" don't end a sentence", AnswerShape.splitPoints("e.g. Sodium reacts with water. It fizzes and moves around on the surface").points.size() == 2);
+        check("numbered steps split only where the numbers run 1, 2, 3 (not at \"100. \")",
+                AnswerShape.splitPoints("1. Heat to 100. Then stir 2. Cool it down slowly").points.equals(list("Heat to 100. Then stir", "Cool it down slowly")));
+        AnswerShape seven = AnswerShape.splitPoints("A; B; C; D; E; F; G");
+        check("more than 6 points: the rest go behind \"more\"", seven.points.size() == 6 && seven.over.size() == 1);
+
+        System.out.println("The shape picks the layouts");
+        Card enzCard = SampleDecks.get(SampleDecks.SCIENCE_LONG).get(0), liver = SampleDecks.get(SampleDecks.BIOLOGY).get(3);
+        java.util.Set<String> multi = AnswerShape.layoutsFor(enz, enzCard.back, true), shortL = AnswerShape.layoutsFor(AnswerShape.of(liver), liver.back, true);
+        check("a 3-point answer: no quiz buttons or split-screen, numbered list allowed " + multi, !multi.contains("quiz") && !multi.contains("split") && multi.contains("list"));
+        check("a short answer: quiz and split allowed, no numbered list", shortL.contains("quiz") && shortL.contains("split") && !shortL.contains("list"));
+        check("a long question: no word-by-word captions", !AnswerShape.layoutsFor(potato, "x", true).contains("captions"));
+        Engine e = fresh(30);
+        e.addCards(SampleDecks.get(SampleDecks.SCIENCE_LONG));
+        boolean distractorsShort = true;
+        for (int i = 0; i < 200; i++) { String w = CopyWriter.distractor(liver, e.cards, new Random(i)); if (w != null && !"short".equals(AnswerShape.splitPoints(w).kind)) distractorsShort = false; }
+        check("quiz distractors are never long answers", distractorsShort);
+        int multiShown = 0; boolean badLayout = false;
+        long t = T0;
+        e.settings.intensity = Settings.DEMO;
+        for (int i = 0; i < 400; i++) {
+            t += 9000;
+            Show s = e.onReelSwipe(t, "tiktok");
+            if (s == null) continue;
+            if (s.script.multi()) { multiShown++; if ("quiz".equals(s.format.layout) || "split".equals(s.format.layout)) badLayout = true; }
+            else if ("list".equals(s.format.layout)) badLayout = true;
+            Outcome o = new Outcome(); o.revealed = true; o.liked = true; o.dwellMs = 4000;
+            e.onCardFinished(s, o, t + 4000);
+        }
+        check("in a real session, long cards (" + multiShown + ") never get quiz or split, short ones never get a numbered list", multiShown > 10 && !badLayout);
+
+        System.out.println("Words for long answers");
+        CardScript chat = new CopyWriter().write(enzCard, new Format("pov", "chat", "caption", "plain"), e.cards, new Random(3), "due", null);
+        check("chat: one message per point, question kept for after the reveal", chat.chatMe.size() == 3 && chat.chatMe.get(0).startsWith("the active site") && chat.chatThemQuestion.size() == 1);
+        CardScript list = new CopyWriter().write(enzCard, new Format("rate", "list", "caption", "plain"), e.cards, new Random(4), "due", null);
+        check("numbered-list hook counts the points: \"" + list.hookLine + "\"", list.hookLine.contains("3") && list.marks == 3 && list.pointStarts.size() == 3);
+        check("hint for a long answer: \"" + CopyWriter.hint(enzCard.back, enz.points) + "\"", CopyWriter.hint(enzCard.back, enz.points).equals("3 points: “Active…” “Substrate…” “Reaction…”"));
+        List<String> st = AnswerShape.starts(sci(6).points);
+        check("points that start alike get longer hints " + st, st.get(0).equals("Aerobic") && st.get(1).equals("Aerobic makes") && st.get(2).equals("Aerobic releases"));
+        check("a long explanation goes behind \"more\"", !enz.more.isEmpty() && enz.inlineExplanation.isEmpty());
+
+        System.out.println("Part marks for long answers");
+        String q = enzCard.front;
+        check("all 3 points ticked = Good", Grade.fromOutcome(pts(3), false, -1, q, "", 3) == Grade.GOOD);
+        check("2 of 3 = Hard", Grade.fromOutcome(pts(2), false, -1, q, "", 3) == Grade.HARD);
+        check("1 of 3 = Again", Grade.fromOutcome(pts(1), false, -1, q, "", 3) == Grade.AGAIN);
+        check("2 of 4 = Hard (half counts)", Grade.fromOutcome(pts(2), false, -1, q, "", 4) == Grade.HARD);
+        Outcome hinted = pts(3); hinted.hintAtMs = 1500;
+        check("all points but with a hint = Hard", Grade.fromOutcome(hinted, false, -1, q, "", 3) == Grade.HARD);
+        Outcome early = new Outcome(); early.liked = true; early.likedBeforeReveal = true; early.likeAtMs = Grade.readingMs(q) + 4500;
+        check("knowing 3 points takes longer: a like at reading time + 4.5 s is still Easy", Grade.fromOutcome(early, false, -1, q, "", 3) == Grade.EASY
+                && Grade.fromOutcome(early, false, -1, q, "", 1) == Grade.GOOD);
+        Engine pe = fresh(31);
+        pe.addCards(SampleDecks.get(SampleDecks.SCIENCE_LONG));
+        Show ms = null;
+        pe.settings.intensity = Settings.DEMO;
+        long tt = T0;
+        for (int i = 0; i < 300 && (ms == null || !ms.script.multi()); i++) {
+            tt += 9000; Show s = pe.onReelSwipe(tt, "tiktok");
+            if (s == null) continue;
+            if (s.script.multi()) { ms = s; break; }
+            Outcome o = new Outcome(); o.revealed = true; o.liked = true; o.dwellMs = 4000; pe.onCardFinished(s, o, tt + 4000);
+        }
+        Outcome part = pts(1); part.dwellMs = 6000;
+        int n = ms == null ? 0 : ms.script.points.size();
+        part.pointsGot = Math.max(1, n / 2);
+        Engine.Result r = ms == null ? null : pe.onCardFinished(ms, part, tt + 6000);
+        check("the engine grades by points ticked: \"" + (r == null ? "-" : r.summary.replaceAll(" · look.*", "")) + "\"",
+                r != null && r.summary.contains("of " + n + " points") && part.engaged() && part.reward() == 0.9);
+    }
+
+    static Outcome pts(int got) { Outcome o = new Outcome(); o.revealed = true; o.revealAtMs = 3000; o.pointsGot = got; o.dwellMs = 7000; return o; }
 
     // ------------------------------------------------------------------ notes
 

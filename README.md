@@ -8,6 +8,8 @@
 
 ![Card reels in TikTok style: big text, word-by-word captions, text chat, reply-to-a-comment, split-screen and quiz layouts](docs/img/cards-tiktok.png)
 
+![Long answers: numbered blanks, a long question split into set-up and question, part marks, chat replies with ✓ reactions, steps, and an explanation behind "more"](docs/img/cards-long-answers.png)
+
 <sub>Card designs from the [design lab](web-demo/index.html): the same card in six layouts, each over a different looping background. Instagram and YouTube versions are in [docs/DESIGN.md](docs/DESIGN.md).</sub>
 
 ---
@@ -84,7 +86,8 @@ Tip: set **How often** back to **Normal** afterwards.
 
 - **When:** no cards in the first 3 reels of a session. After that, cards come at a rhythm the engine learns per student (Thompson sampling over six spacings, maximising *answered cards per reel scrolled*). It holds a card back after a reel you watched for 25 s+, brings it forward when you're skimming, and pauses for 15 minutes after 5 fast skips in a row. There's a daily cap and a one-tap pause.
 - **Which:** cards you skipped come back first, then short learning steps, then due reviews with the lowest predicted recall (recall *on exam day* when it's close), mixing subjects. New cards are paced so the whole deck is seen before the exam.
-- **How it looks:** 6 hooks × 6 layouts × 5 looks × 7 backgrounds = 1,260 combinations. A bandit learns which pieces each student engages with, separately per app, with a fading penalty on recently used pieces so looks keep rotating (after Duolingo's notification bandit).
+- **How it looks:** 6 hooks × 7 layouts × 5 looks × 7 backgrounds = 1,470 combinations. A bandit learns which pieces each student engages with, separately per app, with a fading penalty on recently used pieces so looks keep rotating (after Duolingo's notification bandit).
+- **Long answers:** the engine reads each card's shape first. A 3-mark answer is split into points that drop in one at a time, the student taps the points they got (all = Good, half = Hard, fewer = Again), long explanations go behind "more" in the caption, and a long question's set-up goes in a small quoted box. Quiz buttons are kept for short answers. Works on Anki cards too (`<br>` and lists become points).
 - **Memory model:** FSRS-6 (identical to the reference `py-fsrs` on every checked step), exam-aware (target recall 90% → 92% three weeks out → 95% in the final week; no interval past the exam). After 100 long-term reviews it fits a personal forgetting rate.
 - **Anki:** uses AnkiDroid's official content provider API. It reads the cards Anki has scheduled for the chosen decks and writes each reel answer back as a normal review. Anki stays in charge of those cards, and AnkiDroid's own sync carries them to AnkiWeb and desktop.
 - **Notes → cards (no AI needed):** understands `term - definition`, `term: definition`, `Q:/A:` pairs, tab-separated exports from Anki or Quizlet, and simple sentences like "Enzymes are biological catalysts." (→ "What are enzymes?").
@@ -121,7 +124,7 @@ These are averages over four student types at 1 hour and 3.5 hours of reels a da
 Run them yourself:
 
 ```
-./gradlew :engine:engineChecks          # 48 passed, 0 failed
+./gradlew :engine:engineChecks          # 80 passed, 0 failed
 ./gradlew :engine:simulate              # about 2 minutes
 ```
 
@@ -164,7 +167,8 @@ engine/                       the engine: plain Java 8, no Android, no dependenc
     Format.java               hooks, layouts, looks, backgrounds, interest themes
     NotesParser.java          pasted notes → cards
     Stats.java                daily stats + forecast
-    SampleDecks.java          GCSE Biology, Chemistry, Spanish
+    AnswerShape.java          long answers → points, long questions → set-up + question
+    SampleDecks.java          GCSE Biology, Chemistry, Spanish, Science (longer answers)
   src/test/java/              EngineChecks + Simulate
   results/                    saved outputs of both
 app/src/main/java/com/reelcards/app/   the Android app

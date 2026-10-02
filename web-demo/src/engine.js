@@ -91,13 +91,13 @@ Rhythm.prototype={
 const DIMS=["hook","layout","look","bg"];
 const PIECES={
   hook:["pov","waitforit","mostwrong","text2am","rate","storytime"],
-  layout:["bigtext","captions","chat","comment","split","quiz"],
+  layout:["bigtext","captions","chat","comment","split","quiz","list"],
   look:["caption","subtitle","clean","neon","paper"],
   bg:["satisfying","gameplay","citywalk","pitch","glow","equalizer","plain"]
 };
 const VIBES=["football","gaming","beauty","comedy","music","fitness","food"];
 const LABEL={pov:"POV",waitforit:"Wait for it",mostwrong:"Most get it wrong",text2am:"2am text",rate:"Rate my answer",storytime:"Storytime",
-  bigtext:"Big text",captions:"Word-by-word captions",chat:"Text chat",comment:"Reply to a comment",split:"Split-screen",quiz:"Quiz buttons",
+  bigtext:"Big text",captions:"Word-by-word captions",chat:"Text chat",comment:"Reply to a comment",split:"Split-screen",quiz:"Quiz buttons",list:"Numbered list",
   caption:"Bold captions",subtitle:"Highlight boxes",clean:"Clean serif",neon:"Neon",paper:"Handwritten notes",
   satisfying:"Satisfying clip",gameplay:"Gameplay",citywalk:"City walk",pitch:"Football pitch",glow:"Soft glow",equalizer:"Music visualiser",plain:"Plain",
   football:"Football",gaming:"Gaming",beauty:"Beauty & fashion",comedy:"Comedy",music:"Music",fitness:"Gym & fitness",food:"Food",
@@ -122,11 +122,12 @@ Bandit.prototype={
   applyVibes(vs){for(const v of vs)for(const p of vibePriors(v))this.sc(p[0]+":"+p[1])[0]+=p[2];},
   pooled(ctx,d,p){const g=this.sc(d+":"+p);if(!ctx)return g;const c=this.scores[ctx+"|"+d+":"+p];if(!c)return g;const nc=c[0]+c[1]-2,wg=1/(1+nc/8);return[1+wg*(g[0]-1)+(c[0]-1),1+wg*(g[1]-1)+(c[1]-1)];},
   runFull(d,p){const r=this.recent[d]||[];const n=d==="hook"?1:d==="layout"?2:3;if(r.length<n)return false;for(let i=r.length-n;i<r.length;i++)if(r[i]!==p)return false;return true;},
-  pick(rnd,ctx,avoid,allowQuiz,allowCaptions){
+  /* allowed: the layouts this card's shape can use (see layoutsFor); omitted = all of them */
+  pick(rnd,ctx,avoid,allowed){
     const f={},detail={};const explore=rnd()<.1?pickOf(rnd,DIMS):null;
     const pen={hook:.3,layout:.25,look:.18,bg:.08};
     for(const d of DIMS){
-      let c=PIECES[d].filter(p=>!(d==="layout"&&((!allowQuiz&&p==="quiz")||(!allowCaptions&&p==="captions")||p===avoid))&&!this.runFull(d,p));
+      let c=PIECES[d].filter(p=>!(d==="layout"&&((allowed&&allowed.indexOf(p)<0)||p===avoid))&&!this.runFull(d,p));
       if(!c.length)c=[PIECES[d][0]];
       if(d===explore){f[d]=pickOf(rnd,c);detail[d]="explored";continue;}
       let best=c[0],bv=-9,bd=0,bp=0;
@@ -143,6 +144,68 @@ Bandit.prototype={
   favourite(d){let best=null,bm=-1;for(const p of PIECES[d]){const s=this.sc(d+":"+p);if(s[0]+s[1]<5)continue;const m=s[0]/(s[0]+s[1]);if(m>bm){bm=m;best=p;}}return best;}
 };
 
+/* ---------------- Answer shapes ----------------
+   A reel is read in seconds, so a card is drawn by the shape of its answer, not just its words:
+   short (a word or phrase), medium (one long sentence), list, steps, or prose (a few sentences).
+   Lists, steps and prose are split into 2-6 points, revealed one after another and self-marked
+   point by point, like a mark scheme. Long questions are split into the set-up and the question. */
+const SHORT_MAX=48, MAX_POINTS=6, LONG_Q=90, INLINE_X=90;
+const BULLET=/^(?:[-•*·▪●–]|\d{1,2}[.)]|\(?[a-z]\))\s+/;
+const COMMAND=/^(explain|describe|suggest|compare|contrast|name|state|give|calculate|evaluate|define|outline|identify|predict|use|write|complete)\b/i;
+function plainText(t){
+  return String(t==null?"":t).replace(/<\s*br\s*\/?>/gi,"\n").replace(/<\/(?:li|p|div|h\d)>/gi,"\n").replace(/<li[^>]*>/gi,"\n").replace(/<[^>]+>/g,"")
+    .replace(/&nbsp;/g," ").replace(/&lt;/g,"<").replace(/&gt;/g,">").replace(/&quot;/g,"\"").replace(/&#39;/g,"'").replace(/&amp;/g,"&")
+    .replace(/[\u00a0\u2000-\u200a\u202f\u205f\u3000]/g," ").replace(/[ \t]+/g," ").split("\n").map(x=>x.trim()).filter(x=>x).join("\n");
+}
+const cap1=x=>x?x.charAt(0).toUpperCase()+x.slice(1):x;
+const words=x=>x.trim().split(/\s+/).length;
+function tidy(p){return cap1(p.replace(BULLET,"").replace(/[\s;,.]+$/,"").trim());}
+function shaped(pts,kind){pts=pts.map(tidy).filter(x=>x);if(pts.length<2){const one=pts.join(" ");return{kind:one.length>SHORT_MAX?"medium":"short",points:pts,over:[]};}
+  return{kind,points:pts.slice(0,MAX_POINTS),over:pts.slice(MAX_POINTS)};}
+/* sentence ends, but not after e.g. / i.e. / etc. */
+const SENTENCE=/(?<!\b(?:e\.g|i\.e|etc|vs|approx|cf|Dr|Mr|Mrs|Ms|St)\.)(?<=[.!?])\s+(?=[A-Z0-9“"(])/;
+const QSENTENCE=/(?<!\b(?:e\.g|i\.e|etc|vs|approx|cf|Dr|Mr|Mrs|Ms|St)\.)(?<=[.!?:])\s+(?=[A-Z0-9“"(])/;
+/* "1. Warm… 2. Filter… 3. Heat…": split only where the numbers run 1, 2, 3 in order */
+function numberedSteps(one){const re=/(^|\s)(\d{1,2})[.)]\s+/g;let m,want=1;const cuts=[];
+  while((m=re.exec(one))){if(+m[2]===want){cuts.push([m.index+m[1].length,m.index+m[0].length]);want++;}}
+  if(cuts.length<2)return null;const out=[];for(let i=0;i<cuts.length;i++)out.push(one.slice(cuts[i][1],i+1<cuts.length?cuts[i+1][0]:one.length));return out;}
+function splitPoints(b){
+  const t=plainText(b),lines=t.split("\n");
+  if(lines.length>=2)return shaped(lines,lines.every(l=>/^\d{1,2}[.)]\s/.test(l))?"steps":"list");
+  const one=lines[0]||"";
+  if(/^1[.)]\s/.test(one)){const p=numberedSteps(one);if(p&&p.filter(x=>x.trim()).length>=2)return shaped(p,"steps");}
+  if(one.indexOf(";")>=0){const p=one.split(/\s*;\s*/).filter(x=>x);if(p.length>=2)return shaped(p,"list");}
+  const ar=one.split(/\s*(?:→|->)\s*/);if(ar.length>=3&&!/[+=]/.test(one))return shaped(ar,"steps");
+  if(one.length>SHORT_MAX){
+    const se=one.split(SENTENCE);if(se.length>=2)return shaped(se,"prose");
+    const items=one.split(/,\s+/),last=items.pop(),lp=last.split(/\s+(?:and|or)\s+/);
+    if(items.length&&lp.length===2){const all=items.concat(lp);if(all.length>=3&&all.every(x=>x&&words(x)<=4))return shaped(all,"list");}
+    const cl=one.split(/,\s+(?=(?:so|which|meaning|because)\s)|\s+(?=because\s)/);
+    if(cl.length>=2&&cl.every(x=>words(x)>=3))return shaped(cl,"prose");
+  }
+  return{kind:one.length>SHORT_MAX?"medium":"short",points:one?[one]:[],over:[]};
+}
+const shortCache=new Map();
+function isShort(b){let v=shortCache.get(b);if(v===undefined){v=splitPoints(b).kind==="short";if(shortCache.size>4000)shortCache.clear();shortCache.set(b,v);}return v;}
+function splitQuestion(q){
+  const t=plainText(q).replace(/\n/g," ");
+  if(t.length<=LONG_Q)return{ctx:"",main:t};
+  const s=t.split(QSENTENCE);if(s.length<2)return{ctx:"",main:t};
+  let i=s.length-1;for(let k=s.length-1;k>=1;k--){if(/\?$/.test(s[k])||COMMAND.test(s[k])){i=k;}else if(k<s.length-1)break;}
+  const ctx=s.slice(0,i).join(" "),main=s.slice(i).join(" ");
+  if(ctx.length<24||main.length<10)return{ctx:"",main:t};
+  return{ctx,main};
+}
+/* Everything the layouts need to know about a card's length and shape. */
+function analyse(c){
+  const sp=splitPoints(c.b),sq=splitQuestion(c.f),x=plainText(c.x).replace(/\n/g," ");
+  const multi=sp.points.length>=2;
+  const more=(sp.over.length?"Also: "+sp.over.join(". ")+". ":"")+(multi||x.length>INLINE_X?x:"");
+  return{kind:sp.kind,points:sp.points,multi,marks:multi?sp.points.length:0,ctx:sq.ctx,qMain:sq.main,
+    a2:multi||x.length>INLINE_X?"":x,more:more.trim(),
+    quizable:sp.kind==="short",captionable:!sq.ctx&&sq.main.length<=140,splittable:!multi&&plainText(c.b).length<=60&&sq.main.length<=110&&!sq.ctx};
+}
+
 /* ---------------- CopyWriter (reel-native words) ---------------- */
 function themed(v,h,gen){if(!v)return gen;const t={
   "football/pov":["POV: VAR is checking your answer","POV: last minute of the mock, extra time"],"football/mostwrong":["Even the pundits get this wrong"],"football/waitforit":["Wait for the replay…"],
@@ -152,16 +215,26 @@ function themed(v,h,gen){if(!v)return gen;const t={
   "music/waitforit":["Wait for the drop…","Answer drops on the beat…"],"music/pov":["POV: this is stuck in your head now"],
   "fitness/pov":["POV: rest set, quick question","POV: brain day, not leg day"],"fitness/rate":["One rep: answer this"],
   "food/pov":["POV: revising while dinner cooks"],"food/waitforit":["Let it cook… answer in 3"]}[v+"/"+h];return t||gen;}
-function hint(ans){const a=String(ans||"").trim();if(!a)return"No hint for this one";const w=a.split(/\s+/);let first=w[0].replace(/^[^\p{L}\p{N}]+/u,"")||w[0];
+const STOP=new Set("the a an it its they their them this these that those so and or but of to in on is are was were be by with for as at from because which then there".split(" "));
+/* how each point starts ("Active…", "Aerobic makes…"): one word, or more when two points would start alike */
+function starts(points){const used=new Set();return points.map(p=>{const ws=p.split(/\s+/);let i=ws.findIndex(w=>{const b=w.replace(/[^\p{L}\p{N}]/gu,"");return b&&!STOP.has(b.toLowerCase());});if(i<0)i=0;
+  let k=i+1,st=ws.slice(i,k).join(" ");while(used.has(st.toLowerCase())&&k<ws.length){k++;st=ws.slice(i,k).join(" ");}used.add(st.toLowerCase());
+  const clean=st.replace(/^[^\p{L}\p{N}]+/u,"").replace(/[^\p{L}\p{N}]+$/u,"");return cap1(clean||ws[i]);});}
+function hint(ans,points){if(points&&points.length>=2)return points.length+" points: "+starts(points).slice(0,3).map(p=>"“"+p+"…”").join(" ")+(points.length>3?" …":"");
+  const a=String(ans||"").trim();if(!a)return"No hint for this one";const w=a.split(/\s+/);let first=w[0].replace(/^[^\p{L}\p{N}]+/u,"")||w[0];
   if(w.length===1){const n=first.replace(/[^\p{L}\p{N}]/gu,"").length;return"Starts with “"+first[0].toUpperCase()+"” · "+n+(n===1?" letter":" letters");}
   return"Starts with “"+first+"…” · "+w.length+" words";}
-function slug(deck){if(!deck)return"study";let s=deck.toLowerCase().replace(/^(gcse|a-level|a level|ks3)\s+/,"").replace(/[^a-z0-9]+/g,"");return s?s.slice(0,14):"study";}
+function slug(deck){if(!deck)return"study";let s=deck.split(":")[0].toLowerCase().replace(/^(gcse|a-level|a level|ks3)\s+/,"").replace(/[^a-z0-9]+/g,"");return s?s.slice(0,14):"study";}
 function casual(q){let t=q.trim().replace(/[?.!]+$/,"");if(t.length>1&&t[1]!==t[1].toUpperCase())t=t[0].toLowerCase()+t.slice(1);return t;}
 function beats(q){const words=q.trim().split(/\s+/),out=[],hl=[];let cur=[];
   words.forEach((w,i)=>{cur.push(w);if(cur.length>=3||/[,?]$/.test(w)||i===words.length-1){let hi=-1,len=0;cur.forEach((x,k)=>{const b=x.replace(/[^\p{L}\p{N}]/gu,"");if(b.length>len&&b.length>=5){len=b.length;hi=k;}});out.push(cur.join(" "));hl.push(hi);cur=[];}});return{beats:out,hl};}
-function distractor(c,pool,rnd){const mine=c.b.trim().toLowerCase(),same=[],any=[];for(const o of pool){if(o===c||!o.b)continue;const ob=o.b.trim().toLowerCase();if(!ob||ob===mine)continue;const r=(o.b.length+4)/(c.b.length+4);if(r<.4||r>2.5)continue;(o.deck===c.deck?same:any).push(o.b);}const src=same.length?same:any;return src.length?pickOf(rnd,src):null;}
+function distractor(c,pool,rnd){const mine=c.b.trim().toLowerCase(),same=[],any=[];for(const o of pool){if(o===c||!o.b)continue;const ob=o.b.trim().toLowerCase();if(!ob||ob===mine||!isShort(o.b))continue;const r=(o.b.length+4)/(c.b.length+4);if(r<.4||r>2.5)continue;(o.deck===c.deck?same:any).push(o.b);}const src=same.length?same:any;return src.length?pickOf(rnd,src):null;}
+function textish(p){return p.length>1&&p[1]===p[1].toLowerCase()?p[0].toLowerCase()+p.slice(1):p;}
+function layoutsFor(a,hasDistractor){return PIECES.layout.filter(l=>l==="quiz"?a.quizable&&hasDistractor:l==="captions"?a.captionable:l==="list"?a.multi:l==="split"?a.splittable:true);}
 function write(c,f,pool,rnd,reason,vibes){
-  const s={q:c.f,a:c.b,x:c.x||"",options:[],correct:-1,beats:[],hl:[]};
+  const a=analyse(c),q=plainText(c.f).replace(/\n/g," ");
+  const s={q,a:a.multi?a.points.join("; "):(a.points[0]||""),x:a.a2,options:[],correct:-1,beats:[],hl:[],
+    shape:a.kind,points:a.points,marks:a.marks,ctx:a.ctx,qMain:a.qMain,more:a.more};
   s.account="@"+slug(c.deck)+pickOf(rnd,[".mocks",".revision",".explained",".facts"]);s.tag=c.deck+" · "+reason;
   const vl=[...(vibes||[])];const v=!vl.length||rnd()<.4?null:pickOf(rnd,vl);s.vibe=v;
   let hooks,caps;
@@ -174,28 +247,39 @@ function write(c,f,pool,rnd,reason,vibes){
     default:hooks=themed(v,"rate",["Rate my answer 1–10","Can you beat my answer?","Say it out loud first"]);caps=["no googling","rate it honestly","answer in your head first"];
   }
   s.hook=pickOf(rnd,hooks);s.cap=pickOf(rnd,caps);s.prompt=pickOf(rnd,["wait for it… (tap)","tap for the answer","think… then tap"]);
-  s.hint=hint(c.b);s.sound="original sound · "+s.account.slice(1);
-  if(f.layout==="chat"){s.name=pickOf(rnd,["Jess","Sam","Priya","Tom","Aisha","Leo"]);s.them=[pickOf(rnd,["ok random q","wait quick one","don't laugh but"]),c.f,pickOf(rnd,["and don't google it","fast","i've forgotten already"])];s.me=[c.b].concat(c.x?[c.x[0].toLowerCase()+c.x.slice(1)]:[]);s.after=pickOf(rnd,["ok genius go to sleep","how do you just know that","saving this"]);}
-  if(f.layout==="comment"){s.commentUser=pickOf(rnd,["@revision.panic","@mocks_in_2_weeks","@year11.survivor","@lost.in.chem","@notes.pls"]);s.commentText=casual(c.f)+pickOf(rnd,[" pls"," someone explain"," i'm begging"," help"]);s.hook="Replying to "+s.commentUser;}
-  if(f.layout==="captions"){const b=beats(c.f);s.beats=b.beats;s.hl=b.hl;}
+  s.hint=hint(c.b,a.points);s.starts=a.multi?starts(a.points):[];s.sound="original sound · "+s.account.slice(1);
+  if(f.layout==="chat"){s.name=pickOf(rnd,["Jess","Sam","Priya","Tom","Aisha","Leo"]);const open=pickOf(rnd,["ok random q","wait quick one","don't laugh but"]),close=pickOf(rnd,["and don't google it","fast","i've forgotten already"]);
+    s.them=a.ctx?[open,a.ctx,a.qMain]:[open,q,close];s.themQ=a.ctx?[a.ctx,a.qMain]:[q];
+    s.me=a.multi?a.points.map(textish):[s.a].concat(s.x?[textish(s.x)]:[]);
+    s.after=pickOf(rnd,a.multi?["ok that's full marks","saving this for the mock","how do you remember all that"]:["ok genius go to sleep","how do you just know that","saving this"]);}
+  if(f.layout==="comment"){s.commentUser=pickOf(rnd,["@revision.panic","@mocks_in_2_weeks","@year11.survivor","@lost.in.chem","@notes.pls"]);s.commentText=casual(q)+pickOf(rnd,[" pls"," someone explain"," i'm begging"," help"]);s.hook="Replying to "+s.commentUser;}
+  if(f.layout==="captions"){const b=beats(q);s.beats=b.beats;s.hl=b.hl;}
+  if(f.layout==="list"&&a.multi){const n=a.marks;s.hook=pickOf(rnd,a.kind==="steps"?[n+" steps. Say them in order",n+" steps, in order. Go",
+      "Can you do all "+n+" steps?"]:[n+" marks. Can you get all "+n+"?","Name all "+n+" (most people miss one)",n+" things examiners look for here"]);}
   if(f.layout==="quiz"){const w=distractor(c,pool,rnd);if(w){if(rnd()<.5){s.options=[c.b,w];s.correct=0;}else{s.options=[w,c.b];s.correct=1;}}}
-  s.voice=(f.layout==="comment"?"Someone asked: "+s.commentText+".":s.hook.replace("…",".").replace("1–10","one to ten"))+" "+c.f;
+  s.voice=(f.layout==="comment"?"Someone asked: "+s.commentText+".":s.hook.replace("…",".").replace("1–10","one to ten"))+" "+q;
   return s;
 }
 
 /* ---------------- Grading (response-time aware) ---------------- */
 const readingMs=t=>1500+45*(t?t.length:0);
-function gradeOf(o,quiz,correct,q,opts){
-  const read=readingMs(q);
+/* points: how many points the answer has. Answers with 2+ points can be self-marked point by point
+   (o.got = points ticked): all = Good, half or more = Hard, fewer = Again. A hint caps the grade at Hard. */
+function gradeOf(o,quiz,correct,q,opts,points){
+  const n=points||1,read=readingMs(q)+1200*Math.max(0,n-1),got=o.got||0;let g;
   if(quiz&&o.pick>=0&&o.pick!==correct)return 1;
-  if(o.hintAt>0){if(o.liked||(quiz&&o.pick>=0))return 2;if(o.revealed)return 1;return 0;}
-  if(o.likedBefore)return(!o.likeAt||o.likeAt<=read+2500)?4:3;
-  if(quiz&&o.pick>=0)return(!o.pickAt||o.pickAt<=read+readingMs(opts)+4000)?3:2;
-  if(o.liked)return 3;if(o.revealed)return 1;return 0;
+  if(o.likedBefore)g=(!o.likeAt||o.likeAt<=read+2500)?4:3;
+  else if(quiz&&o.pick>=0)g=(!o.pickAt||o.pickAt<=read+readingMs(opts)+4000)?3:2;
+  else if(o.liked)g=3;
+  else if(n>=2&&got>0)g=got>=n?3:got*2>=n?2:1;
+  else if(o.revealed)g=1;
+  else g=0;
+  if(o.hintAt>0&&g>2)g=2;
+  return g;
 }
-const fastSkip=o=>!o.revealed&&!o.liked&&!o.saved&&!o.shared&&!o.hintAt&&o.pick<0&&o.dwell<1200;
-const engaged=o=>o.liked||o.shared||o.saved||o.hintAt>0||o.pick>=0||(o.revealed&&o.dwell>=2000);
-function reward(o){if(o.liked||o.shared)return 1;if(o.saved)return .85;if(o.pick>=0)return .9;if(o.revealed&&o.dwell>=2000)return .7;if(o.revealed)return .45;if(o.dwell>=3000)return .35;if(o.dwell>=1200)return .15;return 0;}
+const fastSkip=o=>!o.revealed&&!o.liked&&!o.saved&&!o.shared&&!o.hintAt&&o.pick<0&&!o.got&&o.dwell<1200;
+const engaged=o=>o.liked||o.shared||o.saved||o.hintAt>0||o.pick>=0||o.got>0||(o.revealed&&o.dwell>=2000);
+function reward(o){if(o.liked||o.shared)return 1;if(o.saved)return .85;if(o.pick>=0||o.got>0)return .9;if(o.revealed&&o.dwell>=2000)return .7;if(o.revealed)return .45;if(o.dwell>=3000)return .35;if(o.dwell>=1200)return .15;return 0;}
 
 /* ---------------- Settings ---------------- */
 const INT={chill:{gap:8,cap:60,newPer:10},normal:{gap:5,cap:150,newPer:25},cram:{gap:3,cap:300,newPer:50},demo:{gap:2,cap:1000,newPer:500}};
@@ -283,9 +367,9 @@ Engine.prototype={
   forceShow(t,host){this.rollDay(t);if(!this.lastSwipeAt){this.lastSwipeAt=t;this.sessionId++;}if(host)this.lastHost=host;return this.makeShow(t,{show:true,gap:this.currentGap(t),reasons:["Requested now (test card)"]},true);},
   makeShow(t,d,force){
     const p=this.pickCard(t,force);if(!p)return null;const c=p.card;
-    const allowQuiz=!!distractor(c,this.cards,()=>0),allowCaptions=c.f.length<=140;
+    const allowed=layoutsFor(analyse(c),!!distractor(c,this.cards,()=>0));
     const avoid=(c.bounces>0||(c.skips>0&&!c.grade))?c.layout:null;
-    const fp=this.bandit.pick(this.rnd,this.lastHost,avoid,allowQuiz,allowCaptions);
+    const fp=this.bandit.pick(this.rnd,this.lastHost,avoid,allowed);
     let sc=write(c,fp.format,this.cards,this.rnd,p.short,this.settings.vibes);
     if(fp.format.layout==="quiz"&&sc.correct<0){fp.format.layout="bigtext";sc=write(c,fp.format,this.cards,this.rnd,p.short,this.settings.vibes);}
     this.reelsSinceCard=0;this.postponed=0;this.cardsToday++;const dd=this.day(this.dayKey);dd.cards++;
@@ -297,14 +381,15 @@ Engine.prototype={
   },
   onCardFinished(sh,o,t){
     this.rollDay(t);const c=sh.card;const quiz=sh.f.layout==="quiz"&&sh.s.correct>=0;
-    const g=gradeOf(o,quiz,sh.s.correct,c.f,sh.s.options.join(" "));const dd=this.day(this.dayKey);let summary;
+    const n=sh.s.points.length,g=gradeOf(o,quiz,sh.s.correct,sh.s.q,sh.s.options.join(" "),n);const dd=this.day(this.dayKey);let summary;
     const sec=o.dwell/1000;if(sec>0&&sec<=120){dd.cardSec+=sec;this.stats.cardN++;const a=this.stats.cardN<20?1/this.stats.cardN:.05;this.stats.avgCard+=a*(sec-this.stats.avgCard);}
     let ivl=-1;
     if(g){
       dd.reviews++;dd[GL[g]]++;c.bounces=0;
       if(c.state===REVIEW&&c.last)this.calibration.add((t-c.last)/DAY,c.s,g!==1);
       ivl=this.fsrs.review(c,g,t,this.settings.examDate);
-      const note=g===3&&o.likedBefore?" (knew it, but slowly)":g===2?(o.hintAt>0?" (with a hint)":" (right, but slowly)"):"";
+      const pts=n>=2&&o.got>0&&!o.liked?" ("+o.got+" of "+n+" points)":"";
+      const note=pts&&!o.hintAt?pts:g===3&&o.likedBefore?" (knew it, but slowly)":g===2?(o.hintAt>0?" (with a hint)":" (right, but slowly)"):pts;
       summary="Graded "+GL[g][0].toUpperCase()+GL[g].slice(1)+note+" → next in "+human(ivl);
       if(this.calibration.maybeRefit(this.fsrs))summary+=" · memory calibration updated (×"+this.calibration.scale+")";
       if(c.lapses>=LEECH_LAPSES&&g===1)summary+=" · flagged as a tricky card";
@@ -336,5 +421,6 @@ Engine.prototype={
 function human(days){if(days<1/24)return Math.max(1,Math.round(days*1440))+" min";if(days<1)return Math.round(days*24)+" h";const d=Math.round(days);return d+(d===1?" day":" days");}
 function makeCard(id,deck,f,b,x){return{id,deck,f,b,x:x||"",state:NEW,step:0,s:0,d:0,due:0,last:0,reps:0,lapses:0,skips:0,bounces:0,buriedUntil:-1,grade:null,layout:null,saved:false};}
 
-return{MIN,DAY,NEW,LEARNING,REVIEW,RELEARNING,STATE,DIMS,PIECES,VIBES,LABEL,DIMLABEL,INT,MULT,Engine,Fsrs,makeCard,human,write,hint,gradeOf,fastSkip,engaged,reward,beta,fkey};
+return{MIN,DAY,NEW,LEARNING,REVIEW,RELEARNING,STATE,DIMS,PIECES,VIBES,LABEL,DIMLABEL,INT,MULT,Engine,Fsrs,makeCard,human,write,hint,gradeOf,fastSkip,engaged,reward,beta,fkey,
+  analyse,splitPoints,splitQuestion,plainText,layoutsFor,readingMs,starts};
 })();

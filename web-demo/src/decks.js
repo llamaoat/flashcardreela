@@ -71,6 +71,20 @@ const DECKS={
 ["Spanish for “the environment”?","el medio ambiente","Proteger el medio ambiente."],
 ["Spanish for “to help”?","ayudar","Ayudo en casa = I help at home."],
 ["Spanish for “healthy”?","sano","Also saludable. Una dieta sana."],
-["Spanish for “last summer”?","el verano pasado","Another preterite time phrase."]]
+["Spanish for “last summer”?","el verano pasado","Another preterite time phrase."]],
+"GCSE Science: longer answers":[
+["Explain why enzymes stop working at high temperatures.","The active site changes shape (the enzyme is denatured); the substrate no longer fits the active site; so the reaction stops","It's permanent. Below the optimum, warming speeds reactions up because particles collide more often."],
+["Describe how the alveoli are adapted for gas exchange.","A huge surface area; walls only one cell thick, so a short diffusion distance; a rich blood supply keeps the concentration gradient steep","Breathing in and out (ventilation) keeps the gradient steep too."],
+["What's the path of a nerve impulse in a reflex arc?","Receptor → sensory neurone → relay neurone → motor neurone → effector","A stimulus sets it off and the effector makes the response. It skips the conscious part of the brain, so it's fast."],
+["A potato cylinder is left in a concentrated sugar solution for an hour. Explain why its mass goes down.","The sugar solution is more concentrated than the cell contents. So water moves out of the cells by osmosis. The potato loses water, so it loses mass.","In pure water it would gain mass instead."],
+["Why can't antibiotics treat flu?","Flu is caused by a virus. Antibiotics only kill bacteria. Viruses live inside body cells, so drugs that kill them can damage the cells too.","Painkillers only ease the symptoms."],
+["Name the four main parts of the blood.","Red blood cells, white blood cells, platelets and plasma","Plasma is the liquid that carries everything else around the body."],
+["Compare aerobic and anaerobic respiration in muscles.","Aerobic needs oxygen, anaerobic doesn't; aerobic makes carbon dioxide and water, anaerobic makes lactic acid; aerobic releases much more energy","Anaerobic respiration is what happens in a sprint, when you can't get oxygen in fast enough."],
+["What does the law of conservation of mass say?","No atoms are lost or made in a reaction, so the mass of the products equals the mass of the reactants","If the mass seems to change, a gas has usually got in or out."],
+["How do you make pure, dry crystals of copper sulfate from copper oxide and sulfuric acid?","1. Warm the acid and add copper oxide until no more dissolves 2. Filter off the leftover copper oxide 3. Heat the solution to evaporate some of the water 4. Leave it to cool and crystallise, then pat the crystals dry","Adding copper oxide until no more dissolves (in excess) makes sure all the acid gets used up."],
+["Explain why metals conduct electricity.","Metals have delocalised electrons. These electrons are free to move through the whole structure. So they carry electrical charge through the metal.",""],
+["Why does a higher temperature make a reaction faster?","Particles move faster, so they collide more often; more collisions have at least the activation energy; so more collisions are successful each second","This is collision theory."],
+["Describe how the particles are arranged in a solid, a liquid and a gas.","Solid: regular pattern, vibrating in place\nLiquid: random, touching, moving around each other\nGas: random, far apart, moving quickly",""],
+["A student adds magnesium ribbon to hydrochloric acid and sees fizzing. Name the gas, and describe a test for it.","Hydrogen; a lit splint makes a squeaky pop","Magnesium + hydrochloric acid → magnesium chloride + hydrogen."]]
 };
 const EXAMPLE_NOTES="Osmosis - diffusion of water across a partially permeable membrane\nMitochondria: site of aerobic respiration\nEnzymes are biological catalysts.\nQ: Which organ makes bile?\nA: The liver\nPhotosynthesis = carbon dioxide + water → glucose + oxygen\nChlorophyll - green pigment that absorbs light\nthe bit about the heart i never remember lol";

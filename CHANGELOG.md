@@ -1,5 +1,29 @@
 # Changelog
 
+## 1.1.0: long answers
+
+**Engine**
+- Answer shapes (`AnswerShape`): answers are short, one long sentence, or split into 2–6 points (lists,
+  steps, paragraphs), including Anki HTML. Long questions are split into their set-up and the question.
+- The shape picks the layouts: quiz buttons only for short answers (and short wrong answers),
+  word-by-word captions only for short questions, split-screen only where the answer fits.
+- New layout: numbered list, with one blank per point before the reveal (1,470 combinations now).
+- Part marks: tick the points you got. All = Good, at least half = Hard, fewer = Again; a hint caps
+  it at Hard. Recalling more points gets more time before "fast" stops counting.
+- Hints for long answers name how many points and how they start.
+- New ready-made deck: GCSE Science, longer answers (13 cards, 2 to 5 marks).
+- Anki cards up to 900 characters (was 220), since long answers are now split rather than cut.
+- 80 engine checks (was 48), plus a Java/JavaScript cross-check of the splitter.
+
+**Design**
+- Points drop in one after another; the question shrinks out of the way; tap a point to mark it.
+- "3 MARKS" pill; a quoted box for a long question's set-up.
+- Chat answers arrive one message per point, with ✓ reactions for the ones you got.
+- Long explanations go in the caption behind "more", which opens over a dimmed card.
+- Think ring (3–7 s) and progress line (10–30 s) scale with reading time.
+- Fit pass: text shrinks step by step instead of spilling out of the safe zone.
+- Design lab: long cards, part marks, the opened caption and the hint state.
+
 ## 1.0.0
 
 **Engine**

@@ -59,7 +59,8 @@ like a creator screenshotting their notes. That keeps the card reading as a reel
 
 **Layouts:** big text · word-by-word captions (the question arrives in beats, about 3 words a second,
 like auto-captions) · a group-chat screenshot (the answer arrives as the reply) · "replying to
-@user's comment" · split-screen over gameplay · a two-option poll sticker.
+@user's comment" · split-screen over gameplay · a two-option poll sticker · a numbered list (one
+blank per point, for answers with several points).
 
 **Hooks** sit in a pill at the top, the first thing read: "POV: …", "Wait for it…", "Most people
 get this wrong", "text at 2am", "Rate my answer", "Storytime".
@@ -69,7 +70,50 @@ offline): a satisfying soap-cutting clip, an endless-runner track, a city walk a
 pitch, a soft bokeh glow, a music visualiser. They're dimmed under the text, with a scrim at the top
 and bottom so the app's own white UI stays readable.
 
-## 3. Themed to the student
+## 3. Long answers and long questions
+
+![Long answers: a numbered list with one blank per point, a long question with its set-up in a quoted box, part marks on a list, chat replies with ✓ reactions, steps, and an explanation opened from the caption](img/cards-long-answers.png)
+
+A reel is read in seconds, so a card is drawn by the *shape* of its answer, not just its words
+([`AnswerShape.java`](../engine/src/main/java/com/reelcards/engine/AnswerShape.java), `analyse()` in
+the web demo).
+
+| Shape | Example | How it's drawn |
+|---|---|---|
+| Short (up to 48 characters) | "The liver" | one answer box, in any layout |
+| One long sentence | "No atoms are lost or made…" | a smaller answer box; no quiz buttons |
+| List, steps or a paragraph | "A; B; C" · "A → B → C" · "1. … 2. …" · one per line · "A, B, C and D" · 2+ sentences | 2–6 points, as below |
+
+The idea is SuperMemo's [minimum information principle](https://www.supermemo.com/en/archives1990-2015/articles/20rules):
+recall is more reliable for small items, so a long answer is reviewed as its parts, the way a mark
+scheme splits a 3-mark answer into 3 points.
+
+- **Before the reveal:** a "3 MARKS" pill under the question, the cue students know from exam papers
+  for how much to recall. The **numbered list** layout goes further: one striped blank per point,
+  sized to its answer ("3 marks. Can you get all 3?"). The hint fills each blank with its first word.
+- **The reveal:** points drop in one after another, like a "3 things…" reel, timed to how long each
+  takes to read. The question shrinks up to 60% and the hook goes, so the answer has the room. A tap
+  shows the rest straight away.
+- **Part marks:** tap the points you got. All of them = Good, at least half = Hard, fewer = Again
+  (a hint still caps it at Hard). Double-tapping still means "got it all"; unticking a point after
+  that turns it into part marks. The badge says "2/3 · Hard".
+- **In the chat layout** the answer arrives as one message per point, the way people text. The small
+  talk drops out so the question stays in view, and you react ✓ to the messages you got.
+- **Explanations:** a short one sits under the answer. A long one goes in the caption behind
+  "more", the way long captions work in every reel app; tapping it opens the caption over a dimmed
+  card.
+- **Long questions** (over 90 characters, 2+ sentences): the set-up goes in a small quoted box with
+  an accent bar and the actual question stays big. In "reply to a comment", the comment carries the
+  whole question.
+- **Layouts follow the shape:** quiz buttons only for short answers (and only with short wrong
+  answers); split-screen only where the answer fits a third of the screen; word-by-word captions only
+  for questions up to 140 characters with no set-up; the numbered list only for 2+ points.
+- **Timing scales with length:** the think ring counts 3 to 7 seconds by reading time, and the
+  progress line runs 10 to 30 seconds.
+- **Fit pass:** if anything would spill out of the safe zone, the text shrinks a step at a time (down
+  to 60%) before the card is drawn, and a long chat scrolls its oldest messages away.
+
+## 4. Themed to the student
 
 At setup students pick what they watch. Cards then pick up a small, recognisable touch, and the
 format engine starts with a lean towards matching backgrounds and formats:
@@ -84,7 +128,7 @@ format engine starts with a lean towards matching backgrounds and formats:
 | Food | "let it cook · 0:03" | satisfying clip, handwritten notes |
 | Comedy | "no laughing" | "text at 2am", reply-to-a-comment, group chat |
 
-## 4. Time and colour
+## 5. Time and colour
 
 - **Night:** from 10pm to 6am the light looks switch to dark versions: the clean page becomes
   warm dark paper, the handwritten notes become a chalkboard. Students can force it on or off.
@@ -94,20 +138,26 @@ format engine starts with a lean towards matching backgrounds and formats:
   ([`FeedColour.java`](../app/src/main/java/com/reelcards/app/FeedColour.java)). It uses Android's
   [`AccessibilityService.takeScreenshot`](https://developer.android.com/reference/android/accessibilityservice/AccessibilityService).
 
-## 5. States and first use
+## 6. States and first use
 
 - **Question:** a countdown ring (3, 2, 1, ?) with the reveal prompt. Tap anywhere to reveal.
 - **Hint:** a white chip under the question, a half-typed reply in the chat layout, or a note in the poll.
-- **Answer:** an accent-coloured box that drops in, with a one-line explanation.
+- **Answer:** an accent-coloured box that drops in, with a one-line explanation. Long answers drop in
+  point by point instead, with a tick on each ("Tap the ones you got").
+- **Part marks:** ticked points fill in with the accent colour and the badge shows "2/3 · Hard".
+- **Caption opened:** the caption grows up the screen over a dimmed card; tap anywhere to close it.
 - **Knew it:** the heart fills, a big heart bursts where you tapped, and a badge says how it was
   graded ("Knew it · Easy", "With a hint · Hard").
 - **First two cards ever:** a coach tip, "Tap to see the answer · Double-tap if you knew it", fades
   out after 4 seconds.
 
-## 6. Accessibility
+## 7. Accessibility
 
 - White text on footage always has an outline, a box or a scrim behind it.
-- Touch targets: rail buttons 50 dp, the reveal button 56 dp, poll options 50 dp, the chat reply 44 dp.
+- Touch targets: rail buttons 50 dp, the reveal button 56 dp, poll options 50 dp, the chat reply 44 dp,
+  answer points 48 dp (at every fit step).
+- Answer points read as checkboxes in TalkBack, and focus stays on a point after you tick it. The
+  caption's "more" is a labelled action, so the explanation itself is still read out.
 - Text respects the phone's font size, up to 130%, beyond which the reel layout would break.
 - Background motion stops when "Remove animations" is on.
 - Every control has a content description for TalkBack. The optional voiceover reads the hook and

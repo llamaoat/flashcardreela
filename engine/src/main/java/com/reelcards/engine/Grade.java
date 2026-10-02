@@ -39,27 +39,30 @@ public enum Grade {
      *  - quiz: right option, quickly -> GOOD; slowly -> HARD; wrong option -> AGAIN
      *  - revealed the answer, then liked it                -> GOOD
      *  - revealed the answer, no like                      -> AGAIN
- *  - used the hint, then knew it (like or right option) -> HARD
+     *  - long answers (2+ points), ticked point by point:
+     *    all points -> GOOD, at least half -> HARD, fewer -> AGAIN
+     *  - used the hint: capped at HARD (remembered with help at best)
      *  - never revealed (swiped past)                      -> null: not graded, comes back later
-     * A missing timing (0) is treated as fast, so older clients still work.
+     * A missing timing (0) is treated as fast, so older clients still work. Recalling several points
+     * takes longer, so each extra point adds 1.2 s to what counts as quick.
      */
-    public static Grade fromOutcome(Outcome o, boolean isQuiz, int correctOption, String question, String optionsText) {
-        long read = readingMs(question);
+    public static Grade fromOutcome(Outcome o, boolean isQuiz, int correctOption, String question, String optionsText, int points) {
+        int n = Math.max(1, points);
+        long read = readingMs(question) + 1200L * (n - 1);
         if (isQuiz && o.quizPick >= 0 && o.quizPick != correctOption) return AGAIN; // a wrong pick beats an early like
-        if (o.hintAtMs > 0) {
-            // needed a hint: remembered with help at best (FSRS "Hard"), forgot if they still had to look
-            if (o.liked || (isQuiz && o.quizPick >= 0)) return HARD;
-            if (o.revealed) return AGAIN;
-            return null;
-        }
-        if (o.likedBeforeReveal) return (o.likeAtMs == 0 || o.likeAtMs <= read + 2500) ? EASY : GOOD;
-        if (isQuiz && o.quizPick >= 0) {
-            long slow = read + readingMs(optionsText) + 4000;
-            return (o.pickAtMs == 0 || o.pickAtMs <= slow) ? GOOD : HARD;
-        }
-        if (o.liked) return GOOD;
-        if (o.revealed) return AGAIN;
-        return null;
+        Grade g;
+        if (o.likedBeforeReveal) g = (o.likeAtMs == 0 || o.likeAtMs <= read + 2500) ? EASY : GOOD;
+        else if (isQuiz && o.quizPick >= 0) g = (o.pickAtMs == 0 || o.pickAtMs <= read + readingMs(optionsText) + 4000) ? GOOD : HARD;
+        else if (o.liked) g = GOOD;
+        else if (n >= 2 && o.pointsGot > 0) g = o.pointsGot >= n ? GOOD : o.pointsGot * 2 >= n ? HARD : AGAIN;
+        else if (o.revealed) g = AGAIN;
+        else g = null;
+        if (g != null && o.hintAtMs > 0 && (g == GOOD || g == EASY)) g = HARD;
+        return g;
+    }
+
+    public static Grade fromOutcome(Outcome o, boolean isQuiz, int correctOption, String question, String optionsText) {
+        return fromOutcome(o, isQuiz, correctOption, question, optionsText, 1);
     }
 
     /** Timing-free version, kept for callers that don't track time. */

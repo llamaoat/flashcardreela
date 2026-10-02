@@ -175,13 +175,13 @@ input[type=text]{width:100%;min-height:42px;border-radius:12px;border:1px solid 
 .card.h-youtube{--st:6.3%;--sb:15.6%;--sl:4.4%;--sr:8.9%;--hf:var(--f-youtube)}
 .card .bgl{position:absolute;inset:0;z-index:0}
 .card .scrim{position:absolute;inset:0;z-index:1;pointer-events:none;background:linear-gradient(to top,rgba(0,0,0,.62) 0%,rgba(0,0,0,0) 34%),linear-gradient(to bottom,rgba(0,0,0,.35) 0%,rgba(0,0,0,0) 18%)}
-.card .body{position:absolute;z-index:3;left:calc(var(--sl) + 12px);right:calc(var(--sr) + 30px);top:calc(var(--st) + 44px);bottom:calc(var(--sb) + 104px);display:flex;flex-direction:column;gap:14px;justify-content:flex-start}
+.card .body{position:absolute;z-index:3;box-sizing:border-box;left:calc(var(--sl) + 12px);right:calc(var(--sr) + 30px);top:calc(var(--st) + 44px);bottom:calc(var(--sb) + 104px);display:flex;flex-direction:column;gap:calc(14px * var(--fit,1));justify-content:flex-start;transition:filter .25s}
 .card.l-split .body{top:44%;bottom:calc(var(--sb) + 96px)}
 .card.l-bigtext .body,.card.l-captions .body{justify-content:center;padding-bottom:6%}
 .card .splittop{position:absolute;left:0;right:0;top:0;height:42%;z-index:2;overflow:hidden;border-bottom:3px solid #000}
 
 /* hook pill: the first thing read, top of the safe zone */
-.card .hook{align-self:flex-start;max-width:100%;padding:7px 13px;border-radius:10px;font-size:16.5px;font-weight:800;background:var(--panel);color:var(--fg);line-height:1.22;letter-spacing:-.1px}
+.card .hook{align-self:flex-start;max-width:100%;box-sizing:border-box;padding:7px 13px;border-radius:10px;font-size:calc(16.5px * var(--fit,1));font-weight:800;background:var(--panel);color:var(--fg);line-height:1.22;letter-spacing:-.1px}
 .card .q{margin:0;line-height:1.02;overflow-wrap:normal;word-break:normal;hyphens:manual;font-weight:900}
 .card .tag{display:inline}
 
@@ -205,8 +205,9 @@ input[type=text]{width:100%;min-height:42px;border-radius:12px;border:1px solid 
 .card.k-paper .q{font-family:'Caveat','Comic Sans MS',cursive;font-weight:700;font-size:40px;line-height:1.02}
 .card.k-paper .q em{font-style:normal;background:linear-gradient(transparent 55%,color-mix(in srgb,var(--acc) 55%,transparent) 55%)}
 /* sheet: light looks float as a notes page over the footage */
-.card.sheet .body{background:var(--sheet);border-radius:18px;padding:18px 16px 16px;bottom:auto;box-shadow:0 24px 48px -20px rgba(0,0,0,.85);transform:rotate(-.6deg)}
-.card.sheet.l-bigtext .body,.card.sheet.l-captions .body{top:calc(var(--st) + 70px)}
+.card.sheet .body{background:var(--sheet);border-radius:18px;padding:18px 16px 16px;bottom:auto;max-height:calc(100% - var(--st) - 44px - var(--sb) - 104px);box-shadow:0 24px 48px -20px rgba(0,0,0,.85);transform:rotate(-.6deg)}
+.card.sheet.l-bigtext .body,.card.sheet.l-captions .body{top:calc(var(--st) + 70px);max-height:calc(100% - var(--st) - 70px - var(--sb) - 104px)}
+.card.sheet.rv.mp .body{top:calc(var(--st) + 44px);max-height:calc(100% - var(--st) - 44px - var(--sb) - 104px)}
 .card.sheet.k-paper .body{background:
   linear-gradient(90deg,transparent 30px,rgba(228,87,46,.5) 30px,rgba(228,87,46,.5) 32px,transparent 32px),
   repeating-linear-gradient(to bottom,var(--sheet) 0 29px,rgba(47,107,255,.25) 29px 30px);padding-left:42px}
@@ -228,8 +229,8 @@ input[type=text]{width:100%;min-height:42px;border-radius:12px;border:1px solid 
 @keyframes spin{to{transform:rotate(1080deg)}}
 .card .ans{padding:13px 15px;border-radius:16px;display:flex;flex-direction:column;gap:4px;background:var(--acc);color:var(--accfg);animation:drop .32s cubic-bezier(.2,1.4,.4,1);box-shadow:0 10px 24px -12px rgba(0,0,0,.6)}
 @keyframes drop{from{transform:translateY(-10px) scale(.94);opacity:0}to{transform:none;opacity:1}}
-.card .ans .a1{font-weight:900;font-size:20px;line-height:1.15}
-.card .ans .a2{font-size:14.5px;line-height:1.35;font-weight:500}
+.card .ans .a1{font-weight:900;font-size:calc(20px * var(--fit,1));line-height:1.15}
+.card .ans .a2{font-size:calc(14.5px * var(--fit,1));line-height:1.35;font-weight:500}
 
 /* captions: auto-caption beats, one at a time */
 .card .beat{font-family:var(--hf);font-weight:900;font-size:40px;line-height:1.02;text-transform:uppercase;text-align:center;align-self:center;margin-top:14%;
@@ -249,10 +250,20 @@ input[type=text]{width:100%;min-height:42px;border-radius:12px;border:1px solid 
 .card .chathead b{display:block;font-size:14px}.card .chathead small{font-size:11px;opacity:.6}
 .card .bub{max-width:84%;padding:8px 12px;border-radius:18px;font-size:14.5px;line-height:1.3;font-family:var(--hf)}
 .card .bub.them{align-self:flex-start;border-bottom-left-radius:5px;background:var(--bubble);color:var(--fg)}
-.card .bub.me{align-self:flex-end;border-bottom-right-radius:5px;background:var(--acc);color:var(--accfg);animation:drop .25s ease-out}
+.card .bub.me{align-self:flex-end;border-bottom-right-radius:5px;background:var(--acc);color:var(--accfg);animation:drop .3s ease-out both}
 .card .typing{align-self:flex-end;border:none;min-height:44px;padding:6px 18px;border-radius:18px;border-bottom-right-radius:5px;background:var(--acc);color:var(--accfg);font-weight:900;letter-spacing:3px;font-size:18px}
 .card .typing span{display:inline-block;animation:dot 1s infinite}.card .typing span:nth-child(2){animation-delay:.15s}.card .typing span:nth-child(3){animation-delay:.3s}
 @keyframes dot{0%,60%,100%{transform:none;opacity:.6}30%{transform:translateY(-4px);opacity:1}}
+
+.card .chat{max-height:100%;min-height:0;box-sizing:border-box}
+/* a chat that gets long scrolls its oldest messages off the top, like a real thread */
+.card .msgs{display:flex;flex-direction:column;gap:6px;justify-content:flex-end;overflow:hidden;min-height:0;flex:1 1 auto}
+.card .msgs.over{-webkit-mask-image:linear-gradient(to bottom,transparent 0,#000 36px);mask-image:linear-gradient(to bottom,transparent 0,#000 36px)}
+.card button.bub{border:none;font:inherit;font-family:var(--hf);font-size:14.5px;text-align:left;position:relative;cursor:pointer}
+.card .bub .tb{position:absolute;top:-10px;left:-10px;width:22px;height:22px;border-radius:50%;background:var(--panel);color:var(--acc);border:2px solid var(--acc);font-style:normal;font-size:12px;font-weight:900;display:flex;align-items:center;justify-content:center;animation:pop2 .3s cubic-bezier(.2,1.6,.4,1)}
+@keyframes pop2{from{transform:scale(.2)}to{transform:none}}
+.card .bub.late,.card .sysmsg{animation:drop .3s ease-out both}
+.card .sysmsg{align-self:center;font-size:11.5px;font-weight:700;opacity:.75;padding:2px 0}
 
 /* comment: "replying to" sticker */
 .card .sticker{align-self:flex-start;max-width:92%;background:#fff;color:#111;border-radius:14px;padding:10px 12px;display:flex;gap:9px;align-items:flex-start;box-shadow:0 10px 26px -10px rgba(0,0,0,.6);transform:rotate(-1.5deg)}
@@ -269,6 +280,67 @@ input[type=text]{width:100%;min-height:42px;border-radius:12px;border:1px solid 
 .card .opt.wrong{border-color:#e23b55;background:#fde7eb}.card .opt.wrong .l{background:#e23b55}
 .card .opt.dim{opacity:.45}
 .card .pollnote{font-size:13.5px;line-height:1.35;color:#333;padding:0 4px}
+
+/* ---- long answers ----
+   Points drop in one after another (the "3 things…" listicle), each with a tick for self-marking.
+   A long question's set-up sits in a quoted box. The fit pass (data-fit) shrinks everything a step
+   at a time if the content would spill out of the safe zone. */
+.card[data-fit="1"]{--fit:.92}.card[data-fit="2"]{--fit:.84}.card[data-fit="3"]{--fit:.76}.card[data-fit="4"]{--fit:.68}.card[data-fit="5"]{--fit:.6}
+.card .ctx{font-size:calc(15px * var(--fit,1));line-height:1.32;font-weight:600;padding:8px 12px;border-left:3px solid var(--acc);background:var(--panel);border-radius:4px 12px 12px 4px;
+  display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:6;overflow:hidden;flex-shrink:0}
+.card.rv.mp .ctx{-webkit-line-clamp:1;opacity:.8}
+.card.sheet .ctx{background:rgba(127,127,127,.12)}
+.card.k-subtitle .ctx{background:#111;color:#fff}
+.card .marks{align-self:flex-start;font-size:12px;font-weight:900;letter-spacing:.07em;text-transform:uppercase;padding:4px 10px;border-radius:8px;border:2px solid var(--acc);color:var(--acc);background:rgba(0,0,0,.35);line-height:1.2}
+.card.sheet .marks{background:none}
+.card.l-bigtext .marks,.card.l-captions .marks{align-self:flex-start}
+.card.rv.mp .hook{display:none}
+.card .pts{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:calc(7px * var(--fit,1))}
+.card .pts li{position:relative}
+.card .pt{width:100%;display:flex;align-items:flex-start;gap:10px;text-align:left;box-sizing:border-box;padding:calc(9px * var(--fit,1)) 10px calc(9px * var(--fit,1)) 9px;border-radius:14px;border:2px solid transparent;
+  background:var(--panel);color:var(--fg);font-family:var(--hf);font-weight:700;font-size:calc(var(--ptpx,16px) * var(--fit,1));line-height:1.24;cursor:pointer;
+  animation:ptin .42s cubic-bezier(.2,1.25,.4,1) both;box-shadow:0 8px 20px -14px rgba(0,0,0,.7);transition:border-color .15s,background .15s}
+@keyframes ptin{from{opacity:0;transform:translateY(12px) scale(.95)}to{opacity:1;transform:none}}
+.card .pt .n{flex-shrink:0;min-width:24px;height:24px;border-radius:7px;background:var(--acc);color:var(--accfg);font-size:13px;font-weight:900;display:flex;align-items:center;justify-content:center;font-family:var(--hf)}
+.card .pt .tx{flex:1;min-width:0;padding-top:1px}
+.card .pt .tx b{color:var(--acc);font-weight:900}
+.card .pt .tk{flex-shrink:0;width:20px;height:20px;border-radius:50%;border:2px solid currentColor;opacity:.4;position:relative;margin-top:1px}
+.card .pt.got{border-color:var(--acc)}
+.card .pt.got .tk{opacity:1;background:var(--acc);border-color:var(--acc)}
+.card .pt.got .tk::after{content:"";position:absolute;left:5.5px;top:1.5px;width:5px;height:10px;border:solid var(--accfg);border-width:0 2.5px 2.5px 0;transform:rotate(45deg)}
+.card .pts.steps .n{border-radius:50%}
+.card .pts.steps li:not(:last-child)::after{content:"";position:absolute;left:22px;top:calc(100% - 3px);height:calc(7px * var(--fit,1) + 6px);width:2px;background:var(--acc);z-index:1}
+.card .pt.slot{animation:none;align-items:center;box-shadow:none;cursor:default}
+.card .redact{display:block;height:.9em;border-radius:5px;background:repeating-linear-gradient(135deg,currentColor 0 5px,transparent 5px 9px);opacity:.32}
+.card .hintx{opacity:.9;font-style:italic}
+.card .selfcheck{align-self:flex-start;display:flex;align-items:center;gap:6px;font-size:12.5px;font-weight:800;padding:5px 11px;border-radius:999px;background:rgba(0,0,0,.5);color:#fff;animation:ptin .42s ease both;text-shadow:none}
+.card .selfcheck::before{content:"";width:12px;height:12px;border-radius:50%;border:2px solid currentColor;opacity:.7}
+.card.sheet .selfcheck{background:rgba(127,127,127,.16);color:var(--fg)}
+.card .selfcheck.on::before{background:var(--acc);border-color:var(--acc);opacity:1}
+.card.settled .pt,.card.settled .selfcheck,.card.settled .bub.me,.card.settled .bub.late,.card.settled .sysmsg,.card.settled .ans{animation:none!important}
+.card .ans.t2 .a1{font-size:calc(18px * var(--fit,1))}
+.card .ans.t3 .a1{font-size:calc(16.5px * var(--fit,1));font-weight:800}
+/* looks */
+.card.k-caption .pt{background:rgba(0,0,0,.62)}
+.card.k-subtitle .pt{background:#fff;color:#111}
+.card.k-subtitle .pt .n{color:#111}
+.card.k-subtitle .pt .tx b{color:#111;background:var(--acc);border-radius:4px;padding:0 3px}
+.card.k-neon .pt{border-color:color-mix(in srgb,var(--acc) 45%,transparent);box-shadow:0 0 18px -6px var(--acc)}
+.card.k-neon .pt.got{border-color:var(--acc)}
+.card.sheet .pt{background:none;box-shadow:none;border:none;border-radius:8px;padding-left:2px;padding-right:4px;border-bottom:1.5px dashed rgba(127,127,127,.35)}
+.card.sheet .pt.got{background:color-mix(in srgb,var(--acc) 16%,transparent);border-bottom-color:transparent}
+.card.sheet .pt.slot{border-bottom-style:solid}
+.card.k-clean .pt{font-family:'Fraunces',Georgia,serif;font-weight:600;line-height:1.2}
+.card.k-paper .pt{font-family:'Caveat',cursive;font-weight:700;font-size:calc(var(--ptpx,16px) * 1.38 * var(--fit,1));line-height:1.02;padding-top:4px;padding-bottom:4px}
+.card.k-paper .pt .n{background:none;color:var(--acc);font-family:'Caveat',cursive;font-size:25px;min-width:16px;height:auto;line-height:1}
+.card.k-paper .pts.steps li:not(:last-child)::after{left:9px;opacity:.5}
+.card.k-paper .pt .tx b{color:var(--fg);background:linear-gradient(transparent 55%,color-mix(in srgb,var(--acc) 45%,transparent) 55%)}
+/* "more": the explanation opens over a dimmed card, like an expanded caption */
+.card .band .morebtn{background:none;border:none;color:#fff;font:inherit;font-weight:800;padding:6px 4px;margin:-6px -4px;cursor:pointer;text-shadow:inherit}
+.card .band .mtxt{font-weight:500}
+.card.moreopen .band{max-height:52%;overflow-y:auto;z-index:8;scrollbar-width:none;font-size:15px;line-height:1.38}
+.card.moreopen .scrim{background:linear-gradient(to top,rgba(0,0,0,.92) 0%,rgba(0,0,0,.78) 45%,rgba(0,0,0,.55) 100%);transition:background .25s}
+.card.moreopen .body,.card.moreopen .vibe,.card.moreopen .badge{filter:brightness(.3) saturate(.6);opacity:.6}
 
 /* the host app's rail: our four actions in the host's positions and icon style */
 .card .rail{position:absolute;z-index:6;right:max(6px, calc(var(--sr) - 48px));bottom:calc(var(--sb) - 2px);display:flex;flex-direction:column;gap:14px;align-items:center}
@@ -443,9 +515,10 @@ input[type=text]{width:100%;min-height:42px;border-radius:12px;border:1px solid 
   <section class="panel wide" aria-labelledby="h-lab">
     <h2 id="h-lab">Design lab <span class="note">· every layout, in the app and vibe you pick. These are the real card components the feed uses.</span></h2>
     <div class="labbar">
+      <label for="labCards" style="flex-direction:row;align-items:center;gap:6px">Cards <select id="labCards"><option value="short">Short answers</option><option value="long" selected>Long answers &amp; questions</option></select></label>
       <label for="labHost" style="flex-direction:row;align-items:center;gap:6px">App <select id="labHost"><option value="tiktok">TikTok</option><option value="instagram">Instagram Reels</option><option value="youtube">YouTube Shorts</option></select></label>
       <label for="labVibe" style="flex-direction:row;align-items:center;gap:6px">Vibe <select id="labVibe"><option value="">None</option></select></label>
-      <label for="labState" style="flex-direction:row;align-items:center;gap:6px">State <select id="labState"><option value="q">Question</option><option value="a">Answer revealed</option><option value="liked">Knew it</option></select></label>
+      <label for="labState" style="flex-direction:row;align-items:center;gap:6px">State <select id="labState"><option value="q">Question</option><option value="a">Answer revealed</option><option value="part">Part marks</option><option value="liked">Knew it</option><option value="more">Caption opened (…more)</option><option value="hint">Hint</option></select></label>
       <label class="toggle" for="labNight"><input type="checkbox" id="labNight"> Night</label>
       <button class="btn" id="labShuffle">Shuffle looks</button>
     </div>
@@ -546,13 +619,13 @@ Rhythm.prototype={
 const DIMS=["hook","layout","look","bg"];
 const PIECES={
   hook:["pov","waitforit","mostwrong","text2am","rate","storytime"],
-  layout:["bigtext","captions","chat","comment","split","quiz"],
+  layout:["bigtext","captions","chat","comment","split","quiz","list"],
   look:["caption","subtitle","clean","neon","paper"],
   bg:["satisfying","gameplay","citywalk","pitch","glow","equalizer","plain"]
 };
 const VIBES=["football","gaming","beauty","comedy","music","fitness","food"];
 const LABEL={pov:"POV",waitforit:"Wait for it",mostwrong:"Most get it wrong",text2am:"2am text",rate:"Rate my answer",storytime:"Storytime",
-  bigtext:"Big text",captions:"Word-by-word captions",chat:"Text chat",comment:"Reply to a comment",split:"Split-screen",quiz:"Quiz buttons",
+  bigtext:"Big text",captions:"Word-by-word captions",chat:"Text chat",comment:"Reply to a comment",split:"Split-screen",quiz:"Quiz buttons",list:"Numbered list",
   caption:"Bold captions",subtitle:"Highlight boxes",clean:"Clean serif",neon:"Neon",paper:"Handwritten notes",
   satisfying:"Satisfying clip",gameplay:"Gameplay",citywalk:"City walk",pitch:"Football pitch",glow:"Soft glow",equalizer:"Music visualiser",plain:"Plain",
   football:"Football",gaming:"Gaming",beauty:"Beauty & fashion",comedy:"Comedy",music:"Music",fitness:"Gym & fitness",food:"Food",
@@ -577,11 +650,12 @@ Bandit.prototype={
   applyVibes(vs){for(const v of vs)for(const p of vibePriors(v))this.sc(p[0]+":"+p[1])[0]+=p[2];},
   pooled(ctx,d,p){const g=this.sc(d+":"+p);if(!ctx)return g;const c=this.scores[ctx+"|"+d+":"+p];if(!c)return g;const nc=c[0]+c[1]-2,wg=1/(1+nc/8);return[1+wg*(g[0]-1)+(c[0]-1),1+wg*(g[1]-1)+(c[1]-1)];},
   runFull(d,p){const r=this.recent[d]||[];const n=d==="hook"?1:d==="layout"?2:3;if(r.length<n)return false;for(let i=r.length-n;i<r.length;i++)if(r[i]!==p)return false;return true;},
-  pick(rnd,ctx,avoid,allowQuiz,allowCaptions){
+  /* allowed: the layouts this card's shape can use (see layoutsFor); omitted = all of them */
+  pick(rnd,ctx,avoid,allowed){
     const f={},detail={};const explore=rnd()<.1?pickOf(rnd,DIMS):null;
     const pen={hook:.3,layout:.25,look:.18,bg:.08};
     for(const d of DIMS){
-      let c=PIECES[d].filter(p=>!(d==="layout"&&((!allowQuiz&&p==="quiz")||(!allowCaptions&&p==="captions")||p===avoid))&&!this.runFull(d,p));
+      let c=PIECES[d].filter(p=>!(d==="layout"&&((allowed&&allowed.indexOf(p)<0)||p===avoid))&&!this.runFull(d,p));
       if(!c.length)c=[PIECES[d][0]];
       if(d===explore){f[d]=pickOf(rnd,c);detail[d]="explored";continue;}
       let best=c[0],bv=-9,bd=0,bp=0;
@@ -598,6 +672,68 @@ Bandit.prototype={
   favourite(d){let best=null,bm=-1;for(const p of PIECES[d]){const s=this.sc(d+":"+p);if(s[0]+s[1]<5)continue;const m=s[0]/(s[0]+s[1]);if(m>bm){bm=m;best=p;}}return best;}
 };
 
+/* ---------------- Answer shapes ----------------
+   A reel is read in seconds, so a card is drawn by the shape of its answer, not just its words:
+   short (a word or phrase), medium (one long sentence), list, steps, or prose (a few sentences).
+   Lists, steps and prose are split into 2-6 points, revealed one after another and self-marked
+   point by point, like a mark scheme. Long questions are split into the set-up and the question. */
+const SHORT_MAX=48, MAX_POINTS=6, LONG_Q=90, INLINE_X=90;
+const BULLET=/^(?:[-•*·▪●–]|\d{1,2}[.)]|\(?[a-z]\))\s+/;
+const COMMAND=/^(explain|describe|suggest|compare|contrast|name|state|give|calculate|evaluate|define|outline|identify|predict|use|write|complete)\b/i;
+function plainText(t){
+  return String(t==null?"":t).replace(/<\s*br\s*\/?>/gi,"\n").replace(/<\/(?:li|p|div|h\d)>/gi,"\n").replace(/<li[^>]*>/gi,"\n").replace(/<[^>]+>/g,"")
+    .replace(/&nbsp;/g," ").replace(/&lt;/g,"<").replace(/&gt;/g,">").replace(/&quot;/g,"\"").replace(/&#39;/g,"'").replace(/&amp;/g,"&")
+    .replace(/[\u00a0\u2000-\u200a\u202f\u205f\u3000]/g," ").replace(/[ \t]+/g," ").split("\n").map(x=>x.trim()).filter(x=>x).join("\n");
+}
+const cap1=x=>x?x.charAt(0).toUpperCase()+x.slice(1):x;
+const words=x=>x.trim().split(/\s+/).length;
+function tidy(p){return cap1(p.replace(BULLET,"").replace(/[\s;,.]+$/,"").trim());}
+function shaped(pts,kind){pts=pts.map(tidy).filter(x=>x);if(pts.length<2){const one=pts.join(" ");return{kind:one.length>SHORT_MAX?"medium":"short",points:pts,over:[]};}
+  return{kind,points:pts.slice(0,MAX_POINTS),over:pts.slice(MAX_POINTS)};}
+/* sentence ends, but not after e.g. / i.e. / etc. */
+const SENTENCE=/(?<!\b(?:e\.g|i\.e|etc|vs|approx|cf|Dr|Mr|Mrs|Ms|St)\.)(?<=[.!?])\s+(?=[A-Z0-9“"(])/;
+const QSENTENCE=/(?<!\b(?:e\.g|i\.e|etc|vs|approx|cf|Dr|Mr|Mrs|Ms|St)\.)(?<=[.!?:])\s+(?=[A-Z0-9“"(])/;
+/* "1. Warm… 2. Filter… 3. Heat…": split only where the numbers run 1, 2, 3 in order */
+function numberedSteps(one){const re=/(^|\s)(\d{1,2})[.)]\s+/g;let m,want=1;const cuts=[];
+  while((m=re.exec(one))){if(+m[2]===want){cuts.push([m.index+m[1].length,m.index+m[0].length]);want++;}}
+  if(cuts.length<2)return null;const out=[];for(let i=0;i<cuts.length;i++)out.push(one.slice(cuts[i][1],i+1<cuts.length?cuts[i+1][0]:one.length));return out;}
+function splitPoints(b){
+  const t=plainText(b),lines=t.split("\n");
+  if(lines.length>=2)return shaped(lines,lines.every(l=>/^\d{1,2}[.)]\s/.test(l))?"steps":"list");
+  const one=lines[0]||"";
+  if(/^1[.)]\s/.test(one)){const p=numberedSteps(one);if(p&&p.filter(x=>x.trim()).length>=2)return shaped(p,"steps");}
+  if(one.indexOf(";")>=0){const p=one.split(/\s*;\s*/).filter(x=>x);if(p.length>=2)return shaped(p,"list");}
+  const ar=one.split(/\s*(?:→|->)\s*/);if(ar.length>=3&&!/[+=]/.test(one))return shaped(ar,"steps");
+  if(one.length>SHORT_MAX){
+    const se=one.split(SENTENCE);if(se.length>=2)return shaped(se,"prose");
+    const items=one.split(/,\s+/),last=items.pop(),lp=last.split(/\s+(?:and|or)\s+/);
+    if(items.length&&lp.length===2){const all=items.concat(lp);if(all.length>=3&&all.every(x=>x&&words(x)<=4))return shaped(all,"list");}
+    const cl=one.split(/,\s+(?=(?:so|which|meaning|because)\s)|\s+(?=because\s)/);
+    if(cl.length>=2&&cl.every(x=>words(x)>=3))return shaped(cl,"prose");
+  }
+  return{kind:one.length>SHORT_MAX?"medium":"short",points:one?[one]:[],over:[]};
+}
+const shortCache=new Map();
+function isShort(b){let v=shortCache.get(b);if(v===undefined){v=splitPoints(b).kind==="short";if(shortCache.size>4000)shortCache.clear();shortCache.set(b,v);}return v;}
+function splitQuestion(q){
+  const t=plainText(q).replace(/\n/g," ");
+  if(t.length<=LONG_Q)return{ctx:"",main:t};
+  const s=t.split(QSENTENCE);if(s.length<2)return{ctx:"",main:t};
+  let i=s.length-1;for(let k=s.length-1;k>=1;k--){if(/\?$/.test(s[k])||COMMAND.test(s[k])){i=k;}else if(k<s.length-1)break;}
+  const ctx=s.slice(0,i).join(" "),main=s.slice(i).join(" ");
+  if(ctx.length<24||main.length<10)return{ctx:"",main:t};
+  return{ctx,main};
+}
+/* Everything the layouts need to know about a card's length and shape. */
+function analyse(c){
+  const sp=splitPoints(c.b),sq=splitQuestion(c.f),x=plainText(c.x).replace(/\n/g," ");
+  const multi=sp.points.length>=2;
+  const more=(sp.over.length?"Also: "+sp.over.join(". ")+". ":"")+(multi||x.length>INLINE_X?x:"");
+  return{kind:sp.kind,points:sp.points,multi,marks:multi?sp.points.length:0,ctx:sq.ctx,qMain:sq.main,
+    a2:multi||x.length>INLINE_X?"":x,more:more.trim(),
+    quizable:sp.kind==="short",captionable:!sq.ctx&&sq.main.length<=140,splittable:!multi&&plainText(c.b).length<=60&&sq.main.length<=110&&!sq.ctx};
+}
+
 /* ---------------- CopyWriter (reel-native words) ---------------- */
 function themed(v,h,gen){if(!v)return gen;const t={
   "football/pov":["POV: VAR is checking your answer","POV: last minute of the mock, extra time"],"football/mostwrong":["Even the pundits get this wrong"],"football/waitforit":["Wait for the replay…"],
@@ -607,16 +743,26 @@ function themed(v,h,gen){if(!v)return gen;const t={
   "music/waitforit":["Wait for the drop…","Answer drops on the beat…"],"music/pov":["POV: this is stuck in your head now"],
   "fitness/pov":["POV: rest set, quick question","POV: brain day, not leg day"],"fitness/rate":["One rep: answer this"],
   "food/pov":["POV: revising while dinner cooks"],"food/waitforit":["Let it cook… answer in 3"]}[v+"/"+h];return t||gen;}
-function hint(ans){const a=String(ans||"").trim();if(!a)return"No hint for this one";const w=a.split(/\s+/);let first=w[0].replace(/^[^\p{L}\p{N}]+/u,"")||w[0];
+const STOP=new Set("the a an it its they their them this these that those so and or but of to in on is are was were be by with for as at from because which then there".split(" "));
+/* how each point starts ("Active…", "Aerobic makes…"): one word, or more when two points would start alike */
+function starts(points){const used=new Set();return points.map(p=>{const ws=p.split(/\s+/);let i=ws.findIndex(w=>{const b=w.replace(/[^\p{L}\p{N}]/gu,"");return b&&!STOP.has(b.toLowerCase());});if(i<0)i=0;
+  let k=i+1,st=ws.slice(i,k).join(" ");while(used.has(st.toLowerCase())&&k<ws.length){k++;st=ws.slice(i,k).join(" ");}used.add(st.toLowerCase());
+  const clean=st.replace(/^[^\p{L}\p{N}]+/u,"").replace(/[^\p{L}\p{N}]+$/u,"");return cap1(clean||ws[i]);});}
+function hint(ans,points){if(points&&points.length>=2)return points.length+" points: "+starts(points).slice(0,3).map(p=>"“"+p+"…”").join(" ")+(points.length>3?" …":"");
+  const a=String(ans||"").trim();if(!a)return"No hint for this one";const w=a.split(/\s+/);let first=w[0].replace(/^[^\p{L}\p{N}]+/u,"")||w[0];
   if(w.length===1){const n=first.replace(/[^\p{L}\p{N}]/gu,"").length;return"Starts with “"+first[0].toUpperCase()+"” · "+n+(n===1?" letter":" letters");}
   return"Starts with “"+first+"…” · "+w.length+" words";}
-function slug(deck){if(!deck)return"study";let s=deck.toLowerCase().replace(/^(gcse|a-level|a level|ks3)\s+/,"").replace(/[^a-z0-9]+/g,"");return s?s.slice(0,14):"study";}
+function slug(deck){if(!deck)return"study";let s=deck.split(":")[0].toLowerCase().replace(/^(gcse|a-level|a level|ks3)\s+/,"").replace(/[^a-z0-9]+/g,"");return s?s.slice(0,14):"study";}
 function casual(q){let t=q.trim().replace(/[?.!]+$/,"");if(t.length>1&&t[1]!==t[1].toUpperCase())t=t[0].toLowerCase()+t.slice(1);return t;}
 function beats(q){const words=q.trim().split(/\s+/),out=[],hl=[];let cur=[];
   words.forEach((w,i)=>{cur.push(w);if(cur.length>=3||/[,?]$/.test(w)||i===words.length-1){let hi=-1,len=0;cur.forEach((x,k)=>{const b=x.replace(/[^\p{L}\p{N}]/gu,"");if(b.length>len&&b.length>=5){len=b.length;hi=k;}});out.push(cur.join(" "));hl.push(hi);cur=[];}});return{beats:out,hl};}
-function distractor(c,pool,rnd){const mine=c.b.trim().toLowerCase(),same=[],any=[];for(const o of pool){if(o===c||!o.b)continue;const ob=o.b.trim().toLowerCase();if(!ob||ob===mine)continue;const r=(o.b.length+4)/(c.b.length+4);if(r<.4||r>2.5)continue;(o.deck===c.deck?same:any).push(o.b);}const src=same.length?same:any;return src.length?pickOf(rnd,src):null;}
+function distractor(c,pool,rnd){const mine=c.b.trim().toLowerCase(),same=[],any=[];for(const o of pool){if(o===c||!o.b)continue;const ob=o.b.trim().toLowerCase();if(!ob||ob===mine||!isShort(o.b))continue;const r=(o.b.length+4)/(c.b.length+4);if(r<.4||r>2.5)continue;(o.deck===c.deck?same:any).push(o.b);}const src=same.length?same:any;return src.length?pickOf(rnd,src):null;}
+function textish(p){return p.length>1&&p[1]===p[1].toLowerCase()?p[0].toLowerCase()+p.slice(1):p;}
+function layoutsFor(a,hasDistractor){return PIECES.layout.filter(l=>l==="quiz"?a.quizable&&hasDistractor:l==="captions"?a.captionable:l==="list"?a.multi:l==="split"?a.splittable:true);}
 function write(c,f,pool,rnd,reason,vibes){
-  const s={q:c.f,a:c.b,x:c.x||"",options:[],correct:-1,beats:[],hl:[]};
+  const a=analyse(c),q=plainText(c.f).replace(/\n/g," ");
+  const s={q,a:a.multi?a.points.join("; "):(a.points[0]||""),x:a.a2,options:[],correct:-1,beats:[],hl:[],
+    shape:a.kind,points:a.points,marks:a.marks,ctx:a.ctx,qMain:a.qMain,more:a.more};
   s.account="@"+slug(c.deck)+pickOf(rnd,[".mocks",".revision",".explained",".facts"]);s.tag=c.deck+" · "+reason;
   const vl=[...(vibes||[])];const v=!vl.length||rnd()<.4?null:pickOf(rnd,vl);s.vibe=v;
   let hooks,caps;
@@ -629,28 +775,39 @@ function write(c,f,pool,rnd,reason,vibes){
     default:hooks=themed(v,"rate",["Rate my answer 1–10","Can you beat my answer?","Say it out loud first"]);caps=["no googling","rate it honestly","answer in your head first"];
   }
   s.hook=pickOf(rnd,hooks);s.cap=pickOf(rnd,caps);s.prompt=pickOf(rnd,["wait for it… (tap)","tap for the answer","think… then tap"]);
-  s.hint=hint(c.b);s.sound="original sound · "+s.account.slice(1);
-  if(f.layout==="chat"){s.name=pickOf(rnd,["Jess","Sam","Priya","Tom","Aisha","Leo"]);s.them=[pickOf(rnd,["ok random q","wait quick one","don't laugh but"]),c.f,pickOf(rnd,["and don't google it","fast","i've forgotten already"])];s.me=[c.b].concat(c.x?[c.x[0].toLowerCase()+c.x.slice(1)]:[]);s.after=pickOf(rnd,["ok genius go to sleep","how do you just know that","saving this"]);}
-  if(f.layout==="comment"){s.commentUser=pickOf(rnd,["@revision.panic","@mocks_in_2_weeks","@year11.survivor","@lost.in.chem","@notes.pls"]);s.commentText=casual(c.f)+pickOf(rnd,[" pls"," someone explain"," i'm begging"," help"]);s.hook="Replying to "+s.commentUser;}
-  if(f.layout==="captions"){const b=beats(c.f);s.beats=b.beats;s.hl=b.hl;}
+  s.hint=hint(c.b,a.points);s.starts=a.multi?starts(a.points):[];s.sound="original sound · "+s.account.slice(1);
+  if(f.layout==="chat"){s.name=pickOf(rnd,["Jess","Sam","Priya","Tom","Aisha","Leo"]);const open=pickOf(rnd,["ok random q","wait quick one","don't laugh but"]),close=pickOf(rnd,["and don't google it","fast","i've forgotten already"]);
+    s.them=a.ctx?[open,a.ctx,a.qMain]:[open,q,close];s.themQ=a.ctx?[a.ctx,a.qMain]:[q];
+    s.me=a.multi?a.points.map(textish):[s.a].concat(s.x?[textish(s.x)]:[]);
+    s.after=pickOf(rnd,a.multi?["ok that's full marks","saving this for the mock","how do you remember all that"]:["ok genius go to sleep","how do you just know that","saving this"]);}
+  if(f.layout==="comment"){s.commentUser=pickOf(rnd,["@revision.panic","@mocks_in_2_weeks","@year11.survivor","@lost.in.chem","@notes.pls"]);s.commentText=casual(q)+pickOf(rnd,[" pls"," someone explain"," i'm begging"," help"]);s.hook="Replying to "+s.commentUser;}
+  if(f.layout==="captions"){const b=beats(q);s.beats=b.beats;s.hl=b.hl;}
+  if(f.layout==="list"&&a.multi){const n=a.marks;s.hook=pickOf(rnd,a.kind==="steps"?[n+" steps. Say them in order",n+" steps, in order. Go",
+      "Can you do all "+n+" steps?"]:[n+" marks. Can you get all "+n+"?","Name all "+n+" (most people miss one)",n+" things examiners look for here"]);}
   if(f.layout==="quiz"){const w=distractor(c,pool,rnd);if(w){if(rnd()<.5){s.options=[c.b,w];s.correct=0;}else{s.options=[w,c.b];s.correct=1;}}}
-  s.voice=(f.layout==="comment"?"Someone asked: "+s.commentText+".":s.hook.replace("…",".").replace("1–10","one to ten"))+" "+c.f;
+  s.voice=(f.layout==="comment"?"Someone asked: "+s.commentText+".":s.hook.replace("…",".").replace("1–10","one to ten"))+" "+q;
   return s;
 }
 
 /* ---------------- Grading (response-time aware) ---------------- */
 const readingMs=t=>1500+45*(t?t.length:0);
-function gradeOf(o,quiz,correct,q,opts){
-  const read=readingMs(q);
+/* points: how many points the answer has. Answers with 2+ points can be self-marked point by point
+   (o.got = points ticked): all = Good, half or more = Hard, fewer = Again. A hint caps the grade at Hard. */
+function gradeOf(o,quiz,correct,q,opts,points){
+  const n=points||1,read=readingMs(q)+1200*Math.max(0,n-1),got=o.got||0;let g;
   if(quiz&&o.pick>=0&&o.pick!==correct)return 1;
-  if(o.hintAt>0){if(o.liked||(quiz&&o.pick>=0))return 2;if(o.revealed)return 1;return 0;}
-  if(o.likedBefore)return(!o.likeAt||o.likeAt<=read+2500)?4:3;
-  if(quiz&&o.pick>=0)return(!o.pickAt||o.pickAt<=read+readingMs(opts)+4000)?3:2;
-  if(o.liked)return 3;if(o.revealed)return 1;return 0;
+  if(o.likedBefore)g=(!o.likeAt||o.likeAt<=read+2500)?4:3;
+  else if(quiz&&o.pick>=0)g=(!o.pickAt||o.pickAt<=read+readingMs(opts)+4000)?3:2;
+  else if(o.liked)g=3;
+  else if(n>=2&&got>0)g=got>=n?3:got*2>=n?2:1;
+  else if(o.revealed)g=1;
+  else g=0;
+  if(o.hintAt>0&&g>2)g=2;
+  return g;
 }
-const fastSkip=o=>!o.revealed&&!o.liked&&!o.saved&&!o.shared&&!o.hintAt&&o.pick<0&&o.dwell<1200;
-const engaged=o=>o.liked||o.shared||o.saved||o.hintAt>0||o.pick>=0||(o.revealed&&o.dwell>=2000);
-function reward(o){if(o.liked||o.shared)return 1;if(o.saved)return .85;if(o.pick>=0)return .9;if(o.revealed&&o.dwell>=2000)return .7;if(o.revealed)return .45;if(o.dwell>=3000)return .35;if(o.dwell>=1200)return .15;return 0;}
+const fastSkip=o=>!o.revealed&&!o.liked&&!o.saved&&!o.shared&&!o.hintAt&&o.pick<0&&!o.got&&o.dwell<1200;
+const engaged=o=>o.liked||o.shared||o.saved||o.hintAt>0||o.pick>=0||o.got>0||(o.revealed&&o.dwell>=2000);
+function reward(o){if(o.liked||o.shared)return 1;if(o.saved)return .85;if(o.pick>=0||o.got>0)return .9;if(o.revealed&&o.dwell>=2000)return .7;if(o.revealed)return .45;if(o.dwell>=3000)return .35;if(o.dwell>=1200)return .15;return 0;}
 
 /* ---------------- Settings ---------------- */
 const INT={chill:{gap:8,cap:60,newPer:10},normal:{gap:5,cap:150,newPer:25},cram:{gap:3,cap:300,newPer:50},demo:{gap:2,cap:1000,newPer:500}};
@@ -738,9 +895,9 @@ Engine.prototype={
   forceShow(t,host){this.rollDay(t);if(!this.lastSwipeAt){this.lastSwipeAt=t;this.sessionId++;}if(host)this.lastHost=host;return this.makeShow(t,{show:true,gap:this.currentGap(t),reasons:["Requested now (test card)"]},true);},
   makeShow(t,d,force){
     const p=this.pickCard(t,force);if(!p)return null;const c=p.card;
-    const allowQuiz=!!distractor(c,this.cards,()=>0),allowCaptions=c.f.length<=140;
+    const allowed=layoutsFor(analyse(c),!!distractor(c,this.cards,()=>0));
     const avoid=(c.bounces>0||(c.skips>0&&!c.grade))?c.layout:null;
-    const fp=this.bandit.pick(this.rnd,this.lastHost,avoid,allowQuiz,allowCaptions);
+    const fp=this.bandit.pick(this.rnd,this.lastHost,avoid,allowed);
     let sc=write(c,fp.format,this.cards,this.rnd,p.short,this.settings.vibes);
     if(fp.format.layout==="quiz"&&sc.correct<0){fp.format.layout="bigtext";sc=write(c,fp.format,this.cards,this.rnd,p.short,this.settings.vibes);}
     this.reelsSinceCard=0;this.postponed=0;this.cardsToday++;const dd=this.day(this.dayKey);dd.cards++;
@@ -752,14 +909,15 @@ Engine.prototype={
   },
   onCardFinished(sh,o,t){
     this.rollDay(t);const c=sh.card;const quiz=sh.f.layout==="quiz"&&sh.s.correct>=0;
-    const g=gradeOf(o,quiz,sh.s.correct,c.f,sh.s.options.join(" "));const dd=this.day(this.dayKey);let summary;
+    const n=sh.s.points.length,g=gradeOf(o,quiz,sh.s.correct,sh.s.q,sh.s.options.join(" "),n);const dd=this.day(this.dayKey);let summary;
     const sec=o.dwell/1000;if(sec>0&&sec<=120){dd.cardSec+=sec;this.stats.cardN++;const a=this.stats.cardN<20?1/this.stats.cardN:.05;this.stats.avgCard+=a*(sec-this.stats.avgCard);}
     let ivl=-1;
     if(g){
       dd.reviews++;dd[GL[g]]++;c.bounces=0;
       if(c.state===REVIEW&&c.last)this.calibration.add((t-c.last)/DAY,c.s,g!==1);
       ivl=this.fsrs.review(c,g,t,this.settings.examDate);
-      const note=g===3&&o.likedBefore?" (knew it, but slowly)":g===2?(o.hintAt>0?" (with a hint)":" (right, but slowly)"):"";
+      const pts=n>=2&&o.got>0&&!o.liked?" ("+o.got+" of "+n+" points)":"";
+      const note=pts&&!o.hintAt?pts:g===3&&o.likedBefore?" (knew it, but slowly)":g===2?(o.hintAt>0?" (with a hint)":" (right, but slowly)"):pts;
       summary="Graded "+GL[g][0].toUpperCase()+GL[g].slice(1)+note+" → next in "+human(ivl);
       if(this.calibration.maybeRefit(this.fsrs))summary+=" · memory calibration updated (×"+this.calibration.scale+")";
       if(c.lapses>=LEECH_LAPSES&&g===1)summary+=" · flagged as a tricky card";
@@ -791,7 +949,8 @@ Engine.prototype={
 function human(days){if(days<1/24)return Math.max(1,Math.round(days*1440))+" min";if(days<1)return Math.round(days*24)+" h";const d=Math.round(days);return d+(d===1?" day":" days");}
 function makeCard(id,deck,f,b,x){return{id,deck,f,b,x:x||"",state:NEW,step:0,s:0,d:0,due:0,last:0,reps:0,lapses:0,skips:0,bounces:0,buriedUntil:-1,grade:null,layout:null,saved:false};}
 
-return{MIN,DAY,NEW,LEARNING,REVIEW,RELEARNING,STATE,DIMS,PIECES,VIBES,LABEL,DIMLABEL,INT,MULT,Engine,Fsrs,makeCard,human,write,hint,gradeOf,fastSkip,engaged,reward,beta,fkey};
+return{MIN,DAY,NEW,LEARNING,REVIEW,RELEARNING,STATE,DIMS,PIECES,VIBES,LABEL,DIMLABEL,INT,MULT,Engine,Fsrs,makeCard,human,write,hint,gradeOf,fastSkip,engaged,reward,beta,fkey,
+  analyse,splitPoints,splitQuestion,plainText,layoutsFor,readingMs,starts};
 })();
 
 /* Card reel renderer: draws a Show exactly like a reel in the host app. Mirrors app/.../CardView.java. */
@@ -834,38 +993,87 @@ const I = {
 function keyWord(q){ let best = -1, len = 0; q.split(/\s+/).forEach((w,i)=>{ const b = w.replace(/[^\p{L}\p{N}]/gu,""); if (b.length > len && b.length >= 5) { len = b.length; best = i; } }); return best; }
 function withEm(q, upper){ const words = q.split(/\s+/), k = keyWord(q); return words.map((w,i)=> i===k ? "<em>"+esc(upper?w.toUpperCase():w)+"</em>" : esc(upper?w.toUpperCase():w)).join(" "); }
 
-function questionHTML(it, scale){
-  const look = it.f.look, q = it.s.q;
+/* ---- long answers: shape helpers ---- */
+const isMulti = it => !!(it.s.points && it.s.points.length >= 2);
+const answered = it => it.revealed || it.pick >= 0;
+// once a multi-point answer is showing, the question shrinks up out of the way (like a caption morphing)
+const compact = it => isMulti(it) && answered(it);
+const gotCount = it => it.liked ? it.s.points.length : (it.got || []).filter(Boolean).length;
+const readMs = t => 1500 + 45 * (t ? t.length : 0);
+/* seconds on the "think" ring: grows with how long the question takes to read */
+function thinkSecs(s){ return Math.max(3, Math.min(7, Math.ceil((readMs((s.ctx||"") + " " + (s.qMain||s.q)) - 1000) / 1000))); }
+/* when each point drops in: quicker for short points, slower for long ones */
+function ptDelays(s){ const d = []; let t = 0; for (const p of s.points) { d.push(t); t += Math.max(500, Math.min(1500, 380 + 26*p.length)); } d.push(t); return d; }
+function ptSize(s){ const m = Math.max(...s.points.map(p=>p.length)); return m <= 28 ? 17.5 : m <= 60 ? 15.5 : 14.5; }
+function ptLabel(p){ const m = p.match(/^([^:]{1,24}):\s+(.+)$/); return m ? '<b>'+esc(m[1])+'</b> '+esc(m[2]) : esc(p); }
+
+function qPx(look, text, scale){
   const size = {caption:34, subtitle:27, clean:31, neon:36, paper:40}[look] || 32;
   // long questions shrink so they always fit the safe zone
-  const len = q.length, fit = len > 110 ? .7 : len > 80 ? .8 : len > 55 ? .9 : 1;
+  const len = text.length, fit = len > 110 ? .7 : len > 80 ? .8 : len > 55 ? .9 : 1;
   // never break a word: the longest word must fit the ~250px text column
-  const longest = Math.max(...q.split(/\s+/).map(w=>w.length));
+  const longest = Math.max(...text.split(/\s+/).map(w=>w.length));
   const em = {caption:.66, subtitle:.6, clean:.58, neon:.5, paper:.45}[look] || .6;
-  const px = Math.round(Math.min(size * scale * fit, 244 / (longest * em)));
-  if (look === "subtitle") return '<h2 class="q" style="font-size:'+px+'px"><span>'+withEm(q,false)+'</span></h2>';
-  return '<h2 class="q" style="font-size:'+px+'px">'+withEm(q, look==="caption"||look==="neon")+'</h2>';
+  return Math.round(Math.min(size * scale * fit, 244 / (longest * em)));
+}
+function marksHTML(it){ return it.s.marks && !compact(it) ? '<div class="marks">'+it.s.marks+' marks</div>' : ''; }
+function questionHTML(it, scale){
+  const look = it.f.look, s = it.s, q = s.ctx ? s.qMain : s.q;
+  const px = qPx(look, q, scale * (compact(it) ? .6 : 1));
+  const inner = look === "subtitle" ? '<span>'+withEm(q,false)+'</span>' : withEm(q, look==="caption"||look==="neon");
+  // a long question's set-up sits in a small quoted box; the actual question stays big
+  return (s.ctx ? '<div class="ctx">'+esc(s.ctx)+'</div>' : '') +
+    '<h2 class="q" style="font-size:calc('+px+'px * var(--fit,1))">'+inner+'</h2>' + (it.f.layout==="list" ? '' : marksHTML(it));
 }
 
-function revealOrAnswer(it){
-  const hintChip = it.hinted && !it.revealed ? '<div class="hintchip"><b>Hint</b> '+esc(it.s.hint)+'</div>' : '';
-  if (!it.revealed) return hintChip + revealButton(it);
-  if (it.revealed) return '<div class="ans"><div class="a1">'+esc(it.s.a)+'</div>'+(it.s.x?'<div class="a2">'+esc(it.s.x)+'</div>':'')+'</div>';
-  return revealButton(it);
+/* the answer as points, dropping in one after another; tap the ones you got */
+function pointsHTML(it){
+  const s = it.s, n = s.points.length, d = ptDelays(s), got = it.got || [], k = gotCount(it);
+  const lis = s.points.map((p,i)=>{ const on = it.liked || got[i];
+    return '<li><button class="pt'+(on?' got':'')+'" data-act="tick" data-v="'+i+'" style="animation-delay:'+d[i]+'ms" aria-pressed="'+(!!on)+'" aria-label="Point '+(i+1)+': '+esc(p)+'. Tap if you got it"><b class="n">'+(i+1)+'</b><span class="tx">'+ptLabel(p)+'</span><i class="tk" aria-hidden="true"></i></button></li>'; }).join("");
+  const note = k ? (k >= n ? 'Got all '+n : 'Got '+k+' of '+n) : 'Tap the ones you got';
+  return '<ol class="pts'+(s.shape==="steps"?' steps':'')+'" style="--ptpx:'+ptSize(s)+'px">'+lis+'</ol><div class="selfcheck'+(k?' on':'')+'" style="animation-delay:'+d[n]+'ms">'+note+'</div>';
 }
-function revealButton(it){ return '<button class="reveal" data-act="reveal"><span class="ring">'+(it.count==null?3:it.count)+'</span><span>'+esc(it.s.prompt)+'</span></button>'; }
+/* numbered list layout, before the reveal: one blank per point, so you know how many to recall */
+function slotsHTML(it){
+  const s = it.s;
+  return '<ol class="pts slots'+(s.shape==="steps"?' steps':'')+'" style="--ptpx:'+ptSize(s)+'px">'+s.points.map((p,i)=>'<li><div class="pt slot"><b class="n">'+(i+1)+'</b>'+
+    (it.hinted ? '<span class="tx hintx">'+esc(s.starts[i])+'…</span>' : '<span class="redact" style="width:'+Math.round(Math.min(86, 24 + p.length*1.2))+'%"></span>')+'</div></li>').join("")+'</ol>';
+}
+function revealOrAnswer(it){
+  if (!it.revealed) {
+    const hintChip = it.hinted && it.f.layout!=="list" ? '<div class="hintchip"><b>Hint</b> '+esc(it.s.hint)+'</div>' : '';
+    return hintChip + revealButton(it);
+  }
+  if (isMulti(it)) return pointsHTML(it);
+  const a = it.s.a, tier = a.length > 40 ? ' t3' : a.length > 22 ? ' t2' : '';
+  return '<div class="ans'+tier+'"><div class="a1">'+esc(a)+'</div>'+(it.s.x?'<div class="a2">'+esc(it.s.x)+'</div>':'')+'</div>';
+}
+function revealButton(it){ return '<button class="reveal" data-act="reveal"><span class="ring">'+(it.count==null?thinkSecs(it.s):it.count)+'</span><span>'+esc(it.s.prompt)+'</span></button>'; }
 
 function bodyHTML(it){
   const s = it.s, lay = it.f.layout;
   if (lay === "chat") {
-    return '<div class="chat"><div class="chathead"><i>'+esc(s.name[0])+'</i><span><b>'+esc(s.name)+'</b><small>revision chat · now</small></span></div>'+
-      s.them.map(t=>'<div class="bub them">'+esc(t)+'</div>').join("")+
-      (it.revealed ? s.me.map(t=>'<div class="bub me">'+esc(t)+'</div>').join("")+'<div class="bub them">'+esc(s.after)+'</div>'
-                   : (it.hinted?'<div class="bub me" style="opacity:.8">'+esc(it.s.hint)+'…</div>':'')+'<button class="typing" data-act="reveal" aria-label="Show the reply"><span>•</span> <span>•</span> <span>•</span></button>')+'</div>';
+    let mine;
+    if (!it.revealed) mine = (it.hinted?'<div class="bub me" style="opacity:.8">'+esc(it.s.hint)+'…</div>':'')+'<button class="typing" data-act="reveal" aria-label="Show the reply"><span>•</span> <span>•</span> <span>•</span></button>';
+    else if (isMulti(it)) {
+      // a long answer arrives the way people text: one message per point. React ✓ to the ones you got
+      const d = ptDelays(s), got = it.got || [], n = s.points.length, k = gotCount(it);
+      mine = s.me.map((t,i)=>{ const on = it.liked || got[i]; return '<button class="bub me'+(on?' got':'')+'" data-act="tick" data-v="'+i+'" style="animation-delay:'+d[i]+'ms" aria-pressed="'+(!!on)+'">'+esc(t)+(on?'<i class="tb" aria-hidden="true">✓</i>':'')+'</button>'; }).join("")+
+        '<div class="sysmsg" style="animation-delay:'+d[n]+'ms">'+(k ? (k>=n ? 'You got all '+n : 'You got '+k+' of '+n) : 'Tap the messages you got')+'</div>';
+    } else mine = s.me.map(t=>'<div class="bub me">'+esc(t)+'</div>').join("")+'<div class="bub them late" style="animation-delay:500ms">'+esc(s.after)+'</div>';
+    // once a long answer arrives, the small talk drops out so the question stays in view above it
+    const them = it.revealed && isMulti(it) && s.themQ ? s.themQ : s.them;
+    return '<div class="chat"><div class="chathead"><i>'+esc(s.name[0])+'</i><span><b>'+esc(s.name)+'</b><small>revision chat · now</small></span></div><div class="msgs">'+
+      them.map(t=>'<div class="bub them">'+esc(t)+'</div>').join("")+mine+'</div></div>';
   }
   if (lay === "comment") {
+    // a long question is carried by the comment itself, so it isn't repeated in big text
     return '<div class="sticker"><i></i><div><small>Reply to '+esc(s.commentUser)+'’s comment</small><span>'+esc(s.commentText)+'</span></div></div>'+
-      questionHTML(it,.82)+revealOrAnswer(it);
+      (s.q.length <= 90 ? questionHTML(it,.82) : marksHTML(it))+revealOrAnswer(it);
+  }
+  if (lay === "list" && isMulti(it)) {
+    return '<div class="hook">'+esc(s.hook)+'</div>'+questionHTML(it,.86)+(it.revealed ? pointsHTML(it) : slotsHTML(it)+revealButton(it));
   }
   if (lay === "quiz" && s.correct >= 0) {
     const opts = s.options.map((o,i)=>{ let cls = "opt"; if (it.pick >= 0) { if (i===s.correct) cls += " right"; else if (i===it.pick) cls += " wrong"; else cls += " dim"; }
@@ -880,7 +1088,7 @@ function bodyHTML(it){
       const upper = it.f.look !== "paper" && it.f.look !== "clean";
       const inner = words.map((w,k)=> k===hi ? "<em>"+esc(upper?w.toUpperCase():w)+"</em>" : esc(upper?w.toUpperCase():w)).join(" ");
       const bl = Math.max(...words.map(w=>w.length)), bpx = Math.round(Math.min(40, 250 / (bl * (upper ? .66 : .5))));
-      return '<div class="hook">'+esc(s.hook)+'</div><div class="beat" style="font-size:'+bpx+'px">'+(it.f.look==="subtitle"?'<span>'+inner+'</span>':inner)+'</div>'+
+      return '<div class="hook">'+esc(s.hook)+'</div><div class="beat" style="font-size:calc('+bpx+'px * var(--fit,1))">'+(it.f.look==="subtitle"?'<span>'+inner+'</span>':inner)+'</div>'+
         '<div class="beatcount">'+s.beats.map((_,k)=>'<i class="'+(k<=n?"on":"")+'"></i>').join("")+'</div>';
     }
     return '<div class="hook">'+esc(s.hook)+'</div>'+questionHTML(it,.8)+revealOrAnswer(it);
@@ -890,7 +1098,7 @@ function bodyHTML(it){
 
 function vibeHTML(it){
   const v = it.s.vibe; if (!v) return "";
-  const good = it.liked || (it.pick>=0 && it.pick===it.s.correct), bad = (it.pick>=0 && it.pick!==it.s.correct) || (it.revealed && !it.liked && it.f.layout!=="quiz" && it.done);
+  const good = it.liked || (it.pick>=0 && it.pick===it.s.correct) || (isMulti(it) && gotCount(it) >= it.s.points.length), bad = (it.pick>=0 && it.pick!==it.s.correct) || (it.revealed && !it.liked && it.f.layout!=="quiz" && it.done);
   switch (v) {
     case "football": return '<div class="vibe"><div class="score"><span class="t">YOU</span><b>'+(good?1:0)+'–'+(bad?1:0)+'</b><span>EXAM</span></div><span class="vpill" style="background:#101418;color:#fff">90+3′</span></div>';
     case "gaming": return '<div class="vibe"><div class="hud">LVL 7 <i><b style="width:'+(good?"78%":"35%")+'"></b></i></div></div>';
@@ -915,13 +1123,22 @@ function railHTML(it, host){
     '<button data-act="share" aria-label="Share with a friend">'+share+'<span>Share</span></button></div>';
 }
 
+/* The caption line. Once the answer is showing, a long explanation lives here behind "more",
+   the way a long caption does on every reel app; tapping it opens the caption over a dimmed card. */
+function capLine(it, tags){
+  const s = it.s;
+  if (!answered(it) || !s.more) return esc(s.cap)+' <span class="tags">'+esc(tags)+'</span>';
+  if (it.moreOpen || s.more.length <= 64) return '<span class="mtxt">'+esc(s.more)+'</span> <span class="tags">'+esc(tags)+'</span>'+(s.more.length > 64 ? ' <button class="morebtn" data-act="more">less</button>' : '');
+  const sp = s.more.lastIndexOf(" ", 58), cut = s.more.slice(0, sp > 24 ? sp : 58).replace(/[\s,;:.]+$/,"");
+  return '<span class="mtxt">'+esc(cut)+'…</span> <button class="morebtn" data-act="more" aria-label="Show the full explanation">more</button>';
+}
 function bandHTML(it, host){
   const s = it.s, deck = it.card.deck || "Study";
   const tags = "#" + deck.toLowerCase().replace(/[^a-z0-9 ]/g,"").trim().split(/\s+/).slice(0,2).join(" #");
   const ini = esc(deck.replace(/^(GCSE|A-level)\s+/i,"")[0]||"R");
-  if (host === "youtube") return '<div class="band"><div class="title">'+esc(s.cap)+' '+esc(tags)+'</div><div class="who"><span class="dot">'+ini+'</span>'+esc(s.account)+' <span class="pill">'+esc(deck.replace(/^GCSE\s+/,""))+'</span></div><div class="sound">'+I.note+'<span>'+esc(s.sound)+'</span></div></div>';
-  if (host === "instagram") return '<div class="band"><div class="who"><span class="dot">'+ini+'</span>'+esc(s.account.slice(1))+' <span class="pill">'+esc(deck.replace(/^GCSE\s+/,""))+'</span></div><div>'+esc(s.cap)+' <span class="tags">'+esc(tags)+'</span></div><div class="sound">'+I.note+'<span>'+esc(s.sound.replace("original sound","Original audio"))+'</span></div></div>';
-  return '<div class="band"><div class="who">'+esc(s.account)+'</div><div>'+esc(s.cap)+' <span class="tags">'+esc(tags)+'</span></div><div class="sound">'+I.note+'<span>'+esc(s.sound)+'</span></div></div>';
+  if (host === "youtube") return '<div class="band"><div class="title">'+capLine(it, tags)+'</div><div class="who"><span class="dot">'+ini+'</span>'+esc(s.account)+' <span class="pill">'+esc(deck.replace(/^GCSE\s+/,"").split(":")[0])+'</span></div><div class="sound">'+I.note+'<span>'+esc(s.sound)+'</span></div></div>';
+  if (host === "instagram") return '<div class="band"><div class="who"><span class="dot">'+ini+'</span>'+esc(s.account.slice(1))+' <span class="pill">'+esc(deck.replace(/^GCSE\s+/,"").split(":")[0])+'</span></div><div class="capline">'+capLine(it, tags)+'</div><div class="sound">'+I.note+'<span>'+esc(s.sound.replace("original sound","Original audio"))+'</span></div></div>';
+  return '<div class="band"><div class="who">'+esc(s.account)+'</div><div class="capline">'+capLine(it, tags)+'</div><div class="sound">'+I.note+'<span>'+esc(s.sound)+'</span></div></div>';
 }
 
 /* it: {card, f, s, host, revealed, liked, likedBefore, pick, saved, hinted, beat, count}; opts: {night, tint} */
@@ -933,19 +1150,25 @@ function card(it, opts){
   // light looks are drawn as a notes "sheet" floating over dark footage (like a creator screenshotting
   // their notes), so the card still reads as a reel rather than a slide
   const sheet = sheetLook && it.f.layout!=="quiz";
-  const cls = ["card","h-"+host,"k-"+it.f.look,"l-"+it.f.layout, sheet?"sheet":"", opts.night?"night":""].join(" ");
+  const cls = ["card","h-"+host,"k-"+it.f.look,"l-"+it.f.layout, sheet?"sheet":"", opts.night?"night":"",
+    answered(it)?"rv":"", isMulti(it)?"mp":"", it.moreOpen?"moreopen":"", it.settled?"settled":""].join(" ").replace(/\s+/g," ");
   const vars = "--fg:"+L.fg+";--acc:"+L.acc+";--accfg:"+L.accfg+";--panel:"+L.panel+";--bubble:"+L.bubble+";--bgc:"+(sheetLook?(opts.tint!=null?"hsl("+opts.tint+" 42% 12%)":"#0f0f12"):L.bg)+";--sheet:"+L.bg;
   const bg = it.f.bg, split = it.f.layout==="split";
   const bgOpacity = sheetLook ? .6 : (it.f.look==="subtitle" ? .75 : .42);
   let back = "";
   if (split) back += '<div class="splittop"><div class="bgl bg-'+(bg==="plain"?"gameplay":bg)+'"></div></div>'; // split-screen always has footage on top
   else if (bg!=="plain") back += '<div class="bgl bg-'+bg+'" style="opacity:'+bgOpacity+'"></div>';
-  const badge = it.liked ? (it.hinted ? "With a hint · Hard" : it.likedBefore ? "Knew it · Easy" : "Knew it · Good") : (it.pick>=0 ? (it.pick===it.s.correct ? "Correct" : "Not quite") : "");
+  const n = isMulti(it) ? it.s.points.length : 1, k = isMulti(it) ? gotCount(it) : 0;
+  const partGrade = k >= n ? "Good" : k*2 >= n ? "Hard" : "Again";
+  const badge = it.liked ? (it.hinted ? "With a hint · Hard" : it.likedBefore ? "Knew it · Easy" : "Knew it · Good") : (it.pick>=0 ? (it.pick===it.s.correct ? "Correct" : "Not quite") :
+    k ? (k>=n ? "All "+n : k+"/"+n)+" · "+(it.hinted && partGrade==="Good" ? "Hard" : partGrade) : "");
+  // the progress line runs for as long as the card takes to read
+  const dur = Math.max(10, Math.min(30, (readMs(it.s.q) + readMs(it.s.points ? it.s.points.join(" ") : it.s.a) + 3000) / 1000));
   const coach = opts.coach ? '<div class="coach" aria-hidden="true">Tap to see the answer · Double-tap if you knew it</div>' : '';
   return '<div class="'+cls+'" data-card style="'+vars+'">'+back+'<div class="scrim"></div>'+vibeHTML(it)+coach+
     '<div class="body">'+bodyHTML(it)+'</div>'+
     (badge?'<span class="badge">'+badge+'</span>':'')+
-    railHTML(it, host)+bandHTML(it, host)+'<div class="prog"><i></i></div></div>';
+    railHTML(it, host)+bandHTML(it, host)+'<div class="prog"><i style="animation-duration:'+dur.toFixed(1)+'s"></i></div></div>';
 }
 
 /* A normal reel from someone's feed (the thing the card sits between). */
@@ -955,7 +1178,7 @@ function plainReel(n, hue, host){
     '<div style="position:absolute;left:18px;bottom:15%;text-align:left;color:#fff;font-size:13px;text-shadow:0 1px 2px #000"><b style="font-size:14px">'+creators[n%8]+'</b><br>'+caps[n%6]+'</div></div>';
 }
 
-return {card, plainReel, esc, LOOKS, I};
+return {card, plainReel, esc, LOOKS, I, thinkSecs, ptDelays};
 })();
 
 /* The demo app: setup screens, the feed, the dashboard, the judge panels, the design lab and a simulated student. */
@@ -1038,7 +1261,21 @@ const DECKS={
 ["Spanish for “the environment”?","el medio ambiente","Proteger el medio ambiente."],
 ["Spanish for “to help”?","ayudar","Ayudo en casa = I help at home."],
 ["Spanish for “healthy”?","sano","Also saludable. Una dieta sana."],
-["Spanish for “last summer”?","el verano pasado","Another preterite time phrase."]]
+["Spanish for “last summer”?","el verano pasado","Another preterite time phrase."]],
+"GCSE Science: longer answers":[
+["Explain why enzymes stop working at high temperatures.","The active site changes shape (the enzyme is denatured); the substrate no longer fits the active site; so the reaction stops","It's permanent. Below the optimum, warming speeds reactions up because particles collide more often."],
+["Describe how the alveoli are adapted for gas exchange.","A huge surface area; walls only one cell thick, so a short diffusion distance; a rich blood supply keeps the concentration gradient steep","Breathing in and out (ventilation) keeps the gradient steep too."],
+["What's the path of a nerve impulse in a reflex arc?","Receptor → sensory neurone → relay neurone → motor neurone → effector","A stimulus sets it off and the effector makes the response. It skips the conscious part of the brain, so it's fast."],
+["A potato cylinder is left in a concentrated sugar solution for an hour. Explain why its mass goes down.","The sugar solution is more concentrated than the cell contents. So water moves out of the cells by osmosis. The potato loses water, so it loses mass.","In pure water it would gain mass instead."],
+["Why can't antibiotics treat flu?","Flu is caused by a virus. Antibiotics only kill bacteria. Viruses live inside body cells, so drugs that kill them can damage the cells too.","Painkillers only ease the symptoms."],
+["Name the four main parts of the blood.","Red blood cells, white blood cells, platelets and plasma","Plasma is the liquid that carries everything else around the body."],
+["Compare aerobic and anaerobic respiration in muscles.","Aerobic needs oxygen, anaerobic doesn't; aerobic makes carbon dioxide and water, anaerobic makes lactic acid; aerobic releases much more energy","Anaerobic respiration is what happens in a sprint, when you can't get oxygen in fast enough."],
+["What does the law of conservation of mass say?","No atoms are lost or made in a reaction, so the mass of the products equals the mass of the reactants","If the mass seems to change, a gas has usually got in or out."],
+["How do you make pure, dry crystals of copper sulfate from copper oxide and sulfuric acid?","1. Warm the acid and add copper oxide until no more dissolves 2. Filter off the leftover copper oxide 3. Heat the solution to evaporate some of the water 4. Leave it to cool and crystallise, then pat the crystals dry","Adding copper oxide until no more dissolves (in excess) makes sure all the acid gets used up."],
+["Explain why metals conduct electricity.","Metals have delocalised electrons. These electrons are free to move through the whole structure. So they carry electrical charge through the metal.",""],
+["Why does a higher temperature make a reaction faster?","Particles move faster, so they collide more often; more collisions have at least the activation energy; so more collisions are successful each second","This is collision theory."],
+["Describe how the particles are arranged in a solid, a liquid and a gas.","Solid: regular pattern, vibrating in place\nLiquid: random, touching, moving around each other\nGas: random, far apart, moving quickly",""],
+["A student adds magnesium ribbon to hydrochloric acid and sees fizzing. Name the gas, and describe a test for it.","Hydrogen; a lit splint makes a squeaky pop","Magnesium + hydrochloric acid → magnesium chloride + hydrogen."]]
 };
 const EXAMPLE_NOTES="Osmosis - diffusion of water across a partially permeable membrane\nMitochondria: site of aerobic respiration\nEnzymes are biological catalysts.\nQ: Which organ makes bile?\nA: The liver\nPhotosynthesis = carbon dioxide + water → glucose + oxygen\nChlorophyll - green pigment that absorbs light\nthe bit about the heart i never remember lol";
 
@@ -1072,7 +1309,7 @@ function parseNotes(text,deck){
 }
 
 
-const PRE = {"GCSE Biology":"bio","GCSE Chemistry":"chem","GCSE Spanish":"es"};
+const PRE = {"GCSE Biology":"bio","GCSE Chemistry":"chem","GCSE Spanish":"es","GCSE Science: longer answers":"sci"};
 const deckCards = name => DECKS[name].map((r,i)=>makeCard(PRE[name]+"-"+(i+1), name, r[0], r[1], r[2]));
 const HOSTS = [["tiktok","TikTok"],["instagram","Instagram"],["youtube","YouTube"]];
 
@@ -1141,6 +1378,7 @@ function renderPhone(anim){
     case "dash": h = dashHTML(); break;
   }
   scr.innerHTML = h;
+  fitCards(scr);
   $("phone").classList.toggle("feedmode", UI.screen==="feed");
   if (anim) { scr.classList.remove("enter"); void scr.offsetWidth; scr.classList.add("enter"); }
   if (UI.toast) { const t = document.createElement("div"); t.className = "toast"; t.textContent = UI.toast; scr.appendChild(t); timers.push(setTimeout(()=>t.style.opacity="0", 2200)); UI.toast = ""; }
@@ -1154,6 +1392,22 @@ function feedHTML(){
   return tabs()+Render.card(it, Object.assign(cardOpts(), {coach: it.coach && !it.revealed && !it.liked && it.pick<0}));
 }
 
+/* Fit pass: if a card's content would spill out of the host app's safe zone, shrink it a step at a
+   time (data-fit 1-5). Measured from layout boxes, so entry animations don't fool it. */
+function fitCards(root){
+  root.querySelectorAll(".card").forEach(card => {
+    card.removeAttribute("data-fit");
+    const body = card.querySelector(".body"); if (!body) return;
+    // content height from the layout boxes vs the body's box (a sheet's box stops growing at its max-height)
+    const over = () => { const k = [...body.children].filter(e => e.offsetParent !== null); if (!k.length) return false; const cs = getComputedStyle(body);
+      const used = k[k.length-1].offsetTop + k[k.length-1].offsetHeight - k[0].offsetTop;
+      return used > body.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom) + 2; };
+    for (let f = 1; f <= 5 && over(); f++) card.setAttribute("data-fit", f);
+    const m = card.querySelector(".msgs"); if (m) m.classList.toggle("over", m.scrollHeight > m.clientHeight + 2);
+  });
+}
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { fitCards($("screen")); fitCards($("lab")); });
+
 /* countdown ring + auto-caption beats, like a real reel's timing */
 function startCardTimers(){
   const it = UI.current;
@@ -1163,7 +1417,7 @@ function startCardTimers(){
     timers.push(setTimeout(()=>{ if (UI.current===it && !it.revealed) { it.beat = (it.beat||0)+1; renderPhone(false); } }, 380 + 330*words));
     return;
   }
-  if (it.count == null) it.count = 3;
+  if (it.count == null) it.count = Render.thinkSecs(it.s);
   if (it.count > 0) timers.push(setTimeout(()=>{ if (UI.current===it && !it.revealed) { it.count--; const r = $("screen").querySelector(".ring"); if (r) r.textContent = it.count>0 ? it.count : "?"; startCardTimers(); } }, 1000));
 }
 
@@ -1244,9 +1498,10 @@ function render(anim){ renderPhone(anim); renderSide(); }
 function go(s){ UI.screen = s; UI.err = ""; render(true); }
 function finishSetup(){ UI.onboarded = true; if (UI.firstDay==null) UI.firstDay = E.dk(now()); UI.screen = "feed"; render(true); }
 function applyExam(){ E.settings.examDate = UI.exam ? now() + UI.exam*DAY : 0; E.settings.intensity = UI.intensity; E.setVibes([...UI.vibes]); }
-function skipSetup(){ if (!E.cards.length) { E.addCards(deckCards("GCSE Biology")); E.addCards(deckCards("GCSE Chemistry")); } UI.exam = 14; if (!UI.vibes.size) { UI.vibes.add("football"); UI.vibes.add("gaming"); } applyExam(); UI.permission = true; finishSetup(); }
-function outcomeOf(it, dwell){ return {revealed:it.revealed, liked:it.liked, likedBefore:it.likedBefore, pick:it.pick, likeAt:it.likeAt||0, pickAt:it.pickAt||0, hintAt:it.hintAt||0, saved:!!it.saved, shared:!!it.shared, dwell}; }
-function asItem(sh){ return Object.assign({kind:"card", revealed:false, liked:false, likedBefore:false, pick:-1, saved:false, hinted:false, beat:0, count:null, shownAt:performance.now()}, sh); }
+function skipSetup(){ if (!E.cards.length) { E.addCards(deckCards("GCSE Biology")); E.addCards(deckCards("GCSE Chemistry")); E.addCards(deckCards("GCSE Science: longer answers")); } UI.exam = 14; if (!UI.vibes.size) { UI.vibes.add("football"); UI.vibes.add("gaming"); } applyExam(); UI.permission = true; finishSetup(); }
+function outcomeOf(it, dwell){ return {revealed:it.revealed, liked:it.liked, likedBefore:it.likedBefore, pick:it.pick, likeAt:it.likeAt||0, pickAt:it.pickAt||0, hintAt:it.hintAt||0, saved:!!it.saved, shared:!!it.shared,
+  got:(it.got||[]).filter(Boolean).length, dwell}; }
+function asItem(sh){ return Object.assign({kind:"card", revealed:false, liked:false, likedBefore:false, pick:-1, saved:false, hinted:false, beat:0, count:null, got:[], moreOpen:false, settled:false, shownAt:performance.now()}, sh); }
 
 function finishCurrent(dwell){
   const cur = UI.current; if (!cur || cur.kind!=="card") return null;
@@ -1277,12 +1532,25 @@ function el(){ return UI.current && UI.current.kind==="card" ? performance.now()
 function like(x,y){
   const it = UI.current; if (!it || it.kind!=="card" || UI.screen!=="feed") return;
   if (it.liked) { burst(x,y); return; }
-  it.liked = true; it.likeAt = el(); it.likedBefore = !it.revealed && it.pick<0;
+  it.liked = true; it.likeAt = el(); it.likedBefore = !it.revealed && it.pick<0; if (it.revealed) it.settled = true;
   if (it.s.vibe==="gaming" && (it.pick<0 || it.pick===it.s.correct)) { const xp = document.createElement("div"); xp.className="xp"; xp.textContent="+25 XP"; timers.push(setTimeout(()=>{ const c=$("screen").querySelector(".card"); c&&c.appendChild(xp); },10)); }
   renderPhone(false); burst(x,y);
   if (it.likedBefore && it.f.layout!=="quiz") setTimeout(()=>{ if (UI.current===it && !it.revealed) { it.revealed = true; it.revealAt = el(); renderPhone(false); } }, 600);
 }
-function reveal(){ const it = UI.current; if (!it || it.kind!=="card" || it.revealed || (it.f.layout==="quiz"&&it.s.correct>=0)) return; it.revealed = true; it.revealAt = el(); renderPhone(false); }
+function reveal(){
+  const it = UI.current; if (!it || it.kind!=="card") return;
+  if (it.moreOpen) { it.moreOpen = false; renderPhone(false); return; }
+  if (it.revealed) { if (!it.settled) { it.settled = true; renderPhone(false); } return; } // a tap shows the rest of the points now
+  if (it.f.layout==="quiz"&&it.s.correct>=0) return;
+  it.revealed = true; it.revealAt = el(); renderPhone(false);
+  const total = Render.ptDelays(it.s).pop() + 600; timers.push(setTimeout(()=>{ if (UI.current===it) it.settled = true; }, total));
+}
+/* self-marking: tap a point you got. Unticking a point on a card you'd liked turns it into part marks */
+function tick(i){
+  const it = UI.current; if (!it || it.kind!=="card" || !it.revealed || !it.s.points || it.s.points.length < 2) return;
+  if (it.liked) { it.got = it.s.points.map(()=>true); it.liked = false; it.likedBefore = false; }
+  it.got[i] = !it.got[i]; it.settled = true; renderPhone(false);
+}
 function toast(msg){ UI.toast = msg; renderPhone(false); }
 
 let tapTimer = null;
@@ -1314,6 +1582,9 @@ $("screen").addEventListener("click", e => {
       case "resetApp": if (!UI.confirmReset) { UI.confirmReset = true; renderPhone(false); return; } resetAll(); render(true); return;
       case "like": { const r = b.getBoundingClientRect(), p = $("screen").getBoundingClientRect(); like(r.left-p.left+r.width/2, r.top-p.top+r.height/2); return; }
       case "reveal": reveal(); return;
+      // a tap on a point that hasn't dropped in yet just shows the rest; it doesn't mark it
+      case "tick": if (it && !it.settled && parseFloat(getComputedStyle(b).opacity) < .99) { it.settled = true; renderPhone(false); return; } tick(+v); return;
+      case "more": if (it) { it.moreOpen = !it.moreOpen; it.settled = true; renderPhone(false); } return;
       case "pick": if (it && it.pick<0) { it.pick = +v; it.pickAt = el(); it.revealed = true; if (it.s.vibe==="gaming" && it.pick===it.s.correct) { UI.toast = "+25 XP"; } renderPhone(false); } return;
       case "hint": if (it && !it.hinted && !it.revealed && it.pick<0) { it.hinted = true; it.hintAt = el(); renderPhone(false); } else if (it) toast(it.revealed?"Answer's already showing":"Hint's up there ↑"); return;
       case "save": if (it && !it.saved) { it.saved = true; toast("Saved: it'll come back within a day"); } return;
@@ -1354,7 +1625,9 @@ function simAct(){
   const read = 1500 + 45*c.f.length;
   if (it.f.layout==="quiz" && it.s.correct>=0) { it.revealed = true; it.pick = knows || Math.random()<.5 ? it.s.correct : 1-it.s.correct; it.pickAt = read*(knows?.8:1.6); }
   else if (knows) { if (Math.random()<.5) { it.liked = true; it.likedBefore = true; it.likeAt = read*(Math.random()<.7?.7:1.8); } else { it.revealed = true; it.liked = true; it.revealAt = read; it.likeAt = read+900; } }
-  else { if (Math.random()<.25) { it.hinted = true; it.hintAt = read*.6; } it.revealed = true; it.revealAt = read*1.2; if (it.hinted && Math.random()<.5) { it.liked = true; it.likeAt = read*1.5; } }
+  else { if (Math.random()<.25) { it.hinted = true; it.hintAt = read*.6; } it.revealed = true; it.revealAt = read*1.2;
+    if (it.s.points.length >= 2) it.got = it.s.points.map(()=>Math.random() < known + .25); // long answers: often partly right
+    else if (it.hinted && Math.random()<.5) { it.liked = true; it.likeAt = read*1.5; } }
   if (Math.random()<.04) it.saved = true;
   return 3000 + Math.random()*4000;
 }
@@ -1388,13 +1661,14 @@ $("autoWeek").onclick = () => runAuto(7, 60);
 /* ---------------- design lab ---------------- */
 let labSeed = 1;
 function renderLab(){
-  const host = $("labHost").value, vibe = $("labVibe").value, state = $("labState").value, night = $("labNight").checked;
-  const pool = deckCards("GCSE Biology").concat(deckCards("GCSE Chemistry"));
+  const host = $("labHost").value, vibe = $("labVibe").value, state = $("labState").value, night = $("labNight").checked, long = $("labCards").value==="long";
+  const sci = deckCards("GCSE Science: longer answers"), pool = deckCards("GCSE Biology").concat(deckCards("GCSE Chemistry"), sci);
   let s = labSeed; const rnd = () => { s = (s*16807)%2147483647; return (s-1)/2147483646; };
   const looks = PIECES.look, hooks = PIECES.hook;
   const vibeBg = {football:"pitch",gaming:"gameplay",beauty:"glow",music:"equalizer",fitness:"citywalk",food:"satisfying",comedy:"plain"}[vibe];
-  const cards = [3,14,0,9,20,1,5,16].map(i=>pool[i%pool.length]);
-  const layouts = ["bigtext","captions","chat","comment","split","quiz","bigtext","captions"];
+  // long mode: list, steps, paragraphs and long questions, in every layout their shape allows
+  const cards = long ? [5,3,4,0,12,2,8,11].map(i=>sci[i]) : [3,14,0,9,20,1,5,16].map(i=>pool[i%pool.length]);
+  const layouts = long ? ["list","bigtext","chat","captions","comment","list","bigtext","chat"] : ["bigtext","captions","chat","comment","split","quiz","bigtext","captions"];
   let html = "";
   layouts.forEach((lay,i)=>{
     const f = {hook:hooks[(i+labSeed)%hooks.length], layout:lay, look:looks[(i+labSeed)%looks.length], bg:vibeBg||PIECES.bg[(i*3+labSeed)%PIECES.bg.length]};
@@ -1402,15 +1676,18 @@ function renderLab(){
     const sc = RC.write(c, f, pool, rnd, "due today", vibe?[vibe]:[]);
     if (vibe && !sc.vibe) sc.vibe = vibe;
     if (lay==="quiz" && sc.correct<0) return;
-    const it = {kind:"card", card:c, f, s:sc, host, revealed:state!=="q", liked:state==="liked", likedBefore:false, pick:(lay==="quiz"&&state!=="q")?sc.correct:-1, saved:false, hinted:false, beat:lay==="captions"&&state==="q"?1:sc.beats.length, count:2};
-    html += '<figure><div class="mini"><div class="scaler">'+Render.card(it,{night})+'</div></div><figcaption><b>'+esc(LABEL[lay])+'</b> · '+esc(LABEL[f.look])+'<br>'+esc(LABEL[f.bg])+' · hook “'+esc(LABEL[f.hook])+'”</figcaption></figure>';
+    const shown = state!=="q" && state!=="hint", n = sc.points.length;
+    const got = state==="part" && n>=2 ? sc.points.map((_,k)=>k<n-1) : [];
+    const it = {kind:"card", card:c, f, s:sc, host, revealed:shown, liked:state==="liked", likedBefore:false, pick:(lay==="quiz"&&shown)?(state==="part"?1-sc.correct:sc.correct):-1, saved:false,
+      hinted:state==="hint", hintAt:state==="hint"?1:0, beat:lay==="captions"&&!shown?(state==="hint"?sc.beats.length:1):sc.beats.length, count:2, got, moreOpen:state==="more", settled:true};
+    html += '<figure><div class="mini"><div class="scaler">'+Render.card(it,{night})+'</div></div><figcaption><b>'+esc(LABEL[lay])+'</b> · '+esc(LABEL[f.look])+(n>=2?' · '+n+' points ('+esc(sc.shape)+')':'')+(sc.ctx?' · long question':'')+'<br>'+esc(LABEL[f.bg])+' · hook “'+esc(LABEL[f.hook])+'”</figcaption></figure>';
   });
   $("lab").innerHTML = html;
-  fitLab();
+  fitLab(); fitCards($("lab"));
 }
 function fitLab(){ document.querySelectorAll(".lab .mini").forEach(m => { const sc = m.querySelector(".scaler"); if (sc) sc.style.transform = "scale(" + (m.clientWidth/360) + ")"; }); }
 VIBES.forEach(v => { const o = document.createElement("option"); o.value = v; o.textContent = LABEL[v]; $("labVibe").appendChild(o); });
-["labHost","labVibe","labState","labNight"].forEach(id => $(id).addEventListener("change", renderLab));
+["labCards","labHost","labVibe","labState","labNight"].forEach(id => $(id).addEventListener("change", renderLab));
 $("labShuffle").onclick = () => { labSeed = labSeed % 30 + 1; renderLab(); };
 window.addEventListener("resize", fitLab);
 

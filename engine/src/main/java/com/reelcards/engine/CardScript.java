@@ -18,9 +18,22 @@ public final class CardScript {
     public String hint;         // shown by the hint (speech-bubble) button: "Starts with A · 7 letters"
     public String sound;        // the audio line in the caption band: "original sound · biology.mocks"
 
+    // answer shape (see AnswerShape): long answers are shown as points and self-marked point by point
+    public String shape = "short";                              // short | medium | list | steps | prose
+    public final List<String> points = new ArrayList<>();      // the answer's points (1 for short answers)
+    public final List<String> pointStarts = new ArrayList<>(); // "Active…": hints in the numbered-list slots
+    public int marks;                                           // points.size() when 2+, else 0
+    public String context = "";                                 // a long question's set-up, shown in a quoted box
+    public String questionMain;                                 // the question without its set-up
+    public String more = "";                                    // explanation behind "more" in the caption
+
+    public boolean multi() { return points.size() >= 2; }
+
     // chat layout
     public String chatName;
     public final List<String> chatThem = new ArrayList<>();
+    /** what's left of the friend's messages once a long answer arrives: just the question */
+    public final List<String> chatThemQuestion = new ArrayList<>();
     public final List<String> chatMe = new ArrayList<>();
     public String chatAfter;    // friend's reaction after the reveal
 
