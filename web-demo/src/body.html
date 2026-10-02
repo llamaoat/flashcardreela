@@ -10,6 +10,7 @@
   <div class="main">
     <div class="phonecol">
       <div class="hostbar" role="group" aria-label="App you're scrolling in" id="hostbar"></div>
+      <input type="file" id="apkgFile" accept=".apkg,.colpkg" hidden>
       <div class="phone" id="phone" aria-label="Reelcards on a phone"><div class="screen" id="screen"></div></div>
       <div class="row">
         <button class="btn primary" id="swipe">Swipe up ↑</button>
@@ -93,7 +94,7 @@
   <section class="panel wide" aria-labelledby="h-lab">
     <h2 id="h-lab">Design lab <span class="note">· every layout, in the app and vibe you pick. These are the real card components the feed uses.</span></h2>
     <div class="labbar">
-      <label for="labCards" style="flex-direction:row;align-items:center;gap:6px">Cards <select id="labCards"><option value="short">Short answers</option><option value="long" selected>Long answers &amp; questions</option></select></label>
+      <label for="labCards" style="flex-direction:row;align-items:center;gap:6px">Cards <select id="labCards"><option value="short">Short answers</option><option value="long" selected>Long answers &amp; questions</option><option value="anki">Anki: cloze &amp; image occlusion</option></select></label>
       <label for="labHost" style="flex-direction:row;align-items:center;gap:6px">App <select id="labHost"><option value="tiktok">TikTok</option><option value="instagram">Instagram Reels</option><option value="youtube">YouTube Shorts</option></select></label>
       <label for="labVibe" style="flex-direction:row;align-items:center;gap:6px">Vibe <select id="labVibe"><option value="">None</option></select></label>
       <label for="labState" style="flex-direction:row;align-items:center;gap:6px">State <select id="labState"><option value="q">Question</option><option value="a">Answer revealed</option><option value="part">Part marks</option><option value="liked">Knew it</option><option value="more">Caption opened (…more)</option><option value="hint">Hint</option></select></label>

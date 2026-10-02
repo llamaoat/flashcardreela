@@ -29,6 +29,10 @@ public class CopyWriter {
         s.questionMain = a.questionMain;
         s.more = a.more;
         if (a.multi()) s.pointStarts.addAll(AnswerShape.starts(a.points));
+        s.image = c.image; s.imageW = c.imageW; s.imageH = c.imageH;
+        s.answerImage = c.answerImage; s.answerImageW = c.answerImageW; s.answerImageH = c.answerImageH;
+        if (c.occlusion != null) { s.occlusion.addAll(Occlusion.parse(c.occlusion)); s.occlusionTarget = c.occlusionTarget; }
+        s.cloze = c.cloze;
         s.account = "@" + slug(c.deck) + pick(rnd, new String[]{".mocks", ".revision", ".explained", ".facts"});
         s.tag = c.deck + " · " + reason;
         String vibe = vibes == null || vibes.isEmpty() || rnd.nextDouble() < 0.4 ? null : pickFrom(rnd, vibes);
@@ -63,7 +67,7 @@ public class CopyWriter {
         s.hookLine = pick(rnd, hooks);
         s.caption = pick(rnd, caps);
         s.revealPrompt = pick(rnd, new String[]{"wait for it… (tap)", "tap for the answer", "think… then tap"});
-        s.hint = hint(c.back, a.points);
+        s.hint = a.io ? "Other labels uncovered: rule them out" : hint(c.back, a.points);
         s.sound = "original sound · " + s.account.substring(1);
 
         if ("chat".equals(f.layout)) {
@@ -108,7 +112,7 @@ public class CopyWriter {
 
         // what the voice reads: the hook then the question, like a creator talking to camera
         String hookSpoken = "comment".equals(f.layout) ? "Someone asked: " + s.commentText + "." : s.hookLine.replace("…", ".").replace("1–10", "one to ten");
-        s.voiceover = hookSpoken + " " + q;
+        s.voiceover = hookSpoken + " " + (s.cloze ? CardScript.spokenGaps(q) : q);
         return s;
     }
 
@@ -167,7 +171,14 @@ public class CopyWriter {
 
     /** Splits a question into 2–4 word caption beats and marks the longest word in each as the key term. */
     static void beats(String q, CardScript s) {
-        String[] words = q.trim().split("\\s+");
+        String[] raw = q.trim().split("\\s+");
+        List<String> merged = new ArrayList<>();
+        for (int i = 0; i < raw.length; i++) { // a cloze [gap] stays in one beat
+            String w = raw[i];
+            if (w.contains("[") && !w.contains("]")) while (i + 1 < raw.length && !w.contains("]")) w += " " + raw[++i];
+            merged.add(w);
+        }
+        String[] words = merged.toArray(new String[0]);
         List<String> cur = new ArrayList<>();
         for (int i = 0; i < words.length; i++) {
             cur.add(words[i]);

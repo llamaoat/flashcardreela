@@ -1,6 +1,8 @@
 package com.reelcards.app;
 
 import android.content.Context;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
@@ -32,6 +34,29 @@ final class Ui {
     static final Typeface BODY = Typeface.create("sans-serif", Typeface.NORMAL);
     static final Typeface MEDIUM = Typeface.create("sans-serif-medium", Typeface.NORMAL);
     static final Typeface MONO = Typeface.create("monospace", Typeface.NORMAL);
+
+    /**
+     * Decodes a stored picture at about the size it's shown (at least minW pixels wide, and never
+     * more than ~6 megapixels), or null if the file has gone or can't be read.
+     */
+    static Bitmap picture(String path, int minW) {
+        if (path == null || !new java.io.File(path).isFile()) return null;
+        try {
+            BitmapFactory.Options o = new BitmapFactory.Options();
+            o.inJustDecodeBounds = true;
+            BitmapFactory.decodeFile(path, o);
+            if (o.outWidth <= 0 || o.outHeight <= 0) return null;
+            int s = 1, w = Math.max(1, minW);
+            while (o.outWidth / (s * 2) >= w || (long) (o.outWidth / s) * (o.outHeight / s) > 6_000_000L) s *= 2;
+            BitmapFactory.Options d = new BitmapFactory.Options();
+            d.inSampleSize = s;
+            return BitmapFactory.decodeFile(path, d);
+        } catch (OutOfMemoryError e) {
+            return null;
+        } catch (RuntimeException e) {
+            return null;
+        }
+    }
 
     static int dp(Context c, float v) {
         return Math.round(TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, v, c.getResources().getDisplayMetrics()));

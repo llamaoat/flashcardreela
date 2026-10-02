@@ -113,7 +113,42 @@ scheme splits a 3-mark answer into 3 points.
 - **Fit pass:** if anything would spill out of the safe zone, the text shrinks a step at a time (down
   to 60%) before the card is drawn, and a long chat scrolls its oldest messages away.
 
-## 4. Themed to the student
+## 4. Cards from Anki files: pictures, cloze and image occlusion
+
+![Cards from an Anki file: image occlusion before the reveal, uncovered, and with the hint; a cloze gap on handwritten notes; a cloze with its hint in quiz buttons; a picture card](img/cards-anki.png)
+
+Students who already use Anki can open an exported deck (.apkg) straight in the app
+([`AnkiPackage.java`](../engine/src/main/java/com/reelcards/engine/anki/AnkiPackage.java), `Apkg` in the
+web demo). Two Anki card types don't fit a "question, then answer" reel, so they get their own design.
+
+**Cloze** ("{{c1::Mitochondria}} are the site of aerobic respiration"):
+- One card per gap number, as in Anki. The gap is drawn as a blank in the look's style: an accent block
+  for the bold looks, an underline on handwritten notes, italic on the clean serif, a glow on neon. If
+  the deck gives a hint ("{{c1::…::type of respiration}}"), the hint sits inside the blank.
+- No key word is highlighted, so nothing competes with the gap.
+- One gap number used several times ("solid, liquid and gas" as three c1 gaps) becomes a
+  multi-point answer, with part marks like any long answer.
+- The whole sentence, with the gap filled in, goes behind "more" with any Back Extra.
+- A gap stays in one beat in the word-by-word captions, and shows in the quiz layout's question and the numbered list.
+  The voiceover and screen readers say "blank".
+
+**Image occlusion** (a diagram with labels masked out):
+- The picture leads. It's drawn as big as the safe zone allows: on dark looks it may run on under the
+  rail's column as long as it ends above the rail; on notes sheets it stays inside the sheet. The
+  question (the deck's header, or "Name the highlighted part") sits under it, smaller.
+- The mask for this card is filled with the look's accent colour; the other masks are cream, as in
+  Anki. Masks are stored as fractions of the picture, and the picture is sized from its own
+  dimensions, so they line up at any size.
+- **Tap:** the accent mask fades to an outline, uncovering the label under it. **Double-tap:** "knew
+  it", as on every card. A pill under it says "Double-tap if you got it", then "Got it".
+- **Hint:** the other labels uncover, so you can rule them out.
+- Masks that Anki shows only on their own card (no "occlude inactive") aren't drawn on the others.
+
+**Pictures on normal cards:** the front's picture sits under the question (the question shrinks to
+70%), the back's under the answer. A card whose answer is only a picture shows just the picture.
+Picture cards always use big text, the one layout with room for them.
+
+## 5. Themed to the student
 
 At setup students pick what they watch. Cards then pick up a small, recognisable touch, and the
 format engine starts with a lean towards matching backgrounds and formats:
@@ -128,7 +163,7 @@ format engine starts with a lean towards matching backgrounds and formats:
 | Food | "let it cook · 0:03" | satisfying clip, handwritten notes |
 | Comedy | "no laughing" | "text at 2am", reply-to-a-comment, group chat |
 
-## 5. Time and colour
+## 6. Time and colour
 
 - **Night:** from 10pm to 6am the light looks switch to dark versions: the clean page becomes
   warm dark paper, the handwritten notes become a chalkboard. Students can force it on or off.
@@ -138,7 +173,7 @@ format engine starts with a lean towards matching backgrounds and formats:
   ([`FeedColour.java`](../app/src/main/java/com/reelcards/app/FeedColour.java)). It uses Android's
   [`AccessibilityService.takeScreenshot`](https://developer.android.com/reference/android/accessibilityservice/AccessibilityService).
 
-## 6. States and first use
+## 7. States and first use
 
 - **Question:** a countdown ring (3, 2, 1, ?) with the reveal prompt. Tap anywhere to reveal.
 - **Hint:** a white chip under the question, a half-typed reply in the chat layout, or a note in the poll.
@@ -151,7 +186,7 @@ format engine starts with a lean towards matching backgrounds and formats:
 - **First two cards ever:** a coach tip, "Tap to see the answer · Double-tap if you knew it", fades
   out after 4 seconds.
 
-## 7. Accessibility
+## 8. Accessibility
 
 - White text on footage always has an outline, a box or a scrim behind it.
 - Touch targets: rail buttons 50 dp, the reveal button 56 dp, poll options 50 dp, the chat reply 44 dp,

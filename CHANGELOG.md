@@ -1,5 +1,40 @@
 # Changelog
 
+## 1.2.0: Anki files, cloze and image occlusion
+
+**Import**
+- Open any Anki file (.apkg or .colpkg) from the setup screen, with no AnkiDroid, no account and no
+  internet. Reads all three Anki formats: 2.0 (`collection.anki2`), 2.1 (`collection.anki21`) and
+  2.1.50+ (`collection.anki21b`, zstd-compressed, protobuf media list). The SQLite, zstd, protobuf and
+  zip readers are written from scratch, so the app still has no third-party libraries.
+- Note types: Basic, reversed, optional reversed, type-in-the-answer, custom ones (the answer is the
+  first field the back adds; further fields become the explanation), cloze and image occlusion.
+- Cloze: one card per gap number. The gap shows as a blank, or as the hint if the deck has one; the same
+  number used several times becomes a multi-point answer; the full sentence goes behind "more".
+  Nested deletions work.
+- Image occlusion: Anki's built-in note type (rectangles, ellipses, polygons, text labels; fractional
+  and older pixel coordinates) and the older Image Occlusion Enhanced add-on (SVG masks).
+- Pictures on normal cards come across (PNG, JPEG, GIF, WebP, BMP up to 8 MB).
+- Review cards keep their Anki progress: FSRS memory state if the deck has it, otherwise interval and
+  ease; due dates carry over. Suspended and audio-only cards are left out, and the result screen says
+  how many of each.
+- Sample deck built in, so the import can be tried without an Anki file.
+
+**Design**
+- Image occlusion cards lead with the picture, full width and clear of the rail. The part to name is
+  masked in the look's accent colour; a tap fades the mask to an outline, a double-tap means "knew it",
+  and the hint uncovers the other labels so you can rule them out.
+- Cloze gaps are drawn in each look's style: an accent block, an underline on handwritten notes, italic on
+  the clean serif, a glow on neon. They also work in captions, the quiz layout and the numbered list.
+- Front pictures sit under the question; back pictures under the answer.
+- Screen readers and the voiceover read a gap as "blank".
+- Design lab: "Anki: cloze & image occlusion".
+
+**Engine**
+- Picture cards always use big text; cloze cards never use the reply-to-a-comment layout.
+- 103 engine checks (was 80), including all three Anki formats read to identical cards.
+- `tools/make-test-decks.py` writes the test decks.
+
 ## 1.1.0: long answers
 
 **Engine**

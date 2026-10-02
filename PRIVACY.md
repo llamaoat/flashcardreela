@@ -36,11 +36,17 @@ styles and rhythm suit you. Uninstalling the app or tapping *Reset everything* d
 phone's system backup is turned on, Android may include this file in your own backup, as it does for
 other apps.
 
+If you open an Anki file, the pictures from its cards are saved in the app's private storage too, so the
+cards can show them. They're left out of system backups (to keep backups small), and *Reset everything*
+or uninstalling deletes them. The Anki file itself is read from the copy you picked and isn't kept.
+
 ## Other apps
 
 - **AnkiDroid** (only if you choose Anki decks): Reelcards reads the cards AnkiDroid says are due in the
   decks you picked and sends back your answers, using AnkiDroid's official API and permission, which
   Android asks you to approve.
+- **Anki files** (only if you open one): Android's file picker gives Reelcards that one file, nothing else
+  in your storage. It's read on the phone; nothing is uploaded.
 - **Share button:** only when you tap it, the question (not the answer) goes to the app you pick in
   Android's share sheet.
 - **Voiceover:** reads the hook and question with your phone's own text-to-speech engine.

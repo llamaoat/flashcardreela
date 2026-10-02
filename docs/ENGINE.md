@@ -144,6 +144,32 @@ due and sends each grade back as a normal review through
 
 ---
 
+## Anki files
+
+Reelcards reads exported Anki decks itself
+([`anki/`](../engine/src/main/java/com/reelcards/engine/anki/)), with no SQLite, zstd or protobuf
+library, so the app stays dependency-free and works offline. All three file formats are supported:
+`collection.anki2` (Anki 2.0), `collection.anki21` (2.1) and `collection.anki21b` (2.1.50+, zstd-compressed,
+with a protobuf media list). The same rules are in `web-demo/src/apkg.js`, and a check reads all three
+test decks to identical cards.
+
+- **Which field is the answer:** the card's own templates are rendered (fields, `{{#…}}` sections,
+  `cloze:`, `type:`, `text:`, `furigana:` and the special fields). The answer is the first field the back
+  template adds that the front doesn't show; a type-in field counts as hidden. Any further back fields
+  become the explanation. With no such field, the back after `<hr id=answer>` is used.
+- **Cloze:** one card per gap number. Gaps for this number become "[…]" (or "[hint]"); the others show
+  their text. Several gaps with the same number make a multi-point answer.
+- **Image occlusion:** Anki's built-in note type (`{{c1::image-occlusion:rect:left=…}}`, plus ellipses,
+  polygons and text; older versions used pixels, which are scaled by the picture's size read from its
+  file header) and the Image Occlusion Enhanced add-on (its SVG question mask: the shape with class
+  `qshape`, or the red fill, is the one to name).
+- **Progress carries over:** a review card keeps its memory state. If the deck has FSRS data, its
+  stability and difficulty are used as they are; otherwise stability is the interval, and difficulty
+  comes from ease (250% → 5, each 25% less → +1). The due date is kept. New and learning cards start as
+  new. Suspended and audio-only cards are left out, and pictures over 8 MB or in vector formats are
+  dropped.
+- **One way:** answers stay in Reelcards. Two-way sync with Anki is what the AnkiDroid connection is for.
+
 ## Evaluation
 
 [`EngineChecks`](../engine/src/test/java/EngineChecks.java) runs 80 checks:

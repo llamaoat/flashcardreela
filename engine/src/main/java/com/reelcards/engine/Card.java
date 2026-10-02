@@ -29,6 +29,15 @@ public final class Card {
     public String lastLayout;  // layout used the last time it was shown
     public boolean saved;      // bookmarked by the student: shows up in "Saved" and comes back sooner
 
+    // Pictures and Anki card kinds (cards imported from .apkg files)
+    public String image;            // picture on the question side: a stored file (app) or URL (web)
+    public int imageW, imageH;      // its size in pixels, so it can be laid out before it loads
+    public String answerImage;      // picture on the answer side
+    public int answerImageW, answerImageH;
+    public String occlusion;        // image occlusion masks (see Occlusion), or null
+    public int occlusionTarget;     // which masks this card asks about (c1 = 1)
+    public boolean cloze;           // a cloze card: the question has [gaps]
+
     // AnkiDroid-sourced cards: Anki owns the schedule, we only display and send grades back.
     public long ankiNoteId = -1;
     public int ankiOrd = -1;

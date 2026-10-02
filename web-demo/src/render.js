@@ -62,10 +62,38 @@ function qPx(look, text, scale){
   return Math.round(Math.min(size * scale * fit, 244 / (longest * em)));
 }
 function marksHTML(it){ return it.s.marks && !compact(it) ? '<div class="marks">'+it.s.marks+' marks</div>' : ''; }
+/* a cloze gap ("[…]" or "[hint]") drawn as a blank to fill; no key-word highlight competes with it */
+function gapify(html){ return html.replace(/\[([^\]]{0,40})\]/g, '<span class="gap">$1</span>'); }
+function questionText(it, q){
+  const look = it.f.look, up = look==="caption"||look==="neon";
+  if (it.s.cloze) { const t = esc(up ? q.toUpperCase() : q); return gapify(t); }
+  return withEm(q, up);
+}
+/* a picture from an Anki card; image occlusion draws its masks over it */
+function pictureHTML(it){
+  const s = it.s;
+  if (s.io) {
+    const shown = answered(it), rows = [];
+    for (const sh of s.io.shapes) {
+      const target = sh.ord === s.io.target;
+      if (sh.kind === "text") continue;
+      if (!target && (!sh.oi || it.hinted)) continue; // hint: the other labels uncover
+      const cls = target ? (shown ? "m t open" : "m t") : "m o";
+      if (sh.kind === "rect") rows.push('<rect class="'+cls+'" x="'+sh.x+'" y="'+sh.y+'" width="'+sh.w+'" height="'+sh.h+'" vector-effect="non-scaling-stroke"/>');
+      else if (sh.kind === "ellipse") rows.push('<ellipse class="'+cls+'" cx="'+(sh.x+sh.w/2)+'" cy="'+(sh.y+sh.h/2)+'" rx="'+(sh.w/2)+'" ry="'+(sh.h/2)+'" vector-effect="non-scaling-stroke"/>');
+      else if (sh.pts) rows.push('<polygon class="'+cls+'" points="'+sh.pts.map(a=>a[0]+","+a[1]).join(" ")+'" vector-effect="non-scaling-stroke"/>');
+    }
+    const labels = s.io.shapes.filter(sh => sh.kind === "text").map(sh => '<span class="iolabel" style="left:'+(sh.x*100)+'%;top:'+(sh.y*100)+'%">'+esc(sh.text)+'</span>').join("");
+    return '<div class="pic io" style="'+picSize(s.imgW, s.imgH)+'"><img src="'+esc(s.img)+'" alt=""><svg viewBox="0 0 1 1" preserveAspectRatio="none" aria-hidden="true">'+rows.join("")+'</svg>'+labels+'</div>';
+  }
+  return s.img ? '<div class="pic" style="'+picSize(s.imgW, s.imgH)+'"><img src="'+esc(s.img)+'" alt=""></div>' : '';
+}
+/* sized from the picture's own dimensions, so masks line up exactly; width and height limits are in CSS */
+function picSize(w, h){ return w && h ? '--r:'+(w/h).toFixed(4)+';aspect-ratio:'+w+'/'+h : ''; }
 function questionHTML(it, scale){
   const look = it.f.look, s = it.s, q = s.ctx ? s.qMain : s.q;
-  const px = qPx(look, q, scale * (compact(it) ? .6 : 1));
-  const inner = look === "subtitle" ? '<span>'+withEm(q,false)+'</span>' : withEm(q, look==="caption"||look==="neon");
+  const px = qPx(look, q, scale * (compact(it) ? .6 : 1) * (s.io ? .6 : s.img ? .7 : 1));
+  const inner = look === "subtitle" ? '<span>'+questionText(it, q)+'</span>' : questionText(it, q);
   // a long question's set-up sits in a small quoted box; the actual question stays big
   return (s.ctx ? '<div class="ctx">'+esc(s.ctx)+'</div>' : '') +
     '<h2 class="q" style="font-size:calc('+px+'px * var(--fit,1))">'+inner+'</h2>' + (it.f.layout==="list" ? '' : marksHTML(it));
@@ -90,10 +118,13 @@ function revealOrAnswer(it){
     const hintChip = it.hinted && it.f.layout!=="list" ? '<div class="hintchip"><b>Hint</b> '+esc(it.s.hint)+'</div>' : '';
     return hintChip + revealButton(it);
   }
-  if (isMulti(it)) return pointsHTML(it);
+  if (isMulti(it)) return pointsHTML(it) + answerPic(it);
+  if (it.s.io) return '<div class="selfcheck">'+(it.liked ? 'Got it' : 'Double-tap if you got it')+'</div>';
   const a = it.s.a, tier = a.length > 40 ? ' t3' : a.length > 22 ? ' t2' : '';
-  return '<div class="ans'+tier+'"><div class="a1">'+esc(a)+'</div>'+(it.s.x?'<div class="a2">'+esc(it.s.x)+'</div>':'')+'</div>';
+  if (!a) return (it.s.x ? '<div class="ans t3"><div class="a2">'+esc(it.s.x)+'</div></div>' : '') + answerPic(it); // the answer is a picture
+  return '<div class="ans'+tier+'"><div class="a1">'+esc(a)+'</div>'+(it.s.x?'<div class="a2">'+esc(it.s.x)+'</div>':'')+'</div>' + answerPic(it);
 }
+const answerPic = it => it.s.aimg ? '<div class="pic apic" style="'+picSize(it.s.aimgW, it.s.aimgH)+'"><img src="'+esc(it.s.aimg)+'" alt=""></div>' : '';
 function revealButton(it){ return '<button class="reveal" data-act="reveal"><span class="ring">'+(it.count==null?thinkSecs(it.s):it.count)+'</span><span>'+esc(it.s.prompt)+'</span></button>'; }
 
 function bodyHTML(it){
@@ -123,7 +154,7 @@ function bodyHTML(it){
   if (lay === "quiz" && s.correct >= 0) {
     const opts = s.options.map((o,i)=>{ let cls = "opt"; if (it.pick >= 0) { if (i===s.correct) cls += " right"; else if (i===it.pick) cls += " wrong"; else cls += " dim"; }
       return '<button class="'+cls+'" data-act="pick" data-v="'+i+'"><span class="l">'+"AB"[i]+'</span>'+esc(o)+'</button>'; }).join("");
-    return '<div class="hook">'+esc(s.hook)+'</div><div class="poll"><div class="pq">'+esc(s.q)+'</div>'+(it.hinted&&it.pick<0?'<div class="pollnote"><b>Hint</b> '+esc(s.hint)+'</div>':'')+opts+
+    return '<div class="hook">'+esc(s.hook)+'</div><div class="poll"><div class="pq">'+(s.cloze ? gapify(esc(s.q)) : esc(s.q))+'</div>'+(it.hinted&&it.pick<0?'<div class="pollnote"><b>Hint</b> '+esc(s.hint)+'</div>':'')+opts+
       (it.pick>=0?'<div class="pollnote"><b>'+(it.pick===s.correct?"You got it.":"Classic trap. It's "+esc(s.a)+".")+'</b> '+esc(s.x)+'</div>':'')+'</div>';
   }
   if (lay === "captions" && s.beats.length) {
@@ -131,14 +162,16 @@ function bodyHTML(it){
     if (n < s.beats.length && !it.revealed) {
       const words = s.beats[n].split(" "), hi = s.hl[n];
       const upper = it.f.look !== "paper" && it.f.look !== "clean";
-      const inner = words.map((w,k)=> k===hi ? "<em>"+esc(upper?w.toUpperCase():w)+"</em>" : esc(upper?w.toUpperCase():w)).join(" ");
+      const inner = s.cloze ? gapify(esc(upper?s.beats[n].toUpperCase():s.beats[n])) : words.map((w,k)=> k===hi ? "<em>"+esc(upper?w.toUpperCase():w)+"</em>" : esc(upper?w.toUpperCase():w)).join(" ");
       const bl = Math.max(...words.map(w=>w.length)), bpx = Math.round(Math.min(40, 250 / (bl * (upper ? .66 : .5))));
       return '<div class="hook">'+esc(s.hook)+'</div><div class="beat" style="font-size:calc('+bpx+'px * var(--fit,1))">'+(it.f.look==="subtitle"?'<span>'+inner+'</span>':inner)+'</div>'+
         '<div class="beatcount">'+s.beats.map((_,k)=>'<i class="'+(k<=n?"on":"")+'"></i>').join("")+'</div>';
     }
     return '<div class="hook">'+esc(s.hook)+'</div>'+questionHTML(it,.8)+revealOrAnswer(it);
   }
-  return '<div class="hook">'+esc(s.hook)+'</div>'+questionHTML(it, lay==="split"?.8:1)+revealOrAnswer(it);
+  // image occlusion: the picture leads, full width at the top (clear of the rail); the header sits under it
+  if (s.io) return pictureHTML(it)+questionHTML(it, .8)+revealOrAnswer(it);
+  return (compact(it) ? '' : '<div class="hook">'+esc(s.hook)+'</div>')+questionHTML(it, lay==="split"?.8:1)+pictureHTML(it)+revealOrAnswer(it);
 }
 
 function vibeHTML(it){

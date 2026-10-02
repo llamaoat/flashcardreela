@@ -342,6 +342,29 @@ input[type=text]{width:100%;min-height:42px;border-radius:12px;border:1px solid 
 .card.moreopen .scrim{background:linear-gradient(to top,rgba(0,0,0,.92) 0%,rgba(0,0,0,.78) 45%,rgba(0,0,0,.55) 100%);transition:background .25s}
 .card.moreopen .body,.card.moreopen .vibe,.card.moreopen .badge{filter:brightness(.3) saturate(.6);opacity:.6}
 
+/* ---- cards from Anki: pictures, image occlusion, cloze gaps ---- */
+.card .gap{display:inline-block;min-width:2.3em;padding:0 .28em;margin:0 .04em;border-radius:.2em;background:var(--acc);color:var(--accfg);text-shadow:none;line-height:1.08;text-align:center;font-style:normal;vertical-align:baseline}
+.card.k-paper .gap{background:none;color:var(--acc);border-bottom:.09em solid var(--acc);border-radius:0;min-width:2.6em}
+.card.k-clean .gap{font-style:italic}
+.card.k-neon .gap{box-shadow:0 0 14px var(--acc)}
+.card .pic{position:relative;align-self:center;max-width:100%;border-radius:14px;overflow:hidden;line-height:0;background:#fff;flex-shrink:0;box-shadow:0 16px 34px -16px rgba(0,0,0,.75)}
+.card.sheet .pic{box-shadow:0 0 0 1px rgba(127,127,127,.25)}
+/* width from the aspect ratio (--r) within a width and height limit; occlusion pictures use the full width */
+.card .pic{--mw:100%;--mh:220px;width:min(var(--mw), calc(var(--mh) * var(--fit,1) * var(--r,1.4)))}
+.card .pic img{display:block;width:100%;height:100%;object-fit:fill}
+.card .pic.io{--mw:calc(100% + var(--sr) + 18px);--mh:240px;align-self:flex-start}
+.card.sheet .pic.io{--mw:100%}
+.card.sheet .pic.io + .q{margin-top:2px}
+.card .pic.apic{--mh:150px}
+.card .pic svg{position:absolute;inset:0;width:100%;height:100%}
+.card .pic .m{stroke:#1d1d1f;stroke-width:1.5;transition:fill-opacity .35s,stroke .35s}
+.card .pic .m.o{fill:#f3e7c9}
+.card .pic .m.t{fill:var(--acc);stroke:#111;stroke-width:2.5;animation:maskin .5s ease-out both}
+.card .pic .m.t.open{fill-opacity:.12;stroke:var(--acc);stroke-width:3.5;animation:none}
+@keyframes maskin{from{fill-opacity:.4}to{fill-opacity:1}}
+.card .pic .iolabel{position:absolute;font:700 12px/1.1 var(--hf);color:#111;background:rgba(255,255,255,.88);padding:2px 5px;border-radius:4px;white-space:nowrap}
+.card.l-bigtext.k-subtitle .pic,.card.l-bigtext.k-caption .pic{margin-top:2px}
+
 /* the host app's rail: our four actions in the host's positions and icon style */
 .card .rail{position:absolute;z-index:6;right:max(6px, calc(var(--sr) - 48px));bottom:calc(var(--sb) - 2px);display:flex;flex-direction:column;gap:14px;align-items:center}
 .card .rail button{background:none;border:none;color:#fff;display:flex;flex-direction:column;align-items:center;gap:2px;font:inherit;font-size:11px;font-weight:700;min-width:50px;min-height:50px;padding:0;text-shadow:0 1px 2px rgba(0,0,0,.6)}

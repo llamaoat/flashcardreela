@@ -64,6 +64,7 @@ public class EngineChecks {
         formats();
         copy();
         longAnswers();
+        ankiFiles();
         notes();
         forecast();
         System.out.println();
@@ -483,6 +484,106 @@ public class EngineChecks {
     }
 
     static Outcome pts(int got) { Outcome o = new Outcome(); o.revealed = true; o.revealAtMs = 3000; o.pointsGot = got; o.dwellMs = 7000; return o; }
+
+    // ------------------------------------------------------------------ Anki files (.apkg)
+
+    static java.io.File deckFile(String name) {
+        for (String dir : new String[]{"src/test/resources/anki", "engine/src/test/resources/anki"}) {
+            java.io.File f = new java.io.File(dir, name);
+            if (f.exists()) return f;
+        }
+        return new java.io.File(name);
+    }
+
+    static com.reelcards.engine.anki.AnkiPackage.Result readDeck(String name) throws java.io.IOException {
+        java.util.zip.ZipFile z = new java.util.zip.ZipFile(deckFile(name));
+        try { return com.reelcards.engine.anki.AnkiPackage.read(z, name, T0, null); } finally { z.close(); }
+    }
+
+    static Card byId(List<Card> cards, String id) { for (Card c : cards) if (c.id.equals(id)) return c; return null; }
+
+    static String dump(List<Card> cards) {
+        StringBuilder b = new StringBuilder();
+        for (Card c : cards) b.append(c.id).append('|').append(c.front).append('|').append(c.back).append('|').append(c.extra).append('|').append(c.image).append('|').append(c.occlusion)
+                .append('|').append(c.occlusionTarget).append('|').append(c.cloze).append('|').append(c.state).append('|').append(c.stability).append('|').append(c.due).append('\n');
+        return b.toString();
+    }
+
+    static void ankiFiles() {
+        System.out.println("Anki files (.apkg)");
+        try {
+            com.reelcards.engine.anki.AnkiPackage.Result latest = readDeck("latest.apkg"), l1 = readDeck("legacy1.apkg"), l2 = readDeck("legacy2.apkg");
+            List<Card> cs = latest.cards;
+            check("reads all three Anki file formats (2.0, 2.1, and 2.1.50+ with zstd) to the same " + cs.size() + " cards",
+                    cs.size() == 18 && dump(cs).equals(dump(l1.cards)) && dump(cs).equals(dump(l2.cards)));
+            check("leaves out suspended and audio-only cards: \"" + latest.stats.summary() + "\"", latest.stats.suspended == 1 && latest.stats.audio == 1 && latest.stats.imported == 18);
+            Card basic = byId(cs, "apkg:3001"), list = byId(cs, "apkg:3002"), rev = byId(cs, "apkg:3005"), typed = byId(cs, "apkg:3020"), custom = byId(cs, "apkg:3022");
+            check("basic note: front and back", basic != null && basic.front.equals("What does the mitochondria do?") && basic.back.equals("Aerobic respiration") && basic.deck.equals("GCSE Biology · Cells"));
+            check("an HTML list on the back becomes a 3-point answer", list != null && AnswerShape.of(list).points.size() == 3);
+            check("reversed note: the second card asks the other way round", rev != null && rev.back.equals("Osmosis") && rev.front.startsWith("The diffusion of water"));
+            check("type-in-the-answer note: the typed answer is the answer", typed != null && typed.back.equals("Na") && typed.front.equals("Chemical symbol for sodium?"));
+            check("custom note type: answer field, then the rest as the explanation", custom != null && custom.back.equals("−1") && custom.extra.startsWith("Protons are +1"));
+            Card c1 = byId(cs, "apkg:3006"), c2 = byId(cs, "apkg:3007"), c3 = byId(cs, "apkg:3008");
+            check("cloze: the gap is [" + "…], the deletion is the answer: \"" + (c1 == null ? "" : c1.front) + "\"", c1 != null && c1.cloze && c1.front.equals("[…] are the site of aerobic respiration.") && c1.back.equals("Mitochondria"));
+            check("cloze hint shows in the gap", c2 != null && c2.front.equals("Mitochondria are the site of [type of respiration].") && c2.back.equals("aerobic respiration"));
+            check("a gap is read aloud as \"blank\" (voiceover and screen readers)",
+                    CardScript.spokenGaps(c1 == null ? "" : c1.front).equals("blank are the site of aerobic respiration.")
+                    && CardScript.spokenGaps("Mitochondria are the site of [type of respiration].").equals("Mitochondria are the site of blank (type of respiration)."));
+            check("one cloze number used three times = one card with 3 points", c3 != null && c3.back.equals("solid; liquid; gas") && AnswerShape.of(c3).points.size() == 3);
+            check("cloze extra: the full sentence and Back Extra", c1 != null && c1.extra.equals("Mitochondria are the site of aerobic respiration. They have a folded inner membrane."));
+            List<Object> nested = com.reelcards.engine.anki.AnkiPackage.clozeParse("A {{c1::folded {{c2::inner}} membrane}}");
+            List<String> got = new java.util.ArrayList<>();
+            String q2 = com.reelcards.engine.anki.AnkiPackage.clozeText(nested, 2, "q", got);
+            check("nested cloze deletions", q2.equals("A folded […] membrane") && got.equals(list("inner")));
+            int io = 0; boolean ioOk = true;
+            for (Card c : cs) if (c.occlusion != null) {
+                io++;
+                List<Occlusion.Shape> sh = Occlusion.parse(c.occlusion);
+                boolean has = false;
+                for (Occlusion.Shape x : sh) { if (x.ord == c.occlusionTarget) has = true; if (x.x < 0 || x.x > 1 || (x.pts == null && (x.w <= 0 || x.w > 1))) ioOk = false; }
+                if (!has || c.image == null || c.imageW != 900 || c.imageH != 640) ioOk = false;
+            }
+            check("image occlusion: " + io + " cards (Anki's built-in kind and the old add-on), each with its picture and masks in 0..1", io == 8 && ioOk);
+            Card poly = byId(cs, "apkg:3012"), ell = byId(cs, "apkg:3013");
+            check("occlusion shapes: rectangles, polygons and ellipses", poly != null && poly.occlusion.contains("p|3|1|") && ell != null && ell.occlusion.contains("e|4|1|"));
+            Card old = byId(cs, "apkg:3101");
+            check("old add-on: the mask to answer comes from the SVG's qshape", old != null && Occlusion.parse(old.occlusion).get(1).ord == 1 && old.occlusionTarget == 1);
+            Card pic = byId(cs, "apkg:3003");
+            check("pictures come along, with their size (JPEG 420×240)", pic != null && "organelle.jpg".equals(pic.image) && pic.imageW == 420 && pic.imageH == 240 && pic.front.equals("Which organelle is this?"));
+            long crt = 1735704000L;
+            check("review cards keep their Anki progress: interval → stability, due date kept", basic.state == Card.REVIEW && basic.stability == 12 && basic.due == (crt + 640 * 86400L) * 1000L && basic.reps == 4);
+            Card fsrs = byId(cs, "apkg:3004");
+            check("…and Anki's FSRS memory state when the deck has it", fsrs != null && fsrs.stability == 41.25 && fsrs.difficulty == 6.5 && fsrs.lapses == 1);
+            check("new cards stay new", list.state == Card.NEW && list.reps == 0);
+            java.util.Set<String> ioL = AnswerShape.layoutsFor(AnswerShape.of(byId(cs, "apkg:3010")), "", true), clozeL = AnswerShape.layoutsFor(AnswerShape.of(c1), c1.back, true);
+            check("pictures and occlusion only use big text; a cloze never becomes a comment " + ioL, ioL.size() == 1 && ioL.contains("bigtext") && !clozeL.contains("comment") && clozeL.contains("quiz"));
+            Engine e = new Engine();
+            e.setRandom(new Random(40));
+            e.tz = java.util.TimeZone.getTimeZone("UTC");
+            e.settings.intensity = Settings.DEMO;
+            e.addCards(cs);
+            boolean sawIo = false, badLayout = false; long t = T0;
+            for (int i = 0; i < 400; i++) {
+                t += 9000;
+                Show s = e.onReelSwipe(t, "tiktok");
+                if (s == null) continue;
+                if (s.script.isOcclusion()) { sawIo = true; if (!"bigtext".equals(s.format.layout) || s.script.occlusionTarget < 1) badLayout = true; }
+                Outcome o = new Outcome(); o.revealed = true; o.liked = true; o.dwellMs = 4000;
+                e.onCardFinished(s, o, t + 4000);
+            }
+            check("imported cards play in the feed (occlusion in big text with its masks)", sawIo && !badLayout);
+            boolean refused = false;
+            try { java.util.zip.ZipFile z = new java.util.zip.ZipFile(deckFile("sample.apkg")); z.close();
+                java.io.File tmp = java.io.File.createTempFile("notanki", ".zip");
+                java.util.zip.ZipOutputStream zo = new java.util.zip.ZipOutputStream(new java.io.FileOutputStream(tmp)); zo.putNextEntry(new java.util.zip.ZipEntry("hello.txt")); zo.write(1); zo.close();
+                java.util.zip.ZipFile bad = new java.util.zip.ZipFile(tmp);
+                try { com.reelcards.engine.anki.AnkiPackage.read(bad, "x.apkg", T0, null); } catch (com.reelcards.engine.anki.AnkiPackage.NotAnki ex) { refused = true; } finally { bad.close(); tmp.delete(); }
+            } catch (java.io.IOException ex) { refused = false; }
+            check("a zip with no Anki deck inside is refused with a clear message", refused);
+        } catch (java.io.IOException ex) {
+            check("Anki test decks readable (" + ex + ")", false);
+        }
+    }
 
     // ------------------------------------------------------------------ notes
 

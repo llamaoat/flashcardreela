@@ -34,18 +34,37 @@ public final class AnswerShape {
     public String inlineExplanation = "";           // explanation short enough to show with the answer
     public String more = "";                        // what goes behind "more" in the caption
 
+    public boolean pic;                             // the card has a picture (or is image occlusion)
+    public boolean io;                              // image occlusion: the picture is the answer
+    public boolean cloze;                           // a cloze card: the question has [gaps]
+
     public boolean multi() { return points.size() >= 2; }
     public int marks() { return multi() ? points.size() : 0; }
     /** Quiz buttons only work when both options are short enough to read at a glance. */
-    public boolean quizable() { return "short".equals(kind); }
+    public boolean quizable() { return "short".equals(kind) && !pic; }
     /** Word-by-word captions drag for long questions. */
-    public boolean captionable() { return context.isEmpty() && questionMain.length() <= 140; }
+    public boolean captionable() { return context.isEmpty() && questionMain.length() <= 140 && !pic; }
     /** Split-screen leaves about a third of the screen for text. */
-    public boolean splittable(String back) { return !multi() && plainText(back).length() <= 60 && questionMain.length() <= 110 && context.isEmpty(); }
+    public boolean splittable(String back) { return !multi() && !pic && plainText(back).length() <= 60 && questionMain.length() <= 110 && context.isEmpty(); }
 
     // ------------------------------------------------------------------ analysis
 
-    public static AnswerShape of(Card c) { return of(c.front, c.back, c.extra); }
+    public static AnswerShape of(Card c) {
+        AnswerShape a = of(c.front, c.back, c.extra);
+        a.pic = c.image != null || c.occlusion != null;
+        a.io = c.occlusion != null;
+        a.cloze = c.cloze;
+        if (a.io) { // image occlusion has no written answer: the picture is the answer, the extra goes behind "more"
+            String x = plainText(c.extra).replace('\n', ' ');
+            String more = (a.over.isEmpty() ? "" : "Also: " + join(a.over, ". ") + ". ") + x;
+            a.kind = "image";
+            a.points.clear();
+            a.over.clear();
+            a.more = more.trim();
+            a.inlineExplanation = "";
+        }
+        return a;
+    }
 
     public static AnswerShape of(String front, String back, String extra) {
         AnswerShape a = splitPoints(back);
@@ -63,11 +82,13 @@ public final class AnswerShape {
     /** The layouts a card of this shape can be drawn in. */
     public static Set<String> layoutsFor(AnswerShape a, String back, boolean hasDistractor) {
         Set<String> out = new HashSet<>();
+        if (a.pic) { out.add("bigtext"); return out; } // pictures stay in big text
         for (String l : Format.LAYOUTS) {
             if ("quiz".equals(l) && !(a.quizable() && hasDistractor)) continue;
             if ("captions".equals(l) && !a.captionable()) continue;
             if ("list".equals(l) && !a.multi()) continue;
             if ("split".equals(l) && !a.splittable(back)) continue;
+            if ("comment".equals(l) && a.cloze) continue; // a cloze gap doesn't read as a comment
             out.add(l);
         }
         return out;

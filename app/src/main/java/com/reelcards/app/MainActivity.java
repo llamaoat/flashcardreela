@@ -2,6 +2,9 @@ package com.reelcards.app;
 
 import android.app.Activity;
 import android.app.DatePickerDialog;
+import android.database.Cursor;
+import android.provider.OpenableColumns;
+import android.widget.ImageView;
 import android.content.ComponentName;
 import android.content.Intent;
 import android.content.pm.PackageManager;
@@ -27,10 +30,16 @@ import com.reelcards.engine.Format;
 import com.reelcards.engine.NotesParser;
 import com.reelcards.engine.Outcome;
 import com.reelcards.engine.SampleDecks;
+import com.reelcards.engine.anki.AnkiPackage;
 import com.reelcards.engine.Show;
 import com.reelcards.engine.Stats;
 
 import java.text.SimpleDateFormat;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
@@ -46,7 +55,7 @@ import java.util.Set;
  *        4 try it (test card, open TikTok/Instagram/YouTube, or the practice feed)
  */
 public final class MainActivity extends Activity {
-    private static final int REQ_ANKI = 7;
+    private static final int REQ_ANKI = 7, REQ_APKG = 8;
 
     private Engine engine;
     private Runnable back;
@@ -57,6 +66,8 @@ public final class MainActivity extends Activity {
     // choices made during setup
     private final Set<String> chosenDecks = new LinkedHashSet<>();
     private final List<Card> notesCards = new ArrayList<>();
+    private final List<Card> apkgCards = new ArrayList<>();
+    private String apkgName = "";
     private String notesDeck = "My notes";
     private String pendingNotes = "";
     private boolean confirmReset;
@@ -204,6 +215,12 @@ public final class MainActivity extends Activity {
         notes.setOnClickListener(go(new Runnable() { @Override public void run() { showNotes(); } }));
         Ui.add(col, notes, 8);
 
+        Ui.Choice apkg = new Ui.Choice(this, "Open an Anki file (.apkg)",
+                apkgCards.isEmpty() ? "Shared decks, or decks exported from Anki on a computer" : apkgCards.size() + " cards ready from “" + apkgName + "”");
+        apkg.setChecked(!apkgCards.isEmpty());
+        apkg.setOnClickListener(go(new Runnable() { @Override public void run() { pickApkg(); } }));
+        Ui.add(col, apkg, 8);
+
         boolean ankiInstalled = AnkiBridge.installed(this);
         String ankiNames = AnkiBridge.selectedNames(this);
         Ui.Choice anki = new Ui.Choice(this, "Your Anki decks",
@@ -219,8 +236,10 @@ public final class MainActivity extends Activity {
                 int added = 0;
                 for (String n : chosenDecks) added += engine.addCards(SampleDecks.get(n));
                 added += engine.addCards(notesCards);
+                added += engine.addCards(apkgCards);
                 chosenDecks.clear();
                 notesCards.clear();
+                apkgCards.clear();
                 boolean anyAnki = !AnkiBridge.selectedNames(MainActivity.this).isEmpty();
                 if (engine.cards.isEmpty() && !anyAnki) { error.setText("Pick at least one deck, or paste some notes."); return; }
                 Store.saveNow(MainActivity.this);
@@ -232,6 +251,152 @@ public final class MainActivity extends Activity {
     private boolean hasDeck(String name) {
         for (Card c : engine.cards) if (name.equals(c.deck)) return true;
         return false;
+    }
+
+    // ------------------------------------------------------------------ Anki files (.apkg)
+
+    /** The system file picker: no storage permission needed. */
+    private void pickApkg() {
+        Intent i = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+        i.addCategory(Intent.CATEGORY_OPENABLE);
+        i.setType("*/*");
+        try { startActivityForResult(i, REQ_APKG); }
+        catch (RuntimeException e) { showApkgResult(null, null, "This phone has no file picker to open the deck with."); }
+    }
+
+    @Override
+    protected void onActivityResult(int code, int result, Intent data) {
+        super.onActivityResult(code, result, data);
+        if (code == REQ_APKG && result == RESULT_OK && data != null && data.getData() != null) importApkg(data.getData());
+    }
+
+    private String displayName(Uri uri) {
+        Cursor c = null;
+        try {
+            c = getContentResolver().query(uri, new String[]{OpenableColumns.DISPLAY_NAME}, null, null, null);
+            if (c != null && c.moveToFirst()) { String n = c.getString(0); if (n != null) return n; }
+        } catch (RuntimeException ignored) {
+        } finally { if (c != null) c.close(); }
+        String last = uri.getLastPathSegment();
+        return last == null ? "Anki deck.apkg" : last;
+    }
+
+    private int importRun; // only the latest import, still on its "Reading…" page, may show a result
+
+    /** Copies the picked file into the cache, reads it off the main thread, then shows what it found. */
+    private void importApkg(final Uri uri) {
+        final String name = displayName(uri);
+        final int run = ++importRun;
+        LinearLayout col = page("apkg", new Runnable() { @Override public void run() { showDecks(); } });
+        Ui.add(col, Ui.title(this, "Your Anki deck"), 0);
+        Ui.add(col, Ui.body(this, "Reading “" + name + "”…"), 8);
+        final File cache = getCacheDir();
+        final File dir = Store.mediaDir(this);
+        new Thread(new Runnable() {
+            @Override public void run() {
+                File tmp = null;
+                AnkiPackage.Result r = null;
+                String error = null;
+                java.util.zip.ZipFile zip = null;
+                try {
+                    tmp = File.createTempFile("import", ".apkg", cache);
+                    InputStream in = getContentResolver().openInputStream(uri);
+                    if (in == null) throw new IOException("Couldn't open the file.");
+                    try {
+                        OutputStream out = new FileOutputStream(tmp);
+                        try {
+                            byte[] buf = new byte[65536];
+                            int n;
+                            while ((n = in.read(buf)) > 0) out.write(buf, 0, n);
+                        } finally { out.close(); }
+                    } finally { in.close(); }
+                    dir.mkdirs();
+                    zip = new java.util.zip.ZipFile(tmp);
+                    r = AnkiPackage.read(zip, name, System.currentTimeMillis(), new AnkiPackage.Media() {
+                        @Override public String save(String media, byte[] data, String type) {
+                            // named by content, so two decks with an "image.png" each never overwrite each other
+                            java.util.zip.CRC32 crc = new java.util.zip.CRC32();
+                            crc.update(data);
+                            String safe = media.replaceAll("[^A-Za-z0-9._-]", "_");
+                            if (safe.length() > 60) safe = safe.substring(safe.length() - 60);
+                            File f = new File(dir, Long.toHexString(crc.getValue()) + "-" + Integer.toHexString(data.length) + "-" + safe);
+                            if (f.isFile() && f.length() == data.length) return f.getAbsolutePath(); // already saved by an earlier import
+                            try { FileOutputStream o = new FileOutputStream(f); try { o.write(data); } finally { o.close(); } return f.getAbsolutePath(); }
+                            catch (IOException e) { return null; }
+                        }
+                    });
+                } catch (java.util.zip.ZipException e) {
+                    error = "That isn't an Anki file. Export a deck from Anki as a .apkg (or .colpkg) and try again.";
+                } catch (OutOfMemoryError e) {
+                    error = "This deck is too big to open on this phone.";
+                } catch (StackOverflowError e) {
+                    error = "Couldn't read that deck: it's damaged or nested too deeply.";
+                } catch (Exception e) {
+                    String m = e.getMessage();
+                    error = m != null && m.length() < 120 ? m : "Couldn't read that deck.";
+                } finally {
+                    if (zip != null) try { zip.close(); } catch (IOException ignored) { }
+                    if (tmp != null) tmp.delete();
+                }
+                final AnkiPackage.Result result = r;
+                final String err = error;
+                runOnUiThread(new Runnable() {
+                    @Override public void run() {
+                        // dropped if the student left the page, picked another file, or the screen was rebuilt
+                        if (isFinishing() || isDestroyed() || run != importRun || !"apkg".equals(screen)) return;
+                        showApkgResult(result, name, err);
+                    }
+                });
+            }
+        }).start();
+    }
+
+    private void showApkgResult(final AnkiPackage.Result r, final String name, String error) {
+        LinearLayout col = page("apkg", new Runnable() { @Override public void run() { showDecks(); } });
+        Ui.add(col, Ui.title(this, "Your Anki deck"), 0);
+        if (r == null) {
+            Ui.add(col, Ui.text(this, error == null ? "Couldn't read that deck." : error, 14, Ui.BAD, Ui.MEDIUM), 10);
+            Ui.add(col, Ui.muted(this, "Reelcards reads .apkg and .colpkg files from any Anki version, with no account. Audio and suspended cards are left out."), 8);
+        } else {
+            LinearLayout p = Ui.panel(this);
+            p.addView(Ui.text(this, r.cards.size() + " cards from “" + name + "”", 18, Ui.TEXT, Ui.DISPLAY));
+            Ui.add(p, Ui.muted(this, r.stats.summary()), 4);
+            for (int i = 0; i < Math.min(6, r.cards.size()); i++) {
+                Card c = r.cards.get(i);
+                LinearLayout row = new LinearLayout(this);
+                row.setOrientation(LinearLayout.HORIZONTAL);
+                row.setGravity(Gravity.CENTER_VERTICAL);
+                row.setBackground(Ui.round(Ui.SURFACE2, dp(10)));
+                row.setPadding(dp(10), dp(8), dp(10), dp(8));
+                if (c.image != null) {
+                    ImageView iv = new ImageView(this);
+                    iv.setScaleType(ImageView.ScaleType.CENTER_CROP);
+                    iv.setImageBitmap(Ui.picture(c.image, dp(64)));
+                    iv.setClipToOutline(true);
+                    iv.setBackground(Ui.round(0xFFFFFFFF, dp(6)));
+                    LinearLayout.LayoutParams il = new LinearLayout.LayoutParams(dp(48), dp(36));
+                    il.rightMargin = dp(10);
+                    row.addView(iv, il);
+                }
+                String text = c.occlusion != null ? c.front + " (image occlusion)" : c.front + (c.back.isEmpty() ? "" : "\n→ " + c.back.replace("\n", "; "));
+                row.addView(Ui.text(this, text, 14, Ui.TEXT, Ui.BODY), new LinearLayout.LayoutParams(0, -2, 1));
+                Ui.add(p, row, 8);
+            }
+            if (r.cards.size() > 6) Ui.add(p, Ui.muted(this, "…and " + (r.cards.size() - 6) + " more"), 6);
+            if (!r.cards.isEmpty()) {
+                Button use = Ui.button(this, "Use these " + r.cards.size() + " cards", true);
+                use.setOnClickListener(go(new Runnable() {
+                    @Override public void run() { apkgCards.clear(); apkgCards.addAll(r.cards); apkgName = name; showDecks(); }
+                }));
+                Ui.add(p, use, 12);
+            }
+            Ui.add(col, p, 12);
+        }
+        TextView again = Ui.linkButton(this, r == null ? "Choose an .apkg file" : "Open a different file");
+        again.setOnClickListener(go(new Runnable() { @Override public void run() { pickApkg(); } }));
+        Ui.add(col, again, 8);
+        TextView how = Ui.muted(this, "In Anki on a computer: File → Export → “Anki Deck Package (.apkg)”. Shared decks from AnkiWeb work too.");
+        Ui.add(col, how, 8);
     }
 
     // ------------------------------------------------------------------ notes -> cards

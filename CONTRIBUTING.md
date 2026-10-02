@@ -6,7 +6,7 @@ in plain Java that runs anywhere.
 ## Getting set up
 
 - **App:** open the folder in Android Studio, or `./gradlew assembleDebug`.
-- **Engine:** `./gradlew :engine:engineChecks` (80 checks) and `./gradlew :engine:simulate`.
+- **Engine:** `./gradlew :engine:engineChecks` (103 checks) and `./gradlew :engine:simulate`.
 - **Web demo:** edit `web-demo/src/`, then `python3 tools/build-web-demo.py`.
 
 ## Where things go

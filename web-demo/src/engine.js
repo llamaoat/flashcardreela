@@ -199,11 +199,12 @@ function splitQuestion(q){
 /* Everything the layouts need to know about a card's length and shape. */
 function analyse(c){
   const sp=splitPoints(c.b),sq=splitQuestion(c.f),x=plainText(c.x).replace(/\n/g," ");
-  const multi=sp.points.length>=2;
-  const more=(sp.over.length?"Also: "+sp.over.join(". ")+". ":"")+(multi||x.length>INLINE_X?x:"");
-  return{kind:sp.kind,points:sp.points,multi,marks:multi?sp.points.length:0,ctx:sq.ctx,qMain:sq.main,
-    a2:multi||x.length>INLINE_X?"":x,more:more.trim(),
-    quizable:sp.kind==="short",captionable:!sq.ctx&&sq.main.length<=140,splittable:!multi&&plainText(c.b).length<=60&&sq.main.length<=110&&!sq.ctx};
+  const multi=sp.points.length>=2,pic=!!(c.img||c.io),io=!!c.io;
+  // image occlusion has no written answer: the picture is the answer, the extra goes behind "more"
+  const more=(sp.over.length?"Also: "+sp.over.join(". ")+". ":"")+(multi||io||x.length>INLINE_X?x:"");
+  return{kind:io?"image":sp.kind,points:io?[]:sp.points,multi:multi&&!io,marks:multi&&!io?sp.points.length:0,ctx:sq.ctx,qMain:sq.main,
+    a2:multi||io||x.length>INLINE_X?"":x,more:more.trim(),pic,io,cloze:!!c.cloze,
+    quizable:sp.kind==="short"&&!pic,captionable:!sq.ctx&&sq.main.length<=140&&!pic,splittable:!multi&&!pic&&plainText(c.b).length<=60&&sq.main.length<=110&&!sq.ctx};
 }
 
 /* ---------------- CopyWriter (reel-native words) ---------------- */
@@ -226,15 +227,17 @@ function hint(ans,points){if(points&&points.length>=2)return points.length+" poi
   return"Starts with “"+first+"…” · "+w.length+" words";}
 function slug(deck){if(!deck)return"study";let s=deck.split(":")[0].toLowerCase().replace(/^(gcse|a-level|a level|ks3)\s+/,"").replace(/[^a-z0-9]+/g,"");return s?s.slice(0,14):"study";}
 function casual(q){let t=q.trim().replace(/[?.!]+$/,"");if(t.length>1&&t[1]!==t[1].toUpperCase())t=t[0].toLowerCase()+t.slice(1);return t;}
-function beats(q){const words=q.trim().split(/\s+/),out=[],hl=[];let cur=[];
+function beats(q){const raw=q.trim().split(/\s+/),words=[],out=[],hl=[];let cur=[];
+  for(let i=0;i<raw.length;i++){let w=raw[i];if(w.indexOf("[")>=0&&w.indexOf("]")<0)while(i+1<raw.length&&w.indexOf("]")<0)w+=" "+raw[++i];words.push(w);} // a cloze [gap] stays in one beat
   words.forEach((w,i)=>{cur.push(w);if(cur.length>=3||/[,?]$/.test(w)||i===words.length-1){let hi=-1,len=0;cur.forEach((x,k)=>{const b=x.replace(/[^\p{L}\p{N}]/gu,"");if(b.length>len&&b.length>=5){len=b.length;hi=k;}});out.push(cur.join(" "));hl.push(hi);cur=[];}});return{beats:out,hl};}
 function distractor(c,pool,rnd){const mine=c.b.trim().toLowerCase(),same=[],any=[];for(const o of pool){if(o===c||!o.b)continue;const ob=o.b.trim().toLowerCase();if(!ob||ob===mine||!isShort(o.b))continue;const r=(o.b.length+4)/(c.b.length+4);if(r<.4||r>2.5)continue;(o.deck===c.deck?same:any).push(o.b);}const src=same.length?same:any;return src.length?pickOf(rnd,src):null;}
 function textish(p){return p.length>1&&p[1]===p[1].toLowerCase()?p[0].toLowerCase()+p.slice(1):p;}
-function layoutsFor(a,hasDistractor){return PIECES.layout.filter(l=>l==="quiz"?a.quizable&&hasDistractor:l==="captions"?a.captionable:l==="list"?a.multi:l==="split"?a.splittable:true);}
+/* the layouts a card's shape can use: pictures stay in big text; a cloze gap doesn't read as a comment */
+function layoutsFor(a,hasDistractor){if(a.pic)return["bigtext"];return PIECES.layout.filter(l=>l==="quiz"?a.quizable&&hasDistractor:l==="captions"?a.captionable:l==="list"?a.multi:l==="split"?a.splittable:l==="comment"?!a.cloze:true);}
 function write(c,f,pool,rnd,reason,vibes){
   const a=analyse(c),q=plainText(c.f).replace(/\n/g," ");
   const s={q,a:a.multi?a.points.join("; "):(a.points[0]||""),x:a.a2,options:[],correct:-1,beats:[],hl:[],
-    shape:a.kind,points:a.points,marks:a.marks,ctx:a.ctx,qMain:a.qMain,more:a.more};
+    shape:a.kind,points:a.points,marks:a.marks,ctx:a.ctx,qMain:a.qMain,more:a.more,img:c.img||null,imgW:c.imgW||0,imgH:c.imgH||0,aimg:c.aimg||null,aimgW:c.aimgW||0,aimgH:c.aimgH||0,io:c.io||null,cloze:!!c.cloze};
   s.account="@"+slug(c.deck)+pickOf(rnd,[".mocks",".revision",".explained",".facts"]);s.tag=c.deck+" · "+reason;
   const vl=[...(vibes||[])];const v=!vl.length||rnd()<.4?null:pickOf(rnd,vl);s.vibe=v;
   let hooks,caps;
@@ -247,7 +250,7 @@ function write(c,f,pool,rnd,reason,vibes){
     default:hooks=themed(v,"rate",["Rate my answer 1–10","Can you beat my answer?","Say it out loud first"]);caps=["no googling","rate it honestly","answer in your head first"];
   }
   s.hook=pickOf(rnd,hooks);s.cap=pickOf(rnd,caps);s.prompt=pickOf(rnd,["wait for it… (tap)","tap for the answer","think… then tap"]);
-  s.hint=hint(c.b,a.points);s.starts=a.multi?starts(a.points):[];s.sound="original sound · "+s.account.slice(1);
+  s.hint=a.io?"Other labels uncovered: rule them out":hint(c.b,a.points);s.starts=a.multi?starts(a.points):[];s.sound="original sound · "+s.account.slice(1);
   if(f.layout==="chat"){s.name=pickOf(rnd,["Jess","Sam","Priya","Tom","Aisha","Leo"]);const open=pickOf(rnd,["ok random q","wait quick one","don't laugh but"]),close=pickOf(rnd,["and don't google it","fast","i've forgotten already"]);
     s.them=a.ctx?[open,a.ctx,a.qMain]:[open,q,close];s.themQ=a.ctx?[a.ctx,a.qMain]:[q];
     s.me=a.multi?a.points.map(textish):[s.a].concat(s.x?[textish(s.x)]:[]);
@@ -257,7 +260,7 @@ function write(c,f,pool,rnd,reason,vibes){
   if(f.layout==="list"&&a.multi){const n=a.marks;s.hook=pickOf(rnd,a.kind==="steps"?[n+" steps. Say them in order",n+" steps, in order. Go",
       "Can you do all "+n+" steps?"]:[n+" marks. Can you get all "+n+"?","Name all "+n+" (most people miss one)",n+" things examiners look for here"]);}
   if(f.layout==="quiz"){const w=distractor(c,pool,rnd);if(w){if(rnd()<.5){s.options=[c.b,w];s.correct=0;}else{s.options=[w,c.b];s.correct=1;}}}
-  s.voice=(f.layout==="comment"?"Someone asked: "+s.commentText+".":s.hook.replace("…",".").replace("1–10","one to ten"))+" "+q;
+  s.voice=(f.layout==="comment"?"Someone asked: "+s.commentText+".":s.hook.replace("…",".").replace("1–10","one to ten"))+" "+(s.cloze?spokenGaps(q):q);
   return s;
 }
 
@@ -419,7 +422,9 @@ Engine.prototype={
   }
 };
 function human(days){if(days<1/24)return Math.max(1,Math.round(days*1440))+" min";if(days<1)return Math.round(days*24)+" h";const d=Math.round(days);return d+(d===1?" day":" days");}
-function makeCard(id,deck,f,b,x){return{id,deck,f,b,x:x||"",state:NEW,step:0,s:0,d:0,due:0,last:0,reps:0,lapses:0,skips:0,bounces:0,buriedUntil:-1,grade:null,layout:null,saved:false};}
+/* a cloze question as it's read aloud: "[…]" becomes "blank", "[hint]" becomes "blank (hint)" */
+function spokenGaps(q){ return q.replace(/\[([^\]]{0,40})\]/g, (m, h) => { h = h.trim(); return !h || h === "…" || h === "..." ? "blank" : "blank (" + h + ")"; }); }
+function makeCard(id,deck,f,b,x){return{id,deck,f,b,x:x||"",img:null,aimg:null,io:null,cloze:false,state:NEW,step:0,s:0,d:0,due:0,last:0,reps:0,lapses:0,skips:0,bounces:0,buriedUntil:-1,grade:null,layout:null,saved:false};}
 
 return{MIN,DAY,NEW,LEARNING,REVIEW,RELEARNING,STATE,DIMS,PIECES,VIBES,LABEL,DIMLABEL,INT,MULT,Engine,Fsrs,makeCard,human,write,hint,gradeOf,fastSkip,engaged,reward,beta,fkey,
   analyse,splitPoints,splitQuestion,plainText,layoutsFor,readingMs,starts};

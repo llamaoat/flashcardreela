@@ -27,7 +27,29 @@ public final class CardScript {
     public String questionMain;                                 // the question without its set-up
     public String more = "";                                    // explanation behind "more" in the caption
 
+    // pictures and Anki card kinds
+    public String image, answerImage;               // stored picture files, or null
+    public int imageW, imageH, answerImageW, answerImageH;
+    public final List<Occlusion.Shape> occlusion = new ArrayList<>(); // image occlusion masks
+    public int occlusionTarget;                     // which masks this card asks about
+    public boolean cloze;                           // the question has [gaps]
+
     public boolean multi() { return points.size() >= 2; }
+    public boolean isOcclusion() { return !occlusion.isEmpty(); }
+
+    private static final java.util.regex.Pattern GAP = java.util.regex.Pattern.compile("\\[([^\\]]{0,40})\\]");
+
+    /** A cloze question as it's read aloud: "[…]" becomes "blank", "[hint]" becomes "blank (hint)". */
+    public static String spokenGaps(String q) {
+        java.util.regex.Matcher m = GAP.matcher(q);
+        StringBuffer b = new StringBuffer();
+        while (m.find()) {
+            String h = m.group(1).trim();
+            m.appendReplacement(b, java.util.regex.Matcher.quoteReplacement(h.isEmpty() || "…".equals(h) || "...".equals(h) ? "blank" : "blank (" + h + ")"));
+        }
+        m.appendTail(b);
+        return b.toString();
+    }
 
     // chat layout
     public String chatName;

@@ -7,15 +7,46 @@ const {MIN, DAY, NEW, REVIEW, STATE, LABEL, PIECES, VIBES} = RC;
 const makeCard = RC.makeCard;
 /*__DECKS__*/
 /*__NOTES__*/
+/*__SAMPLE_APKG__*/
 const PRE = {"GCSE Biology":"bio","GCSE Chemistry":"chem","GCSE Spanish":"es","GCSE Science: longer answers":"sci"};
 const deckCards = name => DECKS[name].map((r,i)=>makeCard(PRE[name]+"-"+(i+1), name, r[0], r[1], r[2]));
 const HOSTS = [["tiktok","TikTok"],["instagram","Instagram"],["youtube","YouTube"]];
+
+/* ---------------- Anki files (.apkg) ---------------- */
+const MIME = {png:"image/png", jpeg:"image/jpeg", gif:"image/gif", webp:"image/webp", bmp:"image/bmp"};
+async function importApkg(bytes, name){
+  const r = await Apkg.read(bytes, {name, now: now()});
+  const urls = {};
+  for (const k in r.images) { const t = Apkg.imageSize(r.images[k]); urls[k] = URL.createObjectURL(new Blob([r.images[k]], {type: MIME[t && t.type] || "application/octet-stream"})); }
+  const cards = r.cards.map(c => {
+    const m = makeCard(c.id, c.deck, c.f, c.b, c.x);
+    m.img = c.img ? urls[c.img] : null; m.aimg = c.aimg ? urls[c.aimg] : null; m.io = c.io || null; m.cloze = !!c.cloze;
+    Object.assign(m, {imgW: c.imgW || 0, imgH: c.imgH || 0, aimgW: c.aimgW || 0, aimgH: c.aimgH || 0});
+    if (c.state === "review") Object.assign(m, {state: REVIEW, s: c.s, d: c.d, due: c.due, last: c.last, reps: c.reps, lapses: c.lapses});
+    return m;
+  });
+  return {cards, stats: r.stats, name};
+}
+let samplePromise = null;
+const sampleDeck = () => samplePromise || (samplePromise = importApkg(Uint8Array.from(atob(SAMPLE_APKG), ch => ch.charCodeAt(0)), "Sample Anki deck.apkg"));
+function apkgSummary(r){
+  const s = r.stats, kinds = [];
+  if (s.occlusion) kinds.push(s.occlusion + " image occlusion");
+  if (s.cloze) kinds.push(s.cloze + " cloze");
+  const rest = s.imported - s.occlusion - s.cloze; if (rest) kinds.push(rest + (kinds.length ? " more" : " cards"));
+  const left = [];
+  if (s.suspended) left.push(s.suspended + " suspended");
+  if (s.audio) left.push(s.audio + " audio-only");
+  if (s.empty) left.push(s.empty + " blank or unsupported");
+  if (s.unknown) left.push(s.unknown + " with a missing note type");
+  return (kinds.length ? kinds.join(", ") : "No cards") + "." + (s.kept ? " " + s.kept + (s.kept === 1 ? " keeps its" : " keep their") + " Anki progress." : "") + (left.length ? " Left out: " + left.join(", ") + "." : "");
+}
 
 let E, UI, offset = 0;
 const now = () => Date.now() + offset;
 function freshUI(){ return {screen:"welcome", onboarded:false, addMode:false, decks:new Set(), notes:[], notesDeck:"My notes", notesText:"", notesResult:null,
   exam:14, intensity:"normal", vibes:new Set(), permission:false, settingsOpen:false, err:"", current:null, reelN:0, why:null, toast:"", confirmReset:false,
-  host:"tiktok", lastHue:null, firstDay:null, coachLeft:2}; }
+  host:"tiktok", lastHue:null, firstDay:null, coachLeft:2, apkg:null, apkgCards:[]}; }
 function resetAll(){ offset = 0; E = new RC.Engine(); E.settings.minutesPerDay = +$("mins").value; const h = UI ? UI.host : "tiktok"; UI = freshUI(); UI.host = h; }
 
 /* ---------------- night mode + colour match ---------------- */
@@ -46,6 +77,8 @@ function renderPhone(anim){
       h = '<div class="app">'+(UI.addMode?"":stepbar(1))+'<h3>'+(UI.addMode?"Add cards":"What are you revising?")+'</h3><p class="muted">Pick a ready-made deck, paste your notes, or use your Anki decks. Mix as many as you like.</p><div class="sec">Ready-made decks</div>'+
         Object.keys(DECKS).map(n=>choice("deck",n,n,have(n)?"Already added":DECKS[n].length+" cards",have(n)||UI.decks.has(n),have(n))).join("")+
         '<div class="sec">Your own cards</div>'+choice("go","notes","Paste your notes",UI.notes.length?UI.notes.length+" cards ready from “"+UI.notesDeck+"”":"Turns lines like “Osmosis - diffusion of water” into cards",UI.notes.length>0)+
+        choice("apkg","","Open an Anki file (.apkg)",UI.apkgCards.length?UI.apkgCards.length+" cards ready":"Shared decks, or decks exported from Anki on a computer",UI.apkgCards.length>0)+
+        '<button class="alink" data-act="apkgSample">No Anki file to hand? Try a sample deck</button>'+
         choice("anki","","Your Anki decks","In the Android app: reviews sync back to AnkiDroid",false,true)+
         '<div class="err">'+esc(UI.err)+'</div><button class="abtn" data-act="decksNext">'+(UI.addMode?"Add to my cards":"Next")+'</button></div>'; break; }
     case "notes": {
@@ -56,6 +89,15 @@ function renderPhone(anim){
       if (r) h += r.cards.length ? '<div class="box"><b style="font-family:var(--display);font-weight:400;font-size:20px">Made '+r.cards.length+' cards</b>'+(r.skipped?'<span class="muted" style="font-size:12.5px">'+r.skipped+(r.skipped===1?" line didn't":" lines didn't")+' look like a fact, so we left '+(r.skipped===1?"it":"them")+' out.</span>':'')+
         r.cards.slice(0,6).map(c=>'<div class="mini2">'+esc(c.f)+'<br><span class="muted">→ '+esc(c.b)+'</span></div>').join("")+'<button class="abtn" data-act="useNotes">Use these '+r.cards.length+' cards</button></div>' : '<div class="err">No cards yet. Try one fact per line, like “Osmosis - diffusion of water”.</div>';
       h += '<button class="alink" data-act="go" data-v="decks">Back</button></div>'; break; }
+    case "apkg": {
+      const r = UI.apkg || {};
+      h = '<div class="app"><h3>Your Anki deck</h3>';
+      if (r.busy) h += '<p class="muted">Reading “'+esc(r.name)+'”…</p>';
+      else if (r.error) h += '<div class="err">'+esc(r.error)+'</div><p class="muted" style="font-size:12.5px">Reelcards reads .apkg and .colpkg files from any Anki version, with no account. Audio and suspended cards are left out.</p>';
+      else if (r.cards) h += '<div class="box"><b style="font-family:var(--display);font-weight:400;font-size:20px">'+r.cards.length+' cards from “'+esc(r.name)+'”</b><span class="muted" style="font-size:12.5px">'+esc(apkgSummary(r))+'</span>'+
+        r.cards.slice(0,7).map(c=>'<div class="mini2" style="display:flex;gap:9px;align-items:center">'+(c.img?'<img src="'+esc(c.img)+'" alt="" style="width:44px;height:34px;object-fit:cover;border-radius:6px;flex-shrink:0">':'')+'<span>'+esc(c.io?c.f+" (image occlusion)":c.f)+(c.b?'<br><span class="muted">→ '+esc(c.b.replace(/\n/g,"; "))+'</span>':'')+'</span></div>').join("")+
+        (r.cards.length ? '<button class="abtn" data-act="useApkg">Use these '+r.cards.length+' cards</button>' : '')+'</div>';
+      h += '<button class="abtn ghost" data-act="apkgPick">'+(r.cards?'Open a different file':'Choose an .apkg file')+'</button><button class="alink" data-act="go" data-v="decks">Back</button></div>'; break; }
     case "exam": {
       const ex = [[7,"In 1 week"],[14,"In 2 weeks"],[30,"In about a month"],[90,"In about 3 months"],[0,"No exam yet"]];
       h = '<div class="app">'+stepbar(2)+'<h3>Your exam &amp; your feed</h3><p class="muted">Cards get more frequent as the exam gets closer, and nothing gets scheduled past exam day.</p>'+ex.map(e=>choice("exam",e[0],e[1],"",UI.exam===e[0])).join("")+
@@ -196,7 +238,7 @@ function render(anim){ renderPhone(anim); renderSide(); }
 function go(s){ UI.screen = s; UI.err = ""; render(true); }
 function finishSetup(){ UI.onboarded = true; if (UI.firstDay==null) UI.firstDay = E.dk(now()); UI.screen = "feed"; render(true); }
 function applyExam(){ E.settings.examDate = UI.exam ? now() + UI.exam*DAY : 0; E.settings.intensity = UI.intensity; E.setVibes([...UI.vibes]); }
-function skipSetup(){ if (!E.cards.length) { E.addCards(deckCards("GCSE Biology")); E.addCards(deckCards("GCSE Chemistry")); E.addCards(deckCards("GCSE Science: longer answers")); } UI.exam = 14; if (!UI.vibes.size) { UI.vibes.add("football"); UI.vibes.add("gaming"); } applyExam(); UI.permission = true; finishSetup(); }
+function skipSetup(){ if (!E.cards.length) { E.addCards(deckCards("GCSE Biology")); E.addCards(deckCards("GCSE Chemistry")); E.addCards(deckCards("GCSE Science: longer answers")); sampleDeck().then(r => { E.addCards(r.cards); renderSide(); }, () => {}); } UI.exam = 14; if (!UI.vibes.size) { UI.vibes.add("football"); UI.vibes.add("gaming"); } applyExam(); UI.permission = true; finishSetup(); }
 function outcomeOf(it, dwell){ return {revealed:it.revealed, liked:it.liked, likedBefore:it.likedBefore, pick:it.pick, likeAt:it.likeAt||0, pickAt:it.pickAt||0, hintAt:it.hintAt||0, saved:!!it.saved, shared:!!it.shared,
   got:(it.got||[]).filter(Boolean).length, dwell}; }
 function asItem(sh){ return Object.assign({kind:"card", revealed:false, liked:false, likedBefore:false, pick:-1, saved:false, hinted:false, beat:0, count:null, got:[], moreOpen:false, settled:false, shownAt:performance.now()}, sh); }
@@ -260,12 +302,15 @@ $("screen").addEventListener("click", e => {
       case "go": if (v==="notes") UI.notesResult = null; go(v); return;
       case "tab": UI.screen = v; UI.confirmReset = false; render(true); return;
       case "deck": UI.decks.has(v) ? UI.decks.delete(v) : UI.decks.add(v); renderPhone(false); return;
-      case "decksNext": { for (const n of UI.decks) E.addCards(deckCards(n)); E.addCards(UI.notes); UI.decks.clear(); UI.notes = [];
+      case "decksNext": { for (const n of UI.decks) E.addCards(deckCards(n)); E.addCards(UI.notes); E.addCards(UI.apkgCards); UI.decks.clear(); UI.notes = []; UI.apkgCards = [];
         if (!E.cards.length) { UI.err = "Pick at least one deck, or paste some notes."; renderPhone(false); return; }
         if (UI.addMode) { UI.addMode = false; UI.screen = "dash"; render(true); } else go("exam"); return; }
       case "exampleNotes": $("ntext").value = EXAMPLE_NOTES; return;
       case "makeCards": UI.notesText = $("ntext").value; UI.notesDeck = $("ndeck").value.trim() || "My notes"; UI.notesResult = parseNotes(UI.notesText, UI.notesDeck); renderPhone(false); return;
       case "useNotes": UI.notes = UI.notesResult.cards; UI.notesText = ""; UI.notesResult = null; go("decks"); return;
+      case "apkg": case "apkgPick": $("apkgFile").value = ""; $("apkgFile").click(); return;
+      case "apkgSample": UI.apkg = {busy:true, name:"Sample Anki deck.apkg"}; go("apkg"); sampleDeck().then(r => { UI.apkg = r; renderPhone(false); }, e => { UI.apkg = {error: e.message}; renderPhone(false); }); return;
+      case "useApkg": UI.apkgCards = UI.apkg.cards; UI.apkg = null; go("decks"); return;
       case "exam": UI.exam = +v; renderPhone(false); return;
       case "vibe": UI.vibes.has(v) ? UI.vibes.delete(v) : UI.vibes.add(v); renderPhone(false); return;
       case "intensity": UI.intensity = v; renderPhone(false); return;
@@ -294,6 +339,11 @@ $("screen").addEventListener("click", e => {
   if (e.target.closest("[data-card]")) { clearTimeout(tapTimer); tapTimer = setTimeout(reveal, 260); }
 });
 $("screen").addEventListener("dblclick", e => { if (!e.target.closest("[data-card]") || e.target.closest("[data-act]")) return; clearTimeout(tapTimer); const p = $("screen").getBoundingClientRect(); like(e.clientX-p.left, e.clientY-p.top); });
+$("apkgFile").addEventListener("change", e => {
+  const f = e.target.files && e.target.files[0]; if (!f) return;
+  UI.apkg = {busy:true, name:f.name}; go("apkg");
+  f.arrayBuffer().then(b => importApkg(new Uint8Array(b), f.name)).then(r => { UI.apkg = r; renderPhone(false); }, err => { UI.apkg = {error: "Couldn't read that file: " + err.message, name: f.name}; renderPhone(false); });
+});
 $("screen").addEventListener("input", e => { if (e.target.id==="ntext") UI.notesText = e.target.value; if (e.target.id==="ndeck") UI.notesDeck = e.target.value; });
 $("hostbar").addEventListener("click", e => { const b = e.target.closest("[data-host]"); if (!b) return; UI.host = b.dataset.host; if (UI.current && UI.current.kind==="card") UI.current.host = UI.host; render(false); });
 
@@ -357,7 +407,7 @@ $("auto").onclick = () => runAuto(80, 0);
 $("autoWeek").onclick = () => runAuto(7, 60);
 
 /* ---------------- design lab ---------------- */
-let labSeed = 1;
+let labSeed = 1, labAnki = null;
 function renderLab(){
   const host = $("labHost").value, vibe = $("labVibe").value, state = $("labState").value, night = $("labNight").checked, long = $("labCards").value==="long";
   const sci = deckCards("GCSE Science: longer answers"), pool = deckCards("GCSE Biology").concat(deckCards("GCSE Chemistry"), sci);
@@ -365,8 +415,12 @@ function renderLab(){
   const looks = PIECES.look, hooks = PIECES.hook;
   const vibeBg = {football:"pitch",gaming:"gameplay",beauty:"glow",music:"equalizer",fitness:"citywalk",food:"satisfying",comedy:"plain"}[vibe];
   // long mode: list, steps, paragraphs and long questions, in every layout their shape allows
-  const cards = long ? [5,3,4,0,12,2,8,11].map(i=>sci[i]) : [3,14,0,9,20,1,5,16].map(i=>pool[i%pool.length]);
-  const layouts = long ? ["list","bigtext","chat","captions","comment","list","bigtext","chat"] : ["bigtext","captions","chat","comment","split","quiz","bigtext","captions"];
+  const anki = $("labCards").value === "anki";
+  if (anki && !labAnki) { $("lab").innerHTML = '<p class="muted">Reading the sample Anki deck…</p>'; sampleDeck().then(r => { labAnki = r.cards; renderLab(); }); return; }
+  const byId = id => (labAnki || []).find(c => c.id === "apkg:" + id);
+  const cards = anki ? [3010, 3012, 3101, 3006, 3008, 3007, 3003, 3002].map(byId) : long ? [5,3,4,0,12,2,8,11].map(i=>sci[i]) : [3,14,0,9,20,1,5,16].map(i=>pool[i%pool.length]);
+  const layouts = anki ? ["bigtext","bigtext","bigtext","bigtext","list","quiz","bigtext","chat"] : long ? ["list","bigtext","chat","captions","comment","list","bigtext","chat"] : ["bigtext","captions","chat","comment","split","quiz","bigtext","captions"];
+  if (anki) pool.push(...labAnki);
   let html = "";
   layouts.forEach((lay,i)=>{
     const f = {hook:hooks[(i+labSeed)%hooks.length], layout:lay, look:looks[(i+labSeed)%looks.length], bg:vibeBg||PIECES.bg[(i*3+labSeed)%PIECES.bg.length]};
@@ -378,7 +432,7 @@ function renderLab(){
     const got = state==="part" && n>=2 ? sc.points.map((_,k)=>k<n-1) : [];
     const it = {kind:"card", card:c, f, s:sc, host, revealed:shown, liked:state==="liked", likedBefore:false, pick:(lay==="quiz"&&shown)?(state==="part"?1-sc.correct:sc.correct):-1, saved:false,
       hinted:state==="hint", hintAt:state==="hint"?1:0, beat:lay==="captions"&&!shown?(state==="hint"?sc.beats.length:1):sc.beats.length, count:2, got, moreOpen:state==="more", settled:true};
-    html += '<figure><div class="mini"><div class="scaler">'+Render.card(it,{night})+'</div></div><figcaption><b>'+esc(LABEL[lay])+'</b> · '+esc(LABEL[f.look])+(n>=2?' · '+n+' points ('+esc(sc.shape)+')':'')+(sc.ctx?' · long question':'')+'<br>'+esc(LABEL[f.bg])+' · hook “'+esc(LABEL[f.hook])+'”</figcaption></figure>';
+    html += '<figure><div class="mini"><div class="scaler">'+Render.card(it,{night})+'</div></div><figcaption><b>'+esc(LABEL[lay])+'</b> · '+esc(LABEL[f.look])+(sc.io?' · image occlusion':sc.cloze?' · cloze':sc.img?' · picture':'')+(n>=2?' · '+n+' points ('+esc(sc.shape)+')':'')+(sc.ctx?' · long question':'')+'<br>'+esc(LABEL[f.bg])+' · hook “'+esc(LABEL[f.hook])+'”</figcaption></figure>';
   });
   $("lab").innerHTML = html;
   fitLab(); fitCards($("lab"));

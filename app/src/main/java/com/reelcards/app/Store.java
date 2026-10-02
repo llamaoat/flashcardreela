@@ -94,8 +94,16 @@ final class Store {
         engine = new Engine();
         engine.ankiSink = new AnkiBridge(ctx.getApplicationContext());
         new File(ctx.getFilesDir(), FILE).delete();
+        File media = mediaDir(ctx);
+        File[] files = media.listFiles();
+        if (files != null) for (File f : files) f.delete();
+        media.delete();
         prefs(ctx).edit().clear().apply();
     }
+
+    /** Pictures from imported Anki decks live here, in the app's private storage. */
+    /** Pictures from imported Anki decks. Kept out of Android's backup, which stops altogether once an app passes 25MB. */
+    static File mediaDir(Context ctx) { return new File(ctx.getNoBackupFilesDir(), "anki-media"); }
 
     // ------------------------------------------------------------------ JSON
 
@@ -123,6 +131,10 @@ final class Store {
             if (c.lastLayout != null) j.put("lay", c.lastLayout);
             if (c.ankiNoteId >= 0) { j.put("anid", c.ankiNoteId); j.put("aord", c.ankiOrd); }
             if (c.saved) j.put("sv", true);
+            if (c.image != null) { j.put("img", c.image); j.put("iw", c.imageW); j.put("ih", c.imageH); }
+            if (c.answerImage != null) { j.put("aimg", c.answerImage); j.put("aiw", c.answerImageW); j.put("aih", c.answerImageH); }
+            if (c.occlusion != null) { j.put("occ", c.occlusion); j.put("occt", c.occlusionTarget); }
+            if (c.cloze) j.put("cz", true);
             cards.put(j);
         }
         o.put("cards", cards);
@@ -221,6 +233,10 @@ final class Store {
                 c.lastLayout = j.has("lay") ? j.getString("lay") : null;
                 c.ankiNoteId = j.optLong("anid", -1); c.ankiOrd = j.optInt("aord", -1);
                 c.saved = j.optBoolean("sv", false);
+                if (j.has("img")) { c.image = j.getString("img"); c.imageW = j.optInt("iw"); c.imageH = j.optInt("ih"); }
+                if (j.has("aimg")) { c.answerImage = j.getString("aimg"); c.answerImageW = j.optInt("aiw"); c.answerImageH = j.optInt("aih"); }
+                if (j.has("occ")) { c.occlusion = j.getString("occ"); c.occlusionTarget = j.optInt("occt"); }
+                c.cloze = j.optBoolean("cz", false);
                 list.add(c);
             }
         }

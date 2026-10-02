@@ -2,15 +2,17 @@
 
 **Revise without trying.** Reelcards slips your flashcards in between your TikTok, Instagram Reels and YouTube Shorts, styled so they look like just another reel. Double-tap if you know it, swipe if you don't. An adaptive engine decides *when* a card appears, *which* card it is and *how it looks*, and it learns what each student actually watches.
 
-- Android 8.0+ · one permission · works offline · no account · no ads · ~370 KB app, no third-party libraries
-- Ready-made GCSE decks, pasted notes, or your **Anki decks** (answers go straight back into AnkiDroid)
+- Android 8.0+ · one permission · works offline · no account · no ads · ~410 KB app, no third-party libraries
+- Ready-made GCSE decks, pasted notes, your **Anki decks** (answers go straight back into AnkiDroid), or any **Anki file** (.apkg), cloze and image occlusion cards included
 - Open source (GPLv3)
 
 ![Card reels in TikTok style: big text, word-by-word captions, text chat, reply-to-a-comment, split-screen and quiz layouts](docs/img/cards-tiktok.png)
 
 ![Long answers: numbered blanks, a long question split into set-up and question, part marks, chat replies with ✓ reactions, steps, and an explanation behind "more"](docs/img/cards-long-answers.png)
 
-<sub>Card designs from the [design lab](web-demo/index.html): the same card in six layouts, each over a different looping background. Instagram and YouTube versions are in [docs/DESIGN.md](docs/DESIGN.md).</sub>
+![Cards imported from an Anki file: image occlusion with the part to name masked, cloze gaps as blanks, a cloze with three answers, and a picture card](docs/img/cards-anki.png)
+
+<sub>Card designs from the [design lab](web-demo/index.html): the same card in six layouts, each over a different looping background, then cards imported from an Anki file. Instagram and YouTube versions are in [docs/DESIGN.md](docs/DESIGN.md).</sub>
 
 ---
 
@@ -19,7 +21,7 @@
 1. Download **[`Reelcards.apk`](release/Reelcards.apk)** onto the Android phone (from the Releases page, this repo, or a USB cable).
 2. Open it. If Android asks, allow your browser or Files app to **install unknown apps**, then tap **Install**.
 3. Open **Reelcards** and follow the 4 short steps:
-   1. **Pick what you're revising:** a ready-made deck, paste your notes, or your Anki decks.
+   1. **Pick what you're revising:** a ready-made deck, paste your notes, your Anki decks, or open an Anki file (.apkg).
    2. **Exam date, what you watch, how often:** pick your exam date, your interests (football, gaming, music…) and Chill (1 card every 8 reels), Normal (every 5) or Cram (every 3).
    3. **Switch it on:** tap *Open settings* → *Reelcards* → turn it on → *Allow*. It's the only permission.
    4. **Try it:** tap *Show me a test card*, then open TikTok, Instagram or YouTube Shorts and scroll.
@@ -90,6 +92,7 @@ Tip: set **How often** back to **Normal** afterwards.
 - **Long answers:** the engine reads each card's shape first. A 3-mark answer is split into points that drop in one at a time, the student taps the points they got (all = Good, half = Hard, fewer = Again), long explanations go behind "more" in the caption, and a long question's set-up goes in a small quoted box. Quiz buttons are kept for short answers. Works on Anki cards too (`<br>` and lists become points).
 - **Memory model:** FSRS-6 (identical to the reference `py-fsrs` on every checked step), exam-aware (target recall 90% → 92% three weeks out → 95% in the final week; no interval past the exam). After 100 long-term reviews it fits a personal forgetting rate.
 - **Anki:** uses AnkiDroid's official content provider API. It reads the cards Anki has scheduled for the chosen decks and writes each reel answer back as a normal review. Anki stays in charge of those cards, and AnkiDroid's own sync carries them to AnkiWeb and desktop.
+- **Anki files (.apkg), no AnkiDroid needed:** opens decks exported from any Anki version (2.0, 2.1, and the newer compressed format), including shared decks from AnkiWeb, with no account and no internet. Basic, reversed, type-in and custom note types work; **cloze** cards become one card per gap number, the gap drawn as a blank (a gap number used three times = a 3-point answer); **image occlusion** cards (Anki's built-in type and the older add-on) show the picture with the part to name masked in the card's accent colour: tap to uncover it, double-tap if you knew it, and the hint uncovers the other labels so you can rule them out. Pictures on normal cards are shown too. Review cards keep their Anki progress. It's a one-way import: answers stay in Reelcards. Audio-only and suspended cards are left out.
 - **Notes → cards (no AI needed):** understands `term - definition`, `term: definition`, `Q:/A:` pairs, tab-separated exports from Anki or Quizlet, and simple sentences like "Enzymes are biological catalysts." (→ "What are enzymes?").
 
 Full write-up, with the research behind each choice: **[docs/ENGINE.md](docs/ENGINE.md)**.
@@ -109,7 +112,7 @@ More, including screenshots for each app: **[docs/DESIGN.md](docs/DESIGN.md)**.
 
 ## Proof it works
 
-**Engine checks:** 48 plain-Java checks, including FSRS-6 against `py-fsrs`, gesture and response-time grading, rhythm learning, skipping, quiet mode, format learning, calibration, notes parsing, forecasting, and the hint, save and share buttons. Output: [`engine/results/checks.txt`](engine/results/checks.txt).
+**Engine checks:** 103 plain-Java checks, including FSRS-6 against `py-fsrs`, gesture and response-time grading, rhythm learning, skipping, quiet mode, format learning, calibration, notes parsing, long answers and part marks, reading all three Anki file formats (cloze, image occlusion, pictures, kept progress), forecasting, and the hint, save and share buttons. Output: [`engine/results/checks.txt`](engine/results/checks.txt).
 
 **30-day simulation:** 30 simulated students per row, a 600-card deck (70 real GCSE cards and 530 synthetic ones), with the exam on day 30. This is a *model*, not user data. Each simulated student has a hidden memory, a taste for some card looks, and a tolerance for how often cards appear. Output: [`engine/results/simulation.txt`](engine/results/simulation.txt).
 
@@ -124,7 +127,7 @@ These are averages over four student types at 1 hour and 3.5 hours of reels a da
 Run them yourself:
 
 ```
-./gradlew :engine:engineChecks          # 80 passed, 0 failed
+./gradlew :engine:engineChecks          # 103 passed, 0 failed
 ./gradlew :engine:simulate              # about 2 minutes
 ```
 
@@ -168,8 +171,12 @@ engine/                       the engine: plain Java 8, no Android, no dependenc
     NotesParser.java          pasted notes → cards
     Stats.java                daily stats + forecast
     AnswerShape.java          long answers → points, long questions → set-up + question
+    Occlusion.java            image occlusion masks, as fractions of the picture
     SampleDecks.java          GCSE Biology, Chemistry, Spanish, Science (longer answers)
+    anki/                     Anki files with no libraries: AnkiPackage (.apkg → cards),
+                              SqliteFile, Zstd, Json readers
   src/test/java/              EngineChecks + Simulate
+  src/test/resources/anki/    test decks in all three Anki formats (made by tools/make-test-decks.py)
   results/                    saved outputs of both
 app/src/main/java/com/reelcards/app/   the Android app
   MainActivity.java           setup wizard + dashboard
@@ -185,14 +192,14 @@ app/src/main/java/com/reelcards/app/   the Android app
 app/src/main/assets/fonts/    TikTok Sans, Anton, Caveat, Fraunces (SIL OFL, licences included)
 web-demo/                     browser version of the whole journey (src/ + built index.html)
 docs/                         ENGINE.md, DESIGN.md, design critique, screenshots
-tools/                        Gradle-free APK build, web-demo build, shared debug key
+tools/                        Gradle-free APK build, web-demo build, test-deck maker, shared debug key
 ```
 
 ---
 
 ## Privacy
 
-The accessibility service listens only for *scroll* and *window-change* events, to notice a new reel. It never reads your messages, never records what you watch, and nothing is sent anywhere. Everything is stored in one file on the phone. The optional colour-matching setting is off by default; when on, it reduces one screenshot per reel to a single colour in memory and throws the image away. Details: [PRIVACY.md](PRIVACY.md).
+The accessibility service listens only for *scroll* and *window-change* events, to notice a new reel. It never reads your messages, never records what you watch, and nothing is sent anywhere. Everything is stored in one file on the phone, plus the pictures from any Anki file you open, in the app's private storage. The optional colour-matching setting is off by default; when on, it reduces one screenshot per reel to a single colour in memory and throws the image away. Details: [PRIVACY.md](PRIVACY.md).
 
 ## Licence and money
 
@@ -201,6 +208,7 @@ Reelcards is free software under the [GNU GPL v3](LICENSE). The code stays open,
 ## Honest limits (and what's next)
 
 - **Not yet tested on a physical phone.** The APK compiles, packages and verifies, the engine is tested, and the Android card code was reviewed line by line, but it hasn't run on a device or emulator. Test on 2–3 real phones before demo day, and use the detection log.
+- **Anki files:** a one-way import, and audio is left out. The reader was tested against decks written to Anki's file formats by `tools/make-test-decks.py`, not yet against a wide range of real exports, so please send any deck that doesn't open.
 - **Android only.** iPhones don't let apps detect individual reels; an iOS version would use Screen Time to trigger a card every few minutes instead.
 - **Play Store:** Google reviews non-accessibility uses of the AccessibilityService API closely and requires a prominent disclosure. For the hackathon, share the APK or use Play's internal testing.
 - **Backgrounds** are drawn in code as stand-ins for looping footage, to keep the app tiny and offline.

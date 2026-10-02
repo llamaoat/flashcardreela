@@ -6,11 +6,13 @@ import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Context;
 import android.content.Intent;
+import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.ColorFilter;
 import android.graphics.Outline;
 import android.graphics.Paint;
+import android.graphics.Path;
 import android.graphics.PixelFormat;
 import android.graphics.Rect;
 import android.graphics.RectF;
@@ -36,6 +38,7 @@ import android.view.VelocityTracker;
 import android.view.View;
 import android.view.ViewConfiguration;
 import android.view.ViewGroup;
+import android.view.ViewOutlineProvider;
 import android.view.animation.DecelerateInterpolator;
 import android.view.animation.LinearInterpolator;
 import android.view.animation.OvershootInterpolator;
@@ -45,6 +48,7 @@ import android.widget.TextView;
 
 import com.reelcards.engine.CardScript;
 import com.reelcards.engine.Grade;
+import com.reelcards.engine.Occlusion;
 import com.reelcards.engine.Outcome;
 import com.reelcards.engine.Show;
 
@@ -52,6 +56,8 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
 import java.util.Locale;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * One flashcard drawn as a reel in the app it appears over. Same gestures as a real reel:
@@ -69,6 +75,9 @@ import java.util.Locale;
  * reel, and the student taps the points they got (part marks). A long question's set-up sits in a
  * quoted box. A long explanation goes behind "more" in the caption. If anything would spill out of
  * the safe zone, a fit pass shrinks the text a step at a time.
+ *
+ * Cards from Anki files can carry pictures. Image occlusion cards lead with the picture, the part
+ * to name masked in the accent colour (a tap uncovers it); cloze cards show their gap as a blank.
  *
  * Mirrors web-demo/src/render.js. The engine decides everything; this only draws a Show and reports
  * an Outcome (with timings, for response-time grading).
@@ -165,6 +174,9 @@ final class CardView extends FrameLayout {
     private int chatSkip;          // oldest friend messages dropped so a long chat keeps its newest in view
     private int focusPoint = -1;   // point to give accessibility focus back to after a redraw
     private View focusView;        // that point's view in the latest draw
+    private Bitmap picBmp, ansBmp; // decoded once per card, then reused by every redraw
+    private boolean picTried, ansTried;
+    private int railTop;            // top of the right-hand rail (px): an occlusion picture may run under its column only above this
     private float capDownX, capDownY;
     private int capDownScroll;
     private boolean touchOnCaption;
@@ -347,13 +359,16 @@ final class CardView extends FrameLayout {
         rl.bottomMargin = sb + u("split".equals(layout) ? 96 : 104);
         regionW = W - rl.leftMargin - rl.rightMargin;
         regionH = H - rl.topMargin - rl.bottomMargin;
+        // an occlusion picture may run on under the rail's column (above the rail): the region reaches
+        // over there so the card doesn't clip it, while the body keeps the usual width
+        if (s.isOcclusion() && !sheet) rl.rightMargin = u(12);
         addView(region, rl);
         body = new LinearLayout(c);
         body.setOrientation(LinearLayout.VERTICAL);
         body.setClipChildren(false);
-        boolean centred = !sheet && ("bigtext".equals(layout) || "captions".equals(layout));
+        boolean centred = !sheet && ("bigtext".equals(layout) || "captions".equals(layout)) && !s.isOcclusion();
         centredBody = centred;
-        LayoutParams bl = new LayoutParams(-1, -2, centred ? Gravity.CENTER_VERTICAL : Gravity.TOP);
+        LayoutParams bl = new LayoutParams(regionW, -2, (centred ? Gravity.CENTER_VERTICAL : Gravity.TOP) | Gravity.START);
         if (centred) bl.bottomMargin = Math.round(H * 0.06f);
         region.addView(body, bl);
         if (sheet && !"chat".equals(layout)) {
@@ -480,8 +495,15 @@ final class CardView extends FrameLayout {
             case "captions": renderCaptions(); break;
             case "list": renderList(); break;
             default: {
+                if (s.isOcclusion()) { // the picture leads, full width at the top; the header sits under it
+                    addPicture(false);
+                    addQuestion(0.8f);
+                    addRevealOrAnswer();
+                    break;
+                }
                 if (!compact()) addToBody(hook(s.hookLine));
                 addQuestion("split".equals(layout) ? 0.8f : 1f);
+                addPicture(false);
                 addRevealOrAnswer();
             }
         }
@@ -498,7 +520,8 @@ final class CardView extends FrameLayout {
     private void addQuestion(float scale) {
         if (s.context != null && !s.context.isEmpty()) addToBody(contextBox(), true);
         String q = s.context != null && !s.context.isEmpty() && s.questionMain != null ? s.questionMain : s.question;
-        addToBody(question(q, scale * (compact() ? 0.6f : 1f)));
+        float pic = s.isOcclusion() ? 0.6f : s.image != null ? 0.7f : 1f; // a picture does the asking
+        addToBody(question(q, scale * (compact() ? 0.6f : 1f) * pic));
         if (!"list".equals(layout)) addMarks();
     }
 
@@ -602,7 +625,7 @@ final class CardView extends FrameLayout {
         float fit = len > 110 ? 0.7f : len > 80 ? 0.8f : len > 55 ? 0.9f : 1f;
         Typeface tf = questionFace();
         boolean sub = "subtitle".equals(look);
-        float size = fitSize(q, tf, tpx(baseSize() * scale * fit * this.fit), column(), sub ? u(22) : u(8), upper());
+        float size = fitSize(s.cloze ? gapsAsWords(q) : q, tf, tpx(baseSize() * scale * fit * this.fit), column(), sub ? u(22) : u(8), upper());
         CharSequence text = emphasised(q, upper());
 
         TextView t = tv(text, 10, sub ? 0xFF111111 : P.fg, tf);
@@ -612,11 +635,12 @@ final class CardView extends FrameLayout {
         t.setHyphenationFrequency(android.text.Layout.HYPHENATION_FREQUENCY_NONE);
         if ("neon".equals(look)) { t.setShadowLayer(u(18), 0, 0, P.acc); t.setLetterSpacing(0.012f); }
         if (sub) boxRoom(t);
+        if (s.cloze) t.setContentDescription(CardScript.spokenGaps(q));
         if (!"caption".equals(look)) return t;
 
         // caption look: heavy white captions with a black outline (drawn as a stroked copy behind)
         FrameLayout stack = new FrameLayout(c);
-        TextView outline = tv(text.toString(), 10, 0xFF000000, tf); // same words and spacing as the white copy
+        TextView outline = tv(s.cloze ? gapped(q, true, true) : text.toString(), 10, 0xFF000000, tf); // same words and spacing as the white copy
         outline.setHyphenationFrequency(android.text.Layout.HYPHENATION_FREQUENCY_NONE);
         outline.setTextSize(TypedValue.COMPLEX_UNIT_PX, size);
         outline.setLineSpacing(0, 1.02f);
@@ -626,6 +650,7 @@ final class CardView extends FrameLayout {
         outline.getPaint().setStrokeWidth(u(4));
         outline.setShadowLayer(u(10), 0, u(4), 0x73000000);
         outline.setPadding(u(3), u(3), u(3), u(3)); // room for the stroke; both copies padded alike so they line up
+        outline.setImportantForAccessibility(IMPORTANT_FOR_ACCESSIBILITY_NO); // screen readers read the white copy only
         t.setPadding(u(3), u(3), u(3), u(3));
         stack.addView(outline, new LayoutParams(-1, -2));
         stack.addView(t, new LayoutParams(-1, -2));
@@ -644,18 +669,47 @@ final class CardView extends FrameLayout {
 
     /** Question text with the key word styled for the look. */
     private CharSequence emphasised(String q, boolean up) {
-        String[] words = q.split("\\s+");
-        int kw = keyWord(words);
-        SpannableStringBuilder b = new SpannableStringBuilder();
-        for (int i = 0; i < words.length; i++) {
-            if (i > 0) b.append(' ');
-            String w = up ? words[i].toUpperCase(Locale.UK) : words[i];
-            int start = b.length();
-            b.append(w);
-            if (i == kw) styleKeyWord(b, start, b.length());
+        SpannableStringBuilder b;
+        if (s.cloze) b = gapped(q, up, false); // the gap is what stands out; no key word competes with it
+        else {
+            String[] words = q.split("\\s+");
+            int kw = keyWord(words);
+            b = new SpannableStringBuilder();
+            for (int i = 0; i < words.length; i++) {
+                if (i > 0) b.append(' ');
+                String w = up ? words[i].toUpperCase(Locale.UK) : words[i];
+                int start = b.length();
+                b.append(w);
+                if (i == kw) styleKeyWord(b, start, b.length());
+            }
         }
         if ("subtitle".equals(look)) b.setSpan(new LineBoxSpan(0xFFFFFFFF, u(8), u(9), false), 0, b.length(), Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
         return b;
+    }
+
+    private static final Pattern GAP = Pattern.compile("\\[([^\\]]{0,40})\\]");
+
+    /**
+     * Cloze text: each "[…]" (or "[hint]") drawn as a blank to fill in the look's style. ghost keeps
+     * the widths but draws nothing, for the caption look's outline copy that sits behind the text.
+     */
+    private SpannableStringBuilder gapped(String q, boolean up, boolean ghost) {
+        String t = up ? q.toUpperCase(Locale.UK) : q;
+        SpannableStringBuilder b = new SpannableStringBuilder(t);
+        boolean paper = "paper".equals(look);
+        Typeface face = "clean".equals(look) ? Fonts.frauncesItalic(getContext()) : null;
+        Matcher m = GAP.matcher(t);
+        while (m.find()) b.setSpan(new GapSpan(P.acc, paper ? P.acc : P.accFg, paper, ghost, face), m.start(), m.end(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        return b;
+    }
+
+    /** For sizing: a gap never breaks across lines, so its words count as one. */
+    private static String gapsAsWords(String q) {
+        Matcher m = GAP.matcher(q);
+        StringBuffer b = new StringBuffer();
+        while (m.find()) m.appendReplacement(b, Matcher.quoteReplacement(m.group().replace(' ', '\u00A0')));
+        m.appendTail(b);
+        return b.toString();
     }
 
     private void styleKeyWord(SpannableStringBuilder b, int start, int end) {
@@ -681,11 +735,27 @@ final class CardView extends FrameLayout {
             addToBody(revealButton());
         } else if (multi()) {
             addPoints();
+            addPicture(true);
+        } else if (s.isOcclusion()) { // the mask has opened; self-mark with a double-tap
+            boolean k = outcome.liked;
+            addToBody(selfCheck(k ? "Got it" : "Double-tap if you got it", k));
         } else {
-            View a = answerBox();
-            addToBody(a, true);
-            if (justRevealed) drop(a);
+            boolean empty = s.answer == null || s.answer.isEmpty();
+            if (!empty || (s.explanation != null && !s.explanation.isEmpty())) { // empty: the answer is a picture
+                View a = answerBox();
+                addToBody(a, true);
+                if (justRevealed) drop(a);
+            }
+            addPicture(true);
         }
+    }
+
+    /** The round "self check" pill under an answer: "Tap the ones you got", "Got it", … */
+    private TextView selfCheck(String text, boolean on) {
+        TextView check = tvb((on ? "●  " : "○  ") + text, 12.5f, sheet ? P.fg : 0xFFFFFFFF, black());
+        check.setBackground(round(sheet ? 0x29808080 : 0x80000000, u(99)));
+        check.setPadding(u(11), u(5), u(11), u(5));
+        return check;
     }
 
     private View hintChip() {
@@ -732,16 +802,68 @@ final class CardView extends FrameLayout {
         box.setPadding(u(15), u(13), u(15), u(14));
         box.setElevation(u(6));
         int len = s.answer == null ? 0 : s.answer.length();
-        TextView a1 = tvb(s.answer, len > 40 ? 16.5f : len > 22 ? 18 : 20, P.accFg, len > 40 ? bold() : black());
-        a1.setLineSpacing(0, 1.15f);
-        box.addView(a1);
+        if (len > 0) {
+            TextView a1 = tvb(s.answer, len > 40 ? 16.5f : len > 22 ? 18 : 20, P.accFg, len > 40 ? bold() : black());
+            a1.setLineSpacing(0, 1.15f);
+            box.addView(a1);
+        }
         if (s.explanation != null && !s.explanation.isEmpty()) {
             TextView a2 = tvb(s.explanation, 14.5f, P.accFg, regular());
             a2.setLineSpacing(0, 1.3f);
-            LinearLayout.LayoutParams lp = fullLp(u(4));
+            LinearLayout.LayoutParams lp = fullLp(len > 0 ? u(4) : 0);
             box.addView(a2, lp);
         }
         return box;
+    }
+
+    // --- pictures from Anki cards
+
+    private Bitmap bitmap(boolean answer) {
+        if (answer) { if (!ansTried) { ansTried = true; ansBmp = Ui.picture(s.answerImage, W); } return ansBmp; }
+        if (!picTried) { picTried = true; picBmp = Ui.picture(s.image, W); }
+        return picBmp;
+    }
+
+    /**
+     * A card's picture, sized from its stored dimensions so occlusion masks line up exactly: the
+     * front's under the question, the back's under the answer. On an image occlusion card it leads,
+     * as wide as it can be while staying clear of the rail, with the masks drawn over it.
+     */
+    private void addPicture(boolean answer) {
+        String path = answer ? s.answerImage : s.image;
+        if (path == null) return;
+        boolean io = !answer && s.isOcclusion();
+        Bitmap bmp = bitmap(answer);
+        if (bmp == null && !io) return; // the file's gone: leave it out (an occlusion card still needs its masks)
+        int iw = answer ? s.answerImageW : s.imageW, ih = answer ? s.answerImageH : s.imageH;
+        if (iw <= 0 || ih <= 0) { iw = bmp != null ? bmp.getWidth() : 4; ih = bmp != null ? bmp.getHeight() : 3; }
+        float r = iw / (float) ih, maxH = u(io ? 240 : answer ? 150 : 220) * fit;
+        int col = column(), w = Math.round(Math.min(col, maxH * r));
+        if (io && !sheet && region != null) { // may run on under the rail's column, if it ends above the rail
+            int top = ((LayoutParams) region.getLayoutParams()).topMargin;
+            float clearH = railTop - u(10) - top;
+            int wide = Math.round(Math.min(col + sr + u(18), Math.min(maxH, clearH) * r));
+            if (wide > w) w = wide;
+        }
+        int h = Math.max(1, Math.round(w / r));
+        PicView v = new PicView(getContext(), bmp, u(14), sheet);
+        if (io) {
+            v.shapes = s.occlusion;
+            v.target = s.occlusionTarget;
+            v.others = !hinted; // the hint uncovers the other labels
+            v.acc = P.acc;
+            v.labelPx = tpx(12);
+            v.labelFace = bold();
+            v.open = outcome.revealed ? 1f : 0f;
+            v.setContentDescription(outcome.revealed ? "Picture, with the highlighted part uncovered" : "Picture: name the highlighted part");
+        } else v.setContentDescription(answer ? "Picture from the answer" : "Picture from the card");
+        if (!sheet) v.setElevation(u(8));
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(w, h);
+        lp.topMargin = body.getChildCount() == 0 ? 0 : Math.round(u(14) * fit);
+        lp.gravity = io ? Gravity.START : Gravity.CENTER_HORIZONTAL;
+        body.addView(v, lp);
+        if (io && justRevealed) v.animateOpen();
+        if (answer && justRevealed) drop(v);
     }
 
     // --- long answers: points drop in one after another; tap the ones you got
@@ -889,10 +1011,7 @@ final class CardView extends FrameLayout {
         }
         addToBody(list, true);
         int k = gotCount(), n = s.points.size();
-        TextView check = tvb((k > 0 ? "●  " : "○  ") + (k > 0 ? (k >= n ? "Got all " + n : "Got " + k + " of " + n) : "Tap the ones you got"), 12.5f,
-                sheet ? P.fg : 0xFFFFFFFF, black());
-        check.setBackground(round(sheet ? 0x29808080 : 0x80000000, u(99)));
-        check.setPadding(u(11), u(5), u(11), u(5));
+        TextView check = selfCheck(k > 0 ? (k >= n ? "Got all " + n : "Got " + k + " of " + n) : "Tap the ones you got", k > 0);
         addToBody(check);
         if (animate) popIn(check, d[n]);
         if (animate) postDelayed(new Runnable() { @Override public void run() { settled = true; } }, d[n] + 600);
@@ -938,8 +1057,8 @@ final class CardView extends FrameLayout {
             boolean up = !"paper".equals(look) && !"clean".equals(look);
             String[] words = raw.split(" ");
             int hi = beat < s.beatHighlight.size() ? s.beatHighlight.get(beat) : -1;
-            SpannableStringBuilder b = new SpannableStringBuilder();
-            for (int i = 0; i < words.length; i++) {
+            SpannableStringBuilder b = s.cloze ? gapped(raw, up, false) : new SpannableStringBuilder();
+            for (int i = 0; i < words.length && !s.cloze; i++) {
                 if (i > 0) b.append(' ');
                 int start = b.length();
                 b.append(up ? words[i].toUpperCase(Locale.UK) : words[i]);
@@ -947,7 +1066,7 @@ final class CardView extends FrameLayout {
             }
             if ("subtitle".equals(look)) b.setSpan(new LineBoxSpan(0xFFFFFFFF, u(9), u(10), true), 0, b.length(), Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
             Typeface tf = "paper".equals(look) ? Fonts.caveat(getContext()) : "clean".equals(look) ? Fonts.fraunces(getContext()) : black();
-            float size = fitSize(raw, tf, tpx("clean".equals(look) ? 34 : 40) * fit, column(), u(22), up);
+            float size = fitSize(s.cloze ? gapsAsWords(raw) : raw, tf, tpx("clean".equals(look) ? 34 : 40) * fit, column(), u(22), up);
             TextView t = tv(b, 10, "subtitle".equals(look) ? 0xFF111111 : P.fg, tf);
             t.setTextSize(TypedValue.COMPLEX_UNIT_PX, size);
             t.setLineSpacing(0, "subtitle".equals(look) ? 1.4f : 1.02f);
@@ -1158,7 +1277,7 @@ final class CardView extends FrameLayout {
         poll.setBackground(round(0xFFFFFFFF, u(18)));
         poll.setPadding(u(12), u(12), u(12), u(12));
         poll.setElevation(u(10));
-        TextView pq = tv(s.question, 16, 0xFF111111, black());
+        TextView pq = tv(s.cloze ? gapped(s.question, false, false) : s.question, 16, 0xFF111111, black());
         pq.setLineSpacing(0, 1.25f);
         pq.setPadding(u(4), u(2), u(4), u(4));
         poll.addView(pq);
@@ -1384,6 +1503,8 @@ final class CardView extends FrameLayout {
         lp.rightMargin = Math.max(u(6), sr - u(48));
         lp.bottomMargin = sb - u(2);
         addView(rail, lp);
+        rail.measure(MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED), MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED));
+        railTop = H - lp.bottomMargin - rail.getMeasuredHeight();
     }
 
     private String tags() {
@@ -1715,7 +1836,7 @@ final class CardView extends FrameLayout {
         if (likeIcon != null) { likeIcon.setFilled(true); likeLabel.setText(before ? "Easy" : "Good"); }
         updateBadge();
         updateVibe();
-        if (multi() && outcome.revealed) { settled = true; renderBody(); } // all points show as got
+        if ((multi() || s.isOcclusion()) && outcome.revealed) { settled = true; renderBody(); } // all points show as got; "Got it"
         if (outcome.quizPick < 0 || outcome.quizPick == s.correct) xp();
         if (before && !show.isQuiz()) postDelayed(new Runnable() { @Override public void run() { revealAfterLike(); } }, 600);
     }
@@ -1991,6 +2112,184 @@ final class CardView extends FrameLayout {
         }
     }
 
+    /** A picture with rounded corners; on an image occlusion card, the masks over it (fractions of the picture). */
+    static final class PicView extends View {
+        private final Bitmap bmp;
+        private final boolean flat;
+        private final float dp;
+        private final Paint p = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.FILTER_BITMAP_FLAG);
+        private final RectF r = new RectF();
+        private final Path path = new Path();
+        private final float radius;
+        private ValueAnimator anim;
+        private static final android.animation.ArgbEvaluator ARGB = new android.animation.ArgbEvaluator();
+        List<Occlusion.Shape> shapes;  // null: a plain picture
+        int target, acc;
+        boolean others = true;         // cover the other labels too ("occlude inactive")
+        float open;                    // 0 = target masked, 1 = uncovered
+        float labelPx;
+        Typeface labelFace;
+
+        PicView(Context c, Bitmap bmp, final float radius, boolean flat) {
+            super(c);
+            this.bmp = bmp;
+            this.flat = flat;
+            this.radius = radius;
+            this.dp = c.getResources().getDisplayMetrics().density;
+            setOutlineProvider(new ViewOutlineProvider() {
+                @Override public void getOutline(View v, Outline o) { o.setRoundRect(0, 0, v.getWidth(), v.getHeight(), radius); }
+            });
+            setClipToOutline(true);
+            setImportantForAccessibility(IMPORTANT_FOR_ACCESSIBILITY_YES);
+        }
+
+        /** The target mask fades to an outline, uncovering the label under it. */
+        void animateOpen() {
+            open = 0f;
+            anim = ValueAnimator.ofFloat(0f, 1f);
+            anim.setDuration(380);
+            anim.setInterpolator(new DecelerateInterpolator());
+            anim.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
+                @Override public void onAnimationUpdate(ValueAnimator a) { open = (Float) a.getAnimatedValue(); invalidate(); }
+            });
+            anim.start();
+        }
+
+        @Override protected void onDetachedFromWindow() {
+            super.onDetachedFromWindow();
+            if (anim != null) anim.cancel();
+        }
+
+        @Override
+        protected void onDraw(Canvas c) {
+            float w = getWidth(), h = getHeight();
+            p.setStyle(Paint.Style.FILL);
+            p.setColor(0xFFFFFFFF);
+            c.drawRect(0, 0, w, h, p);
+            if (bmp != null) {
+                r.set(0, 0, w, h);
+                c.drawBitmap(bmp, null, r, p);
+            } else {
+                p.setColor(0xFF8A8A8A);
+                p.setTextSize(13 * dp);
+                p.setTextAlign(Paint.Align.CENTER);
+                c.drawText("Picture not found", w / 2, h / 2, p);
+                p.setTextAlign(Paint.Align.LEFT);
+            }
+            if (shapes != null) {
+                for (Occlusion.Shape sh : shapes) {
+                    if ("text".equals(sh.kind)) continue;
+                    boolean t = sh.ord == target;
+                    if (!t && (!sh.oi || !others)) continue;
+                    if (!shapePath(sh, w, h)) continue;
+                    p.setStyle(Paint.Style.FILL);
+                    if (t) p.setColor((acc & 0x00FFFFFF) | (Math.round(255 * (1f - 0.88f * open)) << 24));
+                    else p.setColor(0xFFF3E7C9);
+                    c.drawPath(path, p);
+                    p.setStyle(Paint.Style.STROKE);
+                    p.setStrokeJoin(Paint.Join.ROUND);
+                    if (t) {
+                        p.setStrokeWidth((2.5f + open) * dp);
+                        p.setColor((Integer) ARGB.evaluate(open, 0xFF111111, acc | 0xFF000000));
+                    } else {
+                        p.setStrokeWidth(1.5f * dp);
+                        p.setColor(0xFF1D1D1F);
+                    }
+                    c.drawPath(path, p);
+                }
+                for (Occlusion.Shape sh : shapes) if ("text".equals(sh.kind) && sh.text != null && !sh.text.isEmpty()) label(c, sh, w, h);
+            }
+            if (flat) { // on a notes sheet: a hairline edge instead of a shadow
+                p.setStyle(Paint.Style.STROKE);
+                p.setStrokeWidth(Math.max(1f, dp));
+                p.setColor(0x40808080);
+                float in = p.getStrokeWidth() / 2f;
+                r.set(in, in, w - in, h - in);
+                c.drawRoundRect(r, radius, radius, p);
+            }
+        }
+
+        private boolean shapePath(Occlusion.Shape sh, float w, float h) {
+            path.reset();
+            r.set((float) (sh.x * w), (float) (sh.y * h), (float) ((sh.x + sh.w) * w), (float) ((sh.y + sh.h) * h));
+            if ("rect".equals(sh.kind)) path.addRect(r, Path.Direction.CW);
+            else if ("ellipse".equals(sh.kind)) path.addOval(r, Path.Direction.CW);
+            else if ("polygon".equals(sh.kind) && sh.pts != null && sh.pts.length >= 6) {
+                path.moveTo((float) (sh.pts[0] * w), (float) (sh.pts[1] * h));
+                for (int i = 2; i + 1 < sh.pts.length; i += 2) path.lineTo((float) (sh.pts[i] * w), (float) (sh.pts[i + 1] * h));
+                path.close();
+            } else return false;
+            return true;
+        }
+
+        /** A text annotation from the occlusion editor, on a small white tag. */
+        private void label(Canvas c, Occlusion.Shape sh, float w, float h) {
+            p.setStyle(Paint.Style.FILL);
+            p.setTextSize(labelPx > 0 ? labelPx : 11 * dp);
+            if (labelFace != null) p.setTypeface(labelFace);
+            float tw = p.measureText(sh.text), padX = 5 * dp, padY = 2 * dp, x = (float) sh.x * w, y = (float) sh.y * h;
+            r.set(x, y, x + tw + 2 * padX, y + p.getTextSize() * 1.1f + 2 * padY);
+            p.setColor(0xE0FFFFFF);
+            c.drawRoundRect(r, 4 * dp, 4 * dp, p);
+            p.setColor(0xFF111111);
+            c.drawText(sh.text, x + padX, y + padY - p.ascent(), p);
+            p.setTypeface(null);
+        }
+    }
+
+    /** A cloze gap: the "[…]" (or "[hint]") drawn as a blank in the accent colour, or underlined on the paper look. */
+    static final class GapSpan extends ReplacementSpan {
+        private final int bg, fg;
+        private final boolean line, ghost;
+        private final Typeface face;
+        private final RectF r = new RectF();
+
+        GapSpan(int bg, int fg, boolean line, boolean ghost, Typeface face) { this.bg = bg; this.fg = fg; this.line = line; this.ghost = ghost; this.face = face; }
+
+        private float inner(Paint p, CharSequence text, int start, int end) {
+            if (end - start < 2) return 0;
+            Typeface keep = p.getTypeface();
+            if (face != null) p.setTypeface(face);
+            float w = p.measureText(text, start + 1, end - 1);
+            p.setTypeface(keep);
+            return w;
+        }
+
+        private float box(Paint p, float inner) { float em = p.getTextSize(); return Math.max(inner + 0.56f * em, (line ? 2.6f : 2.3f) * em); }
+
+        @Override
+        public int getSize(Paint p, CharSequence text, int start, int end, Paint.FontMetricsInt fm) {
+            if (fm != null) p.getFontMetricsInt(fm);
+            return Math.round(box(p, inner(p, text, start, end)) + 0.08f * p.getTextSize());
+        }
+
+        @Override
+        public void draw(Canvas c, CharSequence text, int start, int end, float x, int top, int y, int bottom, Paint p) {
+            if (ghost) return;
+            float em = p.getTextSize(), tw = inner(p, text, start, end), w = box(p, tw), left = x + 0.04f * em;
+            int keepColor = p.getColor();
+            Paint.Style keepStyle = p.getStyle();
+            p.setStyle(Paint.Style.FILL);
+            p.setColor(bg);
+            if (line) {
+                float ly = y + p.descent() * 0.35f;
+                c.drawRect(left, ly, left + w, ly + 0.09f * em, p);
+            } else {
+                r.set(left, y + p.ascent() * 0.86f, left + w, y + p.descent() * 0.9f);
+                c.drawRoundRect(r, 0.2f * em, 0.2f * em, p);
+            }
+            if (end - start >= 2) {
+                Paint tp = new Paint(p);
+                tp.clearShadowLayer();
+                tp.setColor(fg);
+                if (face != null) tp.setTypeface(face);
+                c.drawText(text, start + 1, end - 1, left + (w - tw) / 2f, y, tp);
+            }
+            p.setColor(keepColor);
+            p.setStyle(keepStyle);
+        }
+    }
+
     /** Sets a typeface on a stretch of text (TypefaceSpan(Typeface) needs Android 9). */
     static final class FaceSpan extends MetricAffectingSpan {
         private final Typeface tf;
@@ -2035,7 +2334,7 @@ final class CardView extends FrameLayout {
             int e = end;
             while (e > start && Character.isWhitespace(text.charAt(e - 1))) e--;
             if (e <= start) return;
-            float w = p.measureText(text, start, e);
+            float w = measure(p, text, start, e);
             int keep = p.getColor();
             p.setColor(color);
             float x = centred ? left + (right - left - w) / 2f : left; // Android always passes the layout's left edge
@@ -2043,6 +2342,26 @@ final class CardView extends FrameLayout {
             c.drawRoundRect(r, radius, radius, p);
             p.setColor(keep);
         }
+    }
+
+    /** Width of a stretch of text as drawn: a replacement span (a cloze gap) counts at its own width. */
+    static float measure(Paint p, CharSequence text, int start, int end) {
+        if (!(text instanceof Spanned)) return p.measureText(text, start, end);
+        final Spanned sp = (Spanned) text;
+        ReplacementSpan[] spans = sp.getSpans(start, end, ReplacementSpan.class);
+        if (spans.length == 0) return p.measureText(text, start, end);
+        java.util.Arrays.sort(spans, new java.util.Comparator<ReplacementSpan>() {
+            @Override public int compare(ReplacementSpan a, ReplacementSpan b) { return sp.getSpanStart(a) - sp.getSpanStart(b); }
+        });
+        float w = 0;
+        int at = start;
+        for (ReplacementSpan r : spans) {
+            int a = Math.max(start, sp.getSpanStart(r)), b = Math.min(end, sp.getSpanEnd(r));
+            if (a < at || b <= a) continue;
+            w += p.measureText(text, at, a) + r.getSize(p, text, a, b, null);
+            at = b;
+        }
+        return w + p.measureText(text, at, end);
     }
 
     /** A notes page: plain (clean look), or ruled paper with a red margin (paper look; chalkboard at night). */
