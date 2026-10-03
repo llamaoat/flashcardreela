@@ -1,12 +1,12 @@
 # Roadmap
 
-What's left to build, most important first. As of 1.2.0 (October 2026), the engine and web demo
-are tested. The Android app compiles and has been reviewed line by line, but hasn't run on a real
-phone yet.
+What's left to build, most important first. As of October 2026, the engine and web demo are
+tested, and the Android app builds in CI and runs under Robolectric on Android 14 and 16, but it
+hasn't run on a real phone yet.
 
 ## Now: before students use it
 
-1. **Test on real phones.**
+1. **Test on real phones:** [PHONE-TESTS.md](PHONE-TESTS.md) is the full checklist.
    - **Which phones:** two or three, ideally Android 8–10, Android 13+ (restricted settings) and a
      Samsung.
    - **Setup:** the accessibility switch (and "Allow restricted settings" on 13+).
@@ -39,13 +39,13 @@ phone yet.
    to back up small decks' pictures.
 5. **On-device AI** for the copy (hooks, hints, captions) and for messy notes → cards. This would use
    Gemini Nano through ML Kit's GenAI APIs, on phones that have it, with today's templates as the
-   fallback. `CopyWriter` is the plug-in point.
-6. **Play Store readiness:**
-   - the prominent disclosure and declaration Google requires for non-accessibility uses of the
-     AccessibilityService API;
-   - a private signing key;
-   - a hosted privacy policy;
-   - store listing screenshots from the design lab.
+   fallback. `CopyWriter` is the plug-in point. **Needs a decision first:** ML Kit is a Google library
+   (from Google's Maven repository), which the "no third-party libraries" rule doesn't allow. Until
+   then, *Make cards with AI* uses a chatbot the student already has, outside the app.
+6. **Publish on Google Play.** The app side is done (API 36, the disclosure and consent, upload-key
+   signing, a privacy policy page, listing graphics). What's left needs a Play Console account:
+   the steps, listing text, Accessibility API declaration and video script are in
+   [PLAY-STORE.md](PLAY-STORE.md).
 
 ## Later
 

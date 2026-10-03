@@ -38,6 +38,13 @@ jobs:
       - name: Name the APK
         run: cp app/build/outputs/apk/debug/app-debug.apk Reelcards.apk
 
+      - name: The Play bundle builds (demo-signed here, so the upload check must refuse it)
+        run: |
+          ./gradlew :app:bundleRelease --no-daemon
+          if tools/check-play-bundle.sh app/build/outputs/bundle/release/app-release.aab; then
+            echo "::error::check-play-bundle.sh accepted a bundle signed with the shared demo key"; exit 1
+          fi
+
       - uses: actions/upload-artifact@v4
         with:
           name: Reelcards-apk

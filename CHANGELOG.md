@@ -28,6 +28,18 @@
 - The notes reader copes with how chatbots write: `**Q:**`, `Q1:`/`A1:`, and intro lines ending in a
   colon. 115 engine checks (was 104), and the Java/JS cross-check now covers notes too.
 
+**Google Play**
+- Targets Android 16 (API 36), as Play requires from 31 August 2026. Pages keep clear of the system
+  bars and keyboard on Android 15+, and back works through Android 13+'s back callbacks (Android 16
+  no longer calls the old method).
+- The *Switch it on* screen is Play's prominent disclosure: what the accessibility service sees, does,
+  keeps and never does, with *Agree and open settings* or *No thanks*.
+- A privacy policy page (built from PRIVACY.md, published with the web demo), linked from the app.
+- Release bundles sign with your own upload key (`tools/make-upload-key.sh`); CI builds the `.aab`
+  and refuses one signed with the shared demo key.
+- Listing graphics (`tools/store-assets.py`), and `docs/PLAY-STORE.md` for the Console steps.
+- `docs/PHONE-TESTS.md`: the checklist for testing on real phones.
+
 **Fixes**
 - Share no longer loses the card. The card steps aside while the share sheet is open and comes back
   when you return to the app. A card shared without being answered isn't counted as a skip and isn't

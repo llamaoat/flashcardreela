@@ -144,7 +144,7 @@ No Gradle? Use `javac -d out $(find engine/src -name '*.java') && java -cp out E
 - **Web demo:** edit `web-demo/src/`, then `python3 tools/build-web-demo.py` rebuilds the single-file `web-demo/index.html`. `python3 tools/lab-shots.py` screenshots the design lab.
 - **Keeping the two engines in step:** `tools/crosscheck/run.sh` checks the Java engine against the web demo's JavaScript port (CI runs it too).
 
-All builds are signed with the shared debug key in `tools/`, so any teammate's build can update the same installed app. **Use your own private key for anything you publish.**
+Debug builds are signed with the shared debug key in `tools/`, so any teammate's build can update the same installed app. **Use your own private key for anything you publish:** `tools/make-upload-key.sh` makes one, and release builds use it when it's set up (see [docs/PLAY-STORE.md](docs/PLAY-STORE.md)).
 
 ---
 
@@ -193,10 +193,11 @@ app/src/main/java/com/reelcards/app/   the Android app
   Store.java                  saves everything to one JSON file on the phone
 app/src/main/assets/fonts/    TikTok Sans, Anton, Caveat, Fraunces (SIL OFL, licences included)
 web-demo/                     browser version of the whole journey (src/ + built index.html)
-docs/                         ENGINE.md, DESIGN.md, ROADMAP.md, design critique, screenshots
-tools/                        Gradle-free APK build, web-demo build, test-deck makers (by hand and
-                              with Anki's own library), Java/JS cross-check, design-lab screenshots,
-                              shared debug key
+docs/                         ENGINE.md, DESIGN.md, ROADMAP.md, PLAY-STORE.md, PHONE-TESTS.md,
+                              design critique, screenshots, play-store/ (listing graphics)
+tools/                        Gradle-free APK build, web-demo and privacy-page builds, test-deck
+                              makers (by hand and with Anki's own library), Java/JS cross-check,
+                              design-lab and store screenshots, upload-key scripts, shared debug key
 CLAUDE.md                     project rules and commands for Claude Code (and anyone new)
 ```
 
@@ -212,10 +213,10 @@ Reelcards is free software under the [GNU GPL v3](LICENSE). The code stays open,
 
 ## Honest limits (and what's next)
 
-- **Not yet tested on a physical phone.** The APK compiles, packages and verifies, the engine is tested, and the Android card code was reviewed line by line, but it hasn't run on a device or emulator. Test on 2–3 real phones before demo day, and use the detection log.
+- **Not yet tested on a physical phone.** The APK builds in CI, the engine is tested, and the Android code runs under Robolectric on Android 14 and 16, but it hasn't run on a device or emulator. [docs/PHONE-TESTS.md](docs/PHONE-TESTS.md) is the checklist for 2–3 real phones.
 - **Anki files:** a one-way import, and audio is left out. The reader is checked against decks Anki itself exported (`tools/real-anki-decks.py`: the default format, "support older Anki versions" and a collection package), compared card by card with how Anki shows them, and against decks written to each file format by `tools/make-test-decks.py`. Shared decks from AnkiWeb and the old Image Occlusion Enhanced add-on haven't been tried as real files yet, so please send any deck that doesn't open.
 - **Android only.** iPhones don't let apps detect individual reels; an iOS version would use Screen Time to trigger a card every few minutes instead.
-- **Play Store:** Google reviews non-accessibility uses of the AccessibilityService API closely and requires a prominent disclosure. For the hackathon, share the APK or use Play's internal testing.
+- **Play Store:** the app targets API 36, shows Google's prominent disclosure before the accessibility settings, signs release bundles with your own upload key, and has a privacy policy page and listing graphics. What's left needs a Play Console account: [docs/PLAY-STORE.md](docs/PLAY-STORE.md). Google reviews non-accessibility uses of the AccessibilityService API closely, so approval isn't guaranteed.
 - **Backgrounds** are drawn in code as stand-ins for looping footage, to keep the app tiny and offline.
 - **Copy is templated.** *Make cards with AI* uses a chatbot the student already has, outside the app. On-device AI (Gemini Nano via ML Kit's GenAI APIs) would need Google's ML Kit library, which the no-third-party-libraries rule doesn't allow yet; `CopyWriter` is the plug-in point.
 - **The simulation is a model.** Real numbers need a pilot with real students.

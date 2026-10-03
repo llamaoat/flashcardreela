@@ -32,6 +32,7 @@ tools/crosscheck/run.sh            # Java engine vs JS port: answer splitting, n
 python3 tools/build-web-demo.py    # rebuild web-demo/index.html after editing web-demo/src/
 python3 tools/lab-shots.py --cards long|short|anki --states q a hint   # PNGs of the design lab in build/shots/
 ./gradlew assembleDebug            # the APK (needs the Android SDK); CI builds it on every push
+python3 tools/store-assets.py      # Play listing graphics in docs/play-store/ (needs Playwright + Pillow)
 python3 tools/make-test-decks.py   # regenerate engine/src/test/resources/anki/*.apkg
 <venv with `pip install anki pillow`>/bin/python tools/real-anki-decks.py   # regenerate anki/real/ with Anki's own code
 ```
@@ -54,7 +55,14 @@ python3 tools/make-test-decks.py   # regenerate engine/src/test/resources/anki/*
 
   Change both sides in the same commit and run `tools/crosscheck/run.sh`. Card designs are checked
   visually in the web demo's design lab, because there's no emulator in most sessions.
-- Minimum Android 8.0 (API 26); don't use newer APIs without a version check.
+- Minimum Android 8.0 (API 26); don't use newer APIs without a version check (put them in a nested
+  `ApiNN` class, as `MainActivity.Api33`/`Api35` and `ReelWatcherService.Api30` do).
+- Targets API 36 (Google Play's rule). Pages are drawn edge to edge on Android 15+, so new full-screen
+  views need insets; back is an `OnBackInvokedCallback` while `back != null` (Android 16 never calls
+  `onBackPressed`), so set `back` through `page()`.
+- The accessibility disclosure (`MainActivity.DISCLOSURE`), `PRIVACY.md` and the Play declaration in
+  `docs/PLAY-STORE.md` must say the same thing. If the service starts using anything new, update all
+  three, or Play can pull the app.
 
 ## How to work here
 
@@ -64,16 +72,19 @@ python3 tools/make-test-decks.py   # regenerate engine/src/test/resources/anki/*
   (`tools/lab-shots.py`). Look at every look (caption, subtitle, clean, neon, paper) and host
   (`--host instagram|youtube`), plus the hint and answer states. The fit pass shrinks text when it
   would spill out of the safe zone; `fit steps` in the tool's output shows where that happened.
-- **Android code is mostly unverified on devices.** It compiles and has been reviewed line by line,
-  but has never run on a phone or emulator. Don't claim device testing that didn't happen. If you have
-  an emulator or a phone with `adb`, use it, and say what you checked.
+- **Android code is mostly unverified on devices.** It builds in CI and has been run under Robolectric
+  (Android 14 and 16), but has never run on a phone or emulator. Don't claim device testing that
+  didn't happen. If you have an emulator or a phone with `adb`, use it with `docs/PHONE-TESTS.md`, and
+  say what you checked.
 - **New check:** add it to `engine/src/test/java/EngineChecks.java`. Update the count in README.md,
   CONTRIBUTING.md and this file, and save the output to `engine/results/checks.txt`.
 - **Release:**
   1. Bump `versionCode`/`versionName` in `app/build.gradle`.
   2. Add a CHANGELOG entry.
   3. Copy the APK to `release/`.
-  4. Tag `vX.Y.Z`. CI publishes a GitHub Release for tags.
+  4. Tag `vX.Y.Z`. CI publishes a GitHub Release for tags, and a Play bundle (.aab) when the upload
+     key is in the repo's secrets (`docs/PLAY-STORE.md`). Never sign anything for Play with the
+     shared demo key: `tools/check-play-bundle.sh` refuses it.
 - **Writing:** UK English, plain words, short sentences. In-app copy talks to teenagers: friendly,
   never babyish. Docs say what's measured and what's modelled, with no hype.
 
