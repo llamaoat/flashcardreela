@@ -15,8 +15,11 @@ import java.util.regex.Pattern;
  *   term: definition                  (left side short)
  *   front<TAB>back[<TAB>extra]        (Anki "Notes in plain text" export, Quizlet export)
  *   "X is/are Y." "X is called Y." "X means Y."   (turned into a question)
- * Bullets, numbering and simple HTML are stripped. Lines it can't use are counted, not guessed.
+ * Bullets, numbering, simple HTML and markdown bold are stripped, "Q1:"/"A1:" labels work, and lines
+ * ending in a colon are headings, as chatbots write them. Lines it can't use are counted, not guessed.
  * An on-device model can later handle messy prose; this keeps the offline path predictable.
+ * For AI-made cards with no AI in the app, AI_PROMPT asks any chatbot for Q:/A: lines.
+ * Mirrors parseNotes() and AI_PROMPT in web-demo/src/notes.js.
  */
 public final class NotesParser {
 
@@ -25,6 +28,29 @@ public final class NotesParser {
         public int skippedLines;
     }
 
+    /**
+     * "Make cards with AI": the student copies this into a chatbot they already use, adds their notes
+     * underneath, and pastes the reply back. The app itself stays offline.
+     */
+    public static final String AI_PROMPT = "Make flashcards from my revision notes below. They're for GCSE revision.\n"
+            + "\n"
+            + "Write each card as two lines, with a blank line after it:\n"
+            + "Q: the question\n"
+            + "A: the answer\n"
+            + "\n"
+            + "Rules:\n"
+            + "- Only use facts that are in my notes. Don't add any others.\n"
+            + "- One fact per card. Keep each answer short: a word, a phrase or one sentence.\n"
+            + "- If an answer has several parts (like a 3-mark question), put them all on the A: line, separated by semicolons. For example: A: cell body; axon; dendrites\n"
+            + "- Each question must make sense on its own, without my notes.\n"
+            + "- Use UK spelling.\n"
+            + "- Don't add headings, numbers, bold or anything else before or after the cards.\n"
+            + "\n"
+            + "My notes:\n"
+            + "\n";
+
+    static final Pattern Q_LABEL = Pattern.compile("^(?:q|question)\\s*\\d{0,3}\\s*[:.]\\s*", Pattern.CASE_INSENSITIVE);
+    static final Pattern A_LABEL = Pattern.compile("^(?:a|answer)\\s*\\d{0,3}\\s*[:.]\\s*", Pattern.CASE_INSENSITIVE);
     static final Pattern BULLET = Pattern.compile("^\\s*(?:[-*•·▪◦]|\\d+[.)]|[a-z][.)])\\s+");
     static final Pattern TAGS = Pattern.compile("<[^>]+>");
     static final Pattern IS_CALLED = Pattern.compile("^(.{2,60}?)\\s+(is|are)\\s+called\\s+(.{1,120}?)[.!]?$", Pattern.CASE_INSENSITIVE);
@@ -41,20 +67,22 @@ public final class NotesParser {
             if (line.isEmpty()) continue;
             if (line.startsWith("#")) continue; // Anki export headers / markdown headings
 
-            String lower = line.toLowerCase(Locale.UK);
-            if (lower.startsWith("q:") || lower.startsWith("q.") || lower.startsWith("question:")) {
+            Matcher q = Q_LABEL.matcher(line);
+            if (q.find()) {
                 if (pendingQ != null) r.skippedLines++;
-                pendingQ = line.substring(line.indexOf(lower.startsWith("question:") ? ':' : line.charAt(1)) + 1).trim();
+                pendingQ = line.substring(q.end()).trim();
                 continue;
             }
-            if (lower.startsWith("a:") || lower.startsWith("a.") || lower.startsWith("answer:")) {
-                String a = line.substring(line.indexOf(lower.startsWith("answer:") ? ':' : line.charAt(1)) + 1).trim();
+            Matcher al = A_LABEL.matcher(line);
+            if (al.find()) {
+                String a = line.substring(al.end()).trim();
                 if (pendingQ != null && !pendingQ.isEmpty() && !a.isEmpty()) add(r, deck, pendingQ, a, "");
                 else r.skippedLines++;
                 pendingQ = null;
                 continue;
             }
             if (pendingQ != null) { r.skippedLines++; pendingQ = null; }
+            if (line.endsWith(":")) { r.skippedLines++; continue; } // a heading, or a chatbot's "Here are your flashcards:"
 
             if (line.indexOf('\t') >= 0) {
                 String[] cols = line.split("\t");
@@ -123,7 +151,7 @@ public final class NotesParser {
     }
 
     static String clean(String raw) {
-        String s = TAGS.matcher(raw).replaceAll(" ");
+        String s = TAGS.matcher(raw).replaceAll(" ").replace("**", ""); // markdown bold, as chatbots write "**Q:**"
         s = s.replace("&nbsp;", " ").replace("&amp;", "&").replace("&lt;", "<").replace("&gt;", ">");
         s = BULLET.matcher(s).replaceFirst("");
         // keep tabs (column separators), collapse other whitespace

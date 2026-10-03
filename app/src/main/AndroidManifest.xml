@@ -23,8 +23,11 @@
         android:supportsRtl="true"
         android:theme="@android:style/Theme.DeviceDefault.NoActionBar">
 
+        <!-- Screens are built in code and don't change with orientation: rotating keeps the activity
+             (and an import that's still reading) instead of rebuilding it and losing where you were -->
         <activity
             android:name="com.reelcards.app.MainActivity"
+            android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboardHidden|keyboard|navigation|uiMode"
             android:exported="true"
             android:launchMode="singleTask"
             android:windowSoftInputMode="adjustResize">

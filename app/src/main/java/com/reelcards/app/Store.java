@@ -101,9 +101,46 @@ final class Store {
         prefs(ctx).edit().clear().apply();
     }
 
-    /** Pictures from imported Anki decks live here, in the app's private storage. */
     /** Pictures from imported Anki decks. Kept out of Android's backup, which stops altogether once an app passes 25MB. */
     static File mediaDir(Context ctx) { return new File(ctx.getNoBackupFilesDir(), "anki-media"); }
+
+    /** A card's picture file. Cards store its name in the media folder (older saves kept the whole path). */
+    static File mediaFile(Context ctx, String ref) {
+        if (ref == null) return null;
+        File f = new File(ref);
+        return f.isAbsolute() ? f : new File(mediaDir(ctx), ref);
+    }
+
+    /** An older save's whole path to a picture in the media folder -> just its name, so it survives the folder moving. */
+    static String mediaRef(String path) {
+        int i = path.lastIndexOf("/anki-media/");
+        return i >= 0 ? path.substring(i + "/anki-media/".length()) : path;
+    }
+
+    static final long KEEP_NEW_MEDIA_MS = 10 * 60_000L;
+
+    /**
+     * Deletes pictures that no card uses any more: a removed deck's, or an import's that wasn't used.
+     * Pictures written in the last 10 minutes are kept, since an import may be on screen waiting for
+     * "Use these cards" (or still saving them).
+     * @param pending cards not in the engine yet whose pictures must stay (an import being set up)
+     */
+    static void cleanMedia(final Context ctx, List<Card> pending) {
+        final java.util.Set<String> keep = new java.util.HashSet<>();
+        for (Card c : engine(ctx).cards) { if (c.image != null) keep.add(mediaRef(c.image)); if (c.answerImage != null) keep.add(mediaRef(c.answerImage)); }
+        if (pending != null) for (Card c : pending) { if (c.image != null) keep.add(mediaRef(c.image)); if (c.answerImage != null) keep.add(mediaRef(c.answerImage)); }
+        final File dir = mediaDir(ctx);
+        IO.execute(new Runnable() {
+            @Override public void run() {
+                File[] files = dir.listFiles();
+                if (files == null) return;
+                long old = System.currentTimeMillis() - KEEP_NEW_MEDIA_MS;
+                int n = 0;
+                for (File f : files) if (!keep.contains(f.getName()) && f.lastModified() < old && f.delete()) n++;
+                if (n > 0) Log.i(TAG, "deleted " + n + " pictures no card uses");
+            }
+        });
+    }
 
     // ------------------------------------------------------------------ JSON
 
@@ -246,8 +283,8 @@ final class Store {
                 c.lastLayout = j.has("lay") ? j.getString("lay") : null;
                 c.ankiNoteId = j.optLong("anid", -1); c.ankiOrd = j.optInt("aord", -1);
                 c.saved = j.optBoolean("sv", false);
-                if (j.has("img")) { c.image = j.getString("img"); c.imageW = j.optInt("iw"); c.imageH = j.optInt("ih"); }
-                if (j.has("aimg")) { c.answerImage = j.getString("aimg"); c.answerImageW = j.optInt("aiw"); c.answerImageH = j.optInt("aih"); }
+                if (j.has("img")) { c.image = mediaRef(j.getString("img")); c.imageW = j.optInt("iw"); c.imageH = j.optInt("ih"); }
+                if (j.has("aimg")) { c.answerImage = mediaRef(j.getString("aimg")); c.answerImageW = j.optInt("aiw"); c.answerImageH = j.optInt("aih"); }
                 if (j.has("occ")) { c.occlusion = j.getString("occ"); c.occlusionTarget = j.optInt("occt"); }
                 c.cloze = j.optBoolean("cz", false);
                 c.sessionBounces = j.optInt("sb", 0);

@@ -2,6 +2,32 @@
 
 ## Unreleased
 
+**Anki**
+- AnkiDroid cards now follow the same rules as an Anki file: Reelcards reads each card's note and note
+  type, so a cloze gap is a blank and the answer is just the deletion. Line breaks and lists in
+  AnkiDroid cards stay separate points (they ran together before). Older AnkiDroid versions fall back
+  to the card's rendered text.
+- AnkiDroid doesn't let other apps read its pictures, so cards whose question needs a picture (and
+  image occlusion) stay in AnkiDroid, and the dashboard suggests exporting that deck as a .apkg.
+- A card answered in AnkiDroid while Reelcards held it isn't answered twice: grades are checked
+  against AnkiDroid's queue before they're sent, and leaving AnkiDroid drops cards it no longer lists.
+- Tested against decks exported by Anki's own code (`tools/real-anki-decks.py`): the default
+  .apkg, "Support older Anki versions" and a .colpkg, compared card by card with how Anki shows them.
+- Numeric HTML entities (`&#x27;`, as decks made by scripts have) are decoded. An image occlusion text
+  label is never a card on its own.
+
+**Import**
+- Pictures are stored by name, decoded off the main thread at the size they're shown, and deleted
+  when their deck is removed or an import isn't used.
+- Turning the phone while a deck is still reading keeps the result (it was dropped).
+- Image occlusion masks fade in on Android, as in the web demo.
+
+**Notes**
+- *Make cards with AI* on the paste-notes screen copies a ready-made prompt for any chatbot; its reply
+  (Q:/A: lines) pastes straight back in. The app itself stays offline.
+- The notes reader copes with how chatbots write: `**Q:**`, `Q1:`/`A1:`, and intro lines ending in a
+  colon. 115 engine checks (was 104), and the Java/JS cross-check now covers notes too.
+
 **Fixes**
 - Share no longer loses the card. The card steps aside while the share sheet is open and comes back
   when you return to the app. A card shared without being answered isn't counted as a skip and isn't

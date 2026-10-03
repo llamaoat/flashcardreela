@@ -102,6 +102,41 @@ public final class AnkiPackage {
         return r.run(db);
     }
 
+    /** One card of a note handed over by AnkiDroid (its content provider), rather than read from a file. */
+    public static final class NoteCard {
+        public Card card;               // null if there's nothing to show as text
+        public boolean needsPicture;    // the question shows a picture (or it's image occlusion), which other apps can't read
+        public boolean audioOnly;
+    }
+
+    /**
+     * Turns a note from AnkiDroid's provider into a card, by the same rules as an imported deck: cloze
+     * gaps become blanks and the answer is just the deletion. AnkiDroid doesn't let other apps read its
+     * pictures, so a card whose question shows one comes back with needsPicture and no card.
+     * @param templates each {name, question template, answer template}, by card number
+     * @param fields    the note's fields, separated by 0x1f as Anki stores them
+     */
+    public static NoteCard noteCard(String typeName, boolean cloze, List<String> fieldNames, List<String[]> templates,
+                                    String fields, String tags, String deckName, String deck, int ord) {
+        NoteType nt = new NoteType();
+        nt.name = typeName == null ? "" : typeName;
+        nt.cloze = cloze;
+        nt.fields.addAll(fieldNames);
+        for (int i = 0; i < templates.size(); i++) setT(nt.tmpls, i, templates.get(i));
+        for (String[] x : nt.tmpls) if (x != null && Pattern.compile("\\{\\{[^}]*cloze:").matcher(orEmpty(x[1])).find()) nt.cloze = true;
+        Reader r = new Reader(null, new HashMap<String, String>(), null, 0, null);
+        NoteCard out = new NoteCard();
+        try {
+            Card c = r.card(nt, fields == null ? "" : fields, tags, deckName, deck, ord);
+            out.needsPicture = r.questionPicture;
+            out.audioOnly = r.out.stats.audio > 0;
+            out.card = out.needsPicture ? null : c;
+        } catch (IOException | RuntimeException e) {
+            out.card = null;
+        }
+        return out;
+    }
+
     static byte[] entry(ZipFile zip, String name) throws IOException {
         ZipEntry e = zip.getEntry(name);
         if (e == null) return null;
@@ -239,120 +274,11 @@ public final class AnkiPackage {
                 Map<String, Object> n = notes.get(lng(c, "nid"));
                 NoteType nt = n == null ? null : nts.get(lng(n, "mid"));
                 if (nt == null) { st.unknown++; continue; }
-                String[] vals = String.valueOf(n.get("flds")).split("\u001f", -1);
-                Map<String, String> F = new LinkedHashMap<>();
-                for (int i = 0; i < nt.fields.size(); i++) if (nt.fields.get(i) != null) F.put(nt.fields.get(i), i < vals.length ? vals[i] : "");
                 String deckName = decks.get(lng(c, "did"));
                 String deck = deckName == null || deckName.equals("Default") ? fallback : deckName.replace("::", " · ");
-                Ctx ctx = new Ctx();
-                ctx.tags = n.get("tags") == null ? "" : String.valueOf(n.get("tags")).trim();
-                ctx.type = nt.name;
-                ctx.deck = deckName == null ? "" : deckName;
-                int ord = (int) lng(c, "ord");
-                Card card = null;
-                String occField = null;
-                for (Map.Entry<String, String> e : F.entrySet()) if (e.getValue().contains("image-occlusion:")) { occField = e.getKey(); break; }
-                String ioeMask = F.get("Question Mask");
-                if (nt.cloze && occField != null) {
-                    StringBuilder others = new StringBuilder();
-                    for (Map.Entry<String, String> e : F.entrySet()) if (!e.getKey().equals(occField)) others.append(e.getValue()).append(' ');
-                    List<String> imgs = images(others.toString());
-                    Pic pic = picture(imgs.isEmpty() ? null : imgs.get(0));
-                    int target = ord + 1;
-                    List<Occlusion.Shape> shapes = pic == null ? new ArrayList<Occlusion.Shape>() : ioShapes(F.get(occField), pic.w, pic.h);
-                    if (pic != null && hasOrd(shapes, target)) {
-                        String header = clean(orEmpty(F.get("Header")));
-                        card = new Card(null, deck, header.isEmpty() ? "Name the highlighted part" : header, "", clean(orEmpty(F.get("Back Extra"))));
-                        setPic(card, pic);
-                        card.occlusion = Occlusion.format(shapes);
-                        card.occlusionTarget = target;
-                        st.occlusion++;
-                    }
-                } else if (ioeMask != null && !images(ioeMask).isEmpty()) {
-                    List<String> imgs = images(orEmpty(F.get("Image")));
-                    Pic pic = picture(imgs.isEmpty() ? null : imgs.get(0));
-                    byte[] svg = media(images(ioeMask).get(0));
-                    List<Occlusion.Shape> shapes = svg == null ? new ArrayList<Occlusion.Shape>() : ioeShapes(new String(svg, StandardCharsets.UTF_8));
-                    if (pic != null && hasOrd(shapes, 1)) {
-                        List<String> extra = new ArrayList<>();
-                        for (String k : new String[]{"Footer", "Remarks", "Extra 1", "Extra 2"}) { String x = clean(orEmpty(F.get(k))); if (!x.isEmpty()) extra.add(x); }
-                        String header = clean(orEmpty(F.get("Header")));
-                        card = new Card(null, deck, header.isEmpty() ? "Name the highlighted part" : header, "", join(extra, " "));
-                        setPic(card, pic);
-                        card.occlusion = Occlusion.format(shapes);
-                        card.occlusionTarget = 1;
-                        st.occlusion++;
-                    }
-                } else if (nt.cloze) {
-                    String[] t = nt.tmpls.isEmpty() || nt.tmpls.get(0) == null ? new String[]{"Cloze", "{{cloze:Text}}", "{{cloze:Text}}"} : nt.tmpls.get(0);
-                    int num = ord + 1;
-                    List<Ref> qRefs = fieldRefs(t[1]);
-                    String clozeField = null;
-                    for (Ref rf : qRefs) if (rf.cloze) { clozeField = rf.field; break; }
-                    Ctx qc = ctx.copy(); qc.side = "q"; qc.cloze = num;
-                    String qHtml = renderTpl(t[1], F, qc);
-                    List<String> got = new ArrayList<>();
-                    String full = "";
-                    if (clozeField != null) {
-                        List<Object> nodes = clozeParse(orEmpty(F.get(clozeField)));
-                        clozeText(nodes, num, "a", got);
-                        full = clean(clozeText(nodes, null, "all", null));
-                    }
-                    List<String> extra = new ArrayList<>();
-                    for (Ref rf : fieldRefs(t[2])) {
-                        if (rf.field.equals("FrontSide")) continue;
-                        boolean inQ = false;
-                        for (Ref q : qRefs) if (q.field.equals(rf.field)) inQ = true;
-                        if (!inQ) { String x = clean(orEmpty(F.get(rf.field))); if (!x.isEmpty()) extra.add(x); }
-                    }
-                    List<String> answers = new ArrayList<>();
-                    for (String a : got) { String x = clean(a); if (!x.isEmpty() && !answers.contains(x)) answers.add(x); }
-                    if (!answers.isEmpty() && hasText(qHtml)) {
-                        List<String> qi = images(qHtml);
-                        Pic pic = picture(qi.isEmpty() ? null : qi.get(0));
-                        List<String> xs = new ArrayList<>();
-                        if (!full.isEmpty()) xs.add(full);
-                        xs.addAll(extra);
-                        card = new Card(null, deck, clean(qHtml), join(answers, "; "), join(xs, " "));
-                        if (pic != null) setPic(card, pic);
-                        card.cloze = true;
-                        st.cloze++;
-                    }
-                } else if (ord < nt.tmpls.size() && nt.tmpls.get(ord) != null) {
-                    String[] t = nt.tmpls.get(ord);
-                    ctx.card = t[0];
-                    Ctx qc = ctx.copy(); qc.side = "q";
-                    String qHtml = renderTpl(t[1], F, qc);
-                    List<String> qRefs = new ArrayList<>();
-                    for (Ref rf : fieldRefs(t[1])) if (!rf.type) qRefs.add(rf.field);
-                    List<String> aFields = new ArrayList<>();
-                    for (Ref rf : fieldRefs(t[2])) {
-                        String v = F.get(rf.field);
-                        if (!rf.field.equals("FrontSide") && !qRefs.contains(rf.field) && !aFields.contains(rf.field) && v != null && (hasText(v) || v.toLowerCase().contains("<img"))) aFields.add(rf.field);
-                    }
-                    String bHtml, xText = "";
-                    if (!aFields.isEmpty()) {
-                        bHtml = F.get(aFields.get(0));
-                        List<String> xs = new ArrayList<>();
-                        for (int i = 1; i < aFields.size(); i++) { String x = clean(F.get(aFields.get(i))); if (!x.isEmpty()) xs.add(x); }
-                        xText = join(xs, " ");
-                    } else {
-                        Ctx ac = ctx.copy(); ac.side = "a"; ac.front = "";
-                        String a = renderTpl(t[2], F, ac);
-                        Matcher m = Pattern.compile("<hr[^>]*id\\s*=\\s*[\"']?answer", Pattern.CASE_INSENSITIVE).matcher(a);
-                        if (m.find()) a = a.substring(m.start()).replaceFirst("(?i)^<hr[^>]*>", "");
-                        bHtml = a;
-                    }
-                    List<String> qi = images(qHtml), ai = images(bHtml);
-                    Pic qPic = picture(qi.isEmpty() ? null : qi.get(0)), aPic = picture(ai.isEmpty() ? null : ai.get(0));
-                    String f = clean(qHtml), b = clean(bHtml);
-                    if ((!f.isEmpty() || qPic != null) && (!b.isEmpty() || aPic != null)) {
-                        card = new Card(null, deck, f.isEmpty() ? "What's this?" : f, b, xText);
-                        if (qPic != null) setPic(card, qPic);
-                        if (aPic != null) { card.answerImage = aPic.ref; card.answerImageW = aPic.w; card.answerImageH = aPic.h; }
-                    } else if ((qHtml + bHtml).contains("[sound:")) { st.audio++; continue; }
-                }
-                if (card == null) { st.empty++; continue; }
+                int audio = st.audio;
+                Card card = card(nt, String.valueOf(n.get("flds")), n.get("tags") == null ? "" : String.valueOf(n.get("tags")), deckName, deck, (int) lng(c, "ord"));
+                if (card == null) { if (st.audio == audio) st.empty++; continue; }
                 card.id = "apkg:" + lng(c, "id");
                 card.reps = (int) lng(c, "reps");
                 card.lapses = (int) lng(c, "lapses");
@@ -378,15 +304,156 @@ public final class AnkiPackage {
             }
             return out;
         }
+
+        boolean questionPicture; // set by card(): the question side shows a picture (found or not)
+
+        /**
+         * One card of a note, from its note type, raw fields (separated by 0x1f), tags, deck and card
+         * number. Null if there's nothing to show; st.audio counts the audio-only ones.
+         */
+        Card card(NoteType nt, String flds, String tags, String deckName, String deck, int ord) throws IOException {
+            Stats st = out.stats;
+            questionPicture = false;
+            String[] vals = flds.split("\u001f", -1);
+            Map<String, String> F = new LinkedHashMap<>();
+            for (int i = 0; i < nt.fields.size(); i++) if (nt.fields.get(i) != null) F.put(nt.fields.get(i), i < vals.length ? vals[i] : "");
+            Ctx ctx = new Ctx();
+            ctx.tags = tags == null ? "" : tags.trim();
+            ctx.type = nt.name;
+            ctx.deck = deckName == null ? "" : deckName;
+            Card card = null;
+            String occField = null;
+            for (Map.Entry<String, String> e : F.entrySet()) if (e.getValue().contains("image-occlusion:")) { occField = e.getKey(); break; }
+            String ioeMask = F.get("Question Mask");
+            if (nt.cloze && occField != null) {
+                questionPicture = true;
+                StringBuilder others = new StringBuilder();
+                for (Map.Entry<String, String> e : F.entrySet()) if (!e.getKey().equals(occField)) others.append(e.getValue()).append(' ');
+                List<String> imgs = images(others.toString());
+                Pic pic = picture(imgs.isEmpty() ? null : imgs.get(0));
+                int target = ord + 1;
+                List<Occlusion.Shape> shapes = pic == null ? new ArrayList<Occlusion.Shape>() : ioShapes(F.get(occField), pic.w, pic.h);
+                if (pic != null && hasOrd(shapes, target)) {
+                    String header = clean(orEmpty(F.get("Header")));
+                    card = new Card(null, deck, header.isEmpty() ? "Name the highlighted part" : header, "", clean(orEmpty(F.get("Back Extra"))));
+                    setPic(card, pic);
+                    card.occlusion = Occlusion.format(shapes);
+                    card.occlusionTarget = target;
+                    st.occlusion++;
+                }
+            } else if (ioeMask != null && !images(ioeMask).isEmpty()) {
+                questionPicture = true;
+                List<String> imgs = images(orEmpty(F.get("Image")));
+                Pic pic = picture(imgs.isEmpty() ? null : imgs.get(0));
+                byte[] svg = media(images(ioeMask).get(0));
+                List<Occlusion.Shape> shapes = svg == null ? new ArrayList<Occlusion.Shape>() : ioeShapes(new String(svg, StandardCharsets.UTF_8));
+                if (pic != null && hasOrd(shapes, 1)) {
+                    List<String> extra = new ArrayList<>();
+                    for (String k : new String[]{"Footer", "Remarks", "Extra 1", "Extra 2"}) { String x = clean(orEmpty(F.get(k))); if (!x.isEmpty()) extra.add(x); }
+                    String header = clean(orEmpty(F.get("Header")));
+                    card = new Card(null, deck, header.isEmpty() ? "Name the highlighted part" : header, "", join(extra, " "));
+                    setPic(card, pic);
+                    card.occlusion = Occlusion.format(shapes);
+                    card.occlusionTarget = 1;
+                    st.occlusion++;
+                }
+            } else if (nt.cloze) {
+                String[] t = nt.tmpls.isEmpty() || nt.tmpls.get(0) == null ? new String[]{"Cloze", "{{cloze:Text}}", "{{cloze:Text}}"} : nt.tmpls.get(0);
+                int num = ord + 1;
+                List<Ref> qRefs = fieldRefs(t[1]);
+                String clozeField = null;
+                for (Ref rf : qRefs) if (rf.cloze) { clozeField = rf.field; break; }
+                Ctx qc = ctx.copy(); qc.side = "q"; qc.cloze = num;
+                String qHtml = renderTpl(t[1], F, qc);
+                List<String> got = new ArrayList<>();
+                String full = "";
+                if (clozeField != null) {
+                    List<Object> nodes = clozeParse(orEmpty(F.get(clozeField)));
+                    clozeText(nodes, num, "a", got);
+                    full = clean(clozeText(nodes, null, "all", null));
+                }
+                List<String> extra = new ArrayList<>();
+                for (Ref rf : fieldRefs(t[2])) {
+                    if (rf.field.equals("FrontSide")) continue;
+                    boolean inQ = false;
+                    for (Ref q : qRefs) if (q.field.equals(rf.field)) inQ = true;
+                    if (!inQ) { String x = clean(orEmpty(F.get(rf.field))); if (!x.isEmpty()) extra.add(x); }
+                }
+                List<String> answers = new ArrayList<>();
+                for (String a : got) { String x = clean(a); if (!x.isEmpty() && !answers.contains(x)) answers.add(x); }
+                if (!answers.isEmpty() && hasText(qHtml)) {
+                    List<String> qi = images(qHtml);
+                    questionPicture = !qi.isEmpty();
+                    Pic pic = picture(qi.isEmpty() ? null : qi.get(0));
+                    List<String> xs = new ArrayList<>();
+                    if (!full.isEmpty()) xs.add(full);
+                    xs.addAll(extra);
+                    card = new Card(null, deck, clean(qHtml), join(answers, "; "), join(xs, " "));
+                    if (pic != null) setPic(card, pic);
+                    card.cloze = true;
+                    st.cloze++;
+                }
+            } else if (ord < nt.tmpls.size() && nt.tmpls.get(ord) != null) {
+                String[] t = nt.tmpls.get(ord);
+                ctx.card = t[0];
+                Ctx qc = ctx.copy(); qc.side = "q";
+                String qHtml = renderTpl(t[1], F, qc);
+                List<String> qRefs = new ArrayList<>();
+                for (Ref rf : fieldRefs(t[1])) if (!rf.type) qRefs.add(rf.field);
+                List<String> aFields = new ArrayList<>();
+                for (Ref rf : fieldRefs(t[2])) {
+                    String v = F.get(rf.field);
+                    if (!rf.field.equals("FrontSide") && !qRefs.contains(rf.field) && !aFields.contains(rf.field) && v != null && (hasText(v) || v.toLowerCase().contains("<img"))) aFields.add(rf.field);
+                }
+                String bHtml, xText = "";
+                if (!aFields.isEmpty()) {
+                    bHtml = F.get(aFields.get(0));
+                    List<String> xs = new ArrayList<>();
+                    for (int i = 1; i < aFields.size(); i++) { String x = clean(F.get(aFields.get(i))); if (!x.isEmpty()) xs.add(x); }
+                    xText = join(xs, " ");
+                } else {
+                    Ctx ac = ctx.copy(); ac.side = "a"; ac.front = "";
+                    String a = renderTpl(t[2], F, ac);
+                    Matcher m = Pattern.compile("<hr[^>]*id\\s*=\\s*[\"']?answer", Pattern.CASE_INSENSITIVE).matcher(a);
+                    if (m.find()) a = a.substring(m.start()).replaceFirst("(?i)^<hr[^>]*>", "");
+                    bHtml = a;
+                }
+                List<String> qi = images(qHtml), ai = images(bHtml);
+                questionPicture = !qi.isEmpty();
+                Pic qPic = picture(qi.isEmpty() ? null : qi.get(0)), aPic = picture(ai.isEmpty() ? null : ai.get(0));
+                String f = clean(qHtml), b = clean(bHtml);
+                if ((!f.isEmpty() || qPic != null) && (!b.isEmpty() || aPic != null)) {
+                    card = new Card(null, deck, f.isEmpty() ? "What's this?" : f, b, xText);
+                    if (qPic != null) setPic(card, qPic);
+                    if (aPic != null) { card.answerImage = aPic.ref; card.answerImageW = aPic.w; card.answerImageH = aPic.h; }
+                } else if ((qHtml + bHtml).contains("[sound:")) { st.audio++; return null; }
+            }
+            return card;
+        }
     }
 
     static void setPic(Card c, Pic p) { c.image = p.ref; c.imageW = p.w; c.imageH = p.h; }
 
-    static boolean hasOrd(List<Occlusion.Shape> shapes, int ord) { for (Occlusion.Shape s : shapes) if (s.ord == ord) return true; return false; }
+    /** A card needs a mask to name: a text label with the same number is drawn, but isn't something to cover. */
+    static boolean hasOrd(List<Occlusion.Shape> shapes, int ord) { for (Occlusion.Shape s : shapes) if (s.ord == ord && !"text".equals(s.kind)) return true; return false; }
 
     // ------------------------------------------------------------------ text
 
+    static final Pattern NUMERIC_ENTITY = Pattern.compile("&#(?:[xX]([0-9a-fA-F]{1,6})|([0-9]{1,7}));");
+
+    /** HTML entities: the few Anki's editor writes, and numeric ones (&#x27; from decks made by scripts). */
     static String entities(String t) {
+        if (t.contains("&#")) {
+            Matcher m = NUMERIC_ENTITY.matcher(t);
+            StringBuffer b = new StringBuffer();
+            while (m.find()) {
+                int cp = m.group(1) != null ? Integer.parseInt(m.group(1), 16) : Integer.parseInt(m.group(2));
+                boolean ok = cp > 0 && Character.isValidCodePoint(cp) && !(cp >= 0xD800 && cp <= 0xDFFF);
+                m.appendReplacement(b, Matcher.quoteReplacement(ok ? new String(Character.toChars(cp)) : m.group()));
+            }
+            m.appendTail(b);
+            t = b.toString();
+        }
         return t.replace("&nbsp;", " ").replace("&lt;", "<").replace("&gt;", ">").replace("&quot;", "\"").replace("&#39;", "'").replace("&amp;", "&");
     }
 

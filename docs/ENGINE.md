@@ -140,7 +140,10 @@ deliberately conservative.
 **Anki decks** are different: AnkiDroid owns their schedule. The engine shows the cards Anki says are
 due and sends each grade back as a normal review through
 [AnkiDroid's content provider API](https://github.com/ankidroid/Anki-Android/wiki/AnkiDroid-API)
-(`answer_ease` 1–4, plus time taken).
+(`answer_ease` 1–4, plus time taken). Each card is built from its note and note type by the same rules
+as an Anki file (below), so cloze works; AnkiDroid doesn't let other apps read its pictures, so cards
+whose question needs one stay in AnkiDroid. Just before a grade is sent, the `schedule` query confirms
+the card is still due, so a card answered in AnkiDroid meanwhile isn't answered twice.
 
 ---
 
@@ -151,7 +154,9 @@ Reelcards reads exported Anki decks itself
 library, so the app stays dependency-free and works offline. All three file formats are supported:
 `collection.anki2` (Anki 2.0), `collection.anki21` (2.1) and `collection.anki21b` (2.1.50+, zstd-compressed,
 with a protobuf media list). The same rules are in `web-demo/src/apkg.js`, and a check reads all three
-test decks to identical cards.
+test decks to identical cards. A second set of decks is exported by Anki's own code
+(`tools/real-anki-decks.py`, including a `.colpkg`), and the checks compare every card with how Anki
+itself shows it: question, answer, cloze gaps, image occlusion targets and the FSRS memory state.
 
 - **Which field is the answer:** the card's own templates are rendered (fields, `{{#…}}` sections,
   `cloze:`, `type:`, `text:`, `furigana:` and the special fields). The answer is the first field the back
@@ -172,7 +177,7 @@ test decks to identical cards.
 
 ## Evaluation
 
-[`EngineChecks`](../engine/src/test/java/EngineChecks.java) runs 104 checks:
+[`EngineChecks`](../engine/src/test/java/EngineChecks.java) runs 115 checks:
 [`results/checks.txt`](../engine/results/checks.txt).
 
 [`Simulate`](../engine/src/test/java/Simulate.java) runs simulated students on the real engine for 30

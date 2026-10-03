@@ -81,6 +81,8 @@ public final class ReelWatcherService extends AccessibilityService {
             if (!pkg.equals(getPackageName()) && !isSystemOverlay(pkg)) {
                 // left the reel app (home button, notification, another app): take the card down
                 if (overlay != null && !ReelDetector.isReelApp(pkg) && !pkg.equals(currentPkg)) overlay.finishNow("left_app");
+                // just left AnkiDroid: cards answered there are dropped here, so they don't come up twice
+                if (AnkiBridge.PACKAGE.equals(currentPkg) && !pkg.equals(currentPkg)) AnkiBridge.refill(this, Store.engine(this), true);
                 currentPkg = pkg;
             }
             return;

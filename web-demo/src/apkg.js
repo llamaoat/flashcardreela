@@ -427,7 +427,9 @@ function imageSize(b){
 const DAY = 86400000;
 const GAP = "…";
 const IMG_RE = /<img[^>]*?src\s*=\s*["']?([^"'>]+)["']?[^>]*>/gi;
-function entities(t){ return t.replace(/&nbsp;/g, " ").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&amp;/g, "&"); }
+function entities(t){ // the few Anki's editor writes, and numeric ones (&#x27; from decks made by scripts)
+  return t.replace(/&#(?:[xX]([0-9a-fA-F]{1,6})|([0-9]{1,7}));/g, (m, h, d) => { const cp = h ? parseInt(h, 16) : +d; return cp > 0 && cp <= 0x10FFFF && !(cp >= 0xD800 && cp <= 0xDFFF) ? String.fromCodePoint(cp) : m; })
+    .replace(/&nbsp;/g, " ").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&amp;/g, "&"); }
 function images(html){ const out = []; let m; IMG_RE.lastIndex = 0; while ((m = IMG_RE.exec(html || ""))) { let n = entities(m[1]).trim(); try { n = decodeURIComponent(n); } catch (e) {} out.push(n); } return out; }
 /* card text: HTML to plain lines, without images, sounds or scripts */
 function clean(html){
@@ -647,7 +649,7 @@ async function read(buf, opts){
       const imgName = images(Object.keys(F).filter(k => k !== occField).map(k => F[k]).join(" "))[0];
       const pic = await picture(imgName), target = c.ord + 1;
       const shapes = pic ? ioShapes(F[occField], pic) : [];
-      if (pic && shapes.some(s => s.ord === target)) {
+      if (pic && shapes.some(s => s.ord === target && s.kind !== "text")) {
         const header = clean(F.Header || ""), extra = clean(F["Back Extra"] || "");
         card = {f: header || "Name the highlighted part", b: "", x: extra, img: pic.name, imgW: pic.w, imgH: pic.h, io: {target, shapes}};
         stats.occlusion++;
@@ -655,7 +657,7 @@ async function read(buf, opts){
     } else if (ioeMask != null && images(ioeMask).length) {
       const pic = await picture(images(F.Image || "")[0]), svg = await media(images(ioeMask)[0]);
       const shapes = svg ? ioeShapes(new TextDecoder().decode(svg)) : [];
-      if (pic && shapes.some(s => s.ord === 1)) {
+      if (pic && shapes.some(s => s.ord === 1 && s.kind !== "text")) {
         const extra = ["Footer", "Remarks", "Extra 1", "Extra 2"].map(k => clean(F[k] || "")).filter(x => x).join(" ");
         card = {f: clean(F.Header || "") || "Name the highlighted part", b: "", x: extra, img: pic.name, imgW: pic.w, imgH: pic.h, io: {target: 1, shapes}};
         stats.occlusion++;

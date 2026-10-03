@@ -8,6 +8,9 @@ import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
 import android.graphics.drawable.RippleDrawable;
 import android.content.res.ColorStateList;
+import android.os.Handler;
+import android.os.Looper;
+import android.util.LruCache;
 import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.View;
@@ -15,6 +18,9 @@ import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 /** Small helpers so every screen is built in code with one consistent look (no layout XML needed). */
 final class Ui {
@@ -35,9 +41,35 @@ final class Ui {
     static final Typeface MEDIUM = Typeface.create("sans-serif-medium", Typeface.NORMAL);
     static final Typeface MONO = Typeface.create("monospace", Typeface.NORMAL);
 
+    interface PictureLoaded { void loaded(Bitmap b); }
+
+    private static final ExecutorService PICTURES = Executors.newSingleThreadExecutor();
+    private static final Handler MAIN = new Handler(Looper.getMainLooper());
+    /** Recently decoded pictures, so a card shown again (or redrawn) draws at once. */
+    private static final LruCache<String, Bitmap> DECODED = new LruCache<String, Bitmap>((int) Math.min(32L << 20, Runtime.getRuntime().maxMemory() / 8)) {
+        @Override protected int sizeOf(String key, Bitmap b) { return b.getByteCount(); }
+    };
+
+    /**
+     * Decodes a stored picture off the main thread, at about the width it's shown, then calls back on
+     * the main thread (with null if the file has gone). A picture decoded recently calls back at once.
+     */
+    static void picture(final String path, final int minW, final PictureLoaded done) {
+        final String key = path + "@" + minW;
+        Bitmap hit = path == null ? null : DECODED.get(key);
+        if (hit != null) { done.loaded(hit); return; }
+        PICTURES.execute(new Runnable() {
+            @Override public void run() {
+                final Bitmap b = picture(path, minW);
+                if (b != null) DECODED.put(key, b);
+                MAIN.post(new Runnable() { @Override public void run() { done.loaded(b); } });
+            }
+        });
+    }
+
     /**
      * Decodes a stored picture at about the size it's shown (at least minW pixels wide, and never
-     * more than ~6 megapixels), or null if the file has gone or can't be read.
+     * more than ~6 megapixels), or null if the file has gone or can't be read. Blocking.
      */
     static Bitmap picture(String path, int minW) {
         if (path == null || !new java.io.File(path).isFile()) return null;

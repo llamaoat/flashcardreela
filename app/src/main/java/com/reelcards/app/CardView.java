@@ -52,6 +52,7 @@ import com.reelcards.engine.Occlusion;
 import com.reelcards.engine.Outcome;
 import com.reelcards.engine.Show;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
@@ -175,8 +176,11 @@ final class CardView extends FrameLayout {
     private int chatSkip;          // oldest friend messages dropped so a long chat keeps its newest in view
     private int focusPoint = -1;   // point to give accessibility focus back to after a redraw
     private View focusView;        // that point's view in the latest draw
-    private Bitmap picBmp, ansBmp; // decoded once per card, then reused by every redraw
-    private boolean picTried, ansTried;
+    private Bitmap picBmp, ansBmp; // decoded once per card (off the main thread), then reused by every redraw
+    private boolean picLoading, ansLoading;
+    private Boolean picThere, ansThere; // whether the picture files exist (null: not looked yet)
+    private PicView picView, ansView;   // the latest drawn, which a picture still decoding is handed to
+    private boolean maskShown;          // the occlusion mask has faded in once
     private int railTop;            // top of the right-hand rail (px): an occlusion picture may run under its column only above this
     private float capDownX, capDownY;
     private int capDownScroll;
@@ -457,6 +461,7 @@ final class CardView extends FrameLayout {
             else break;
         }
         justRevealed = justHinted = justPicked = false;
+        if (s.isOcclusion()) maskShown = true; // later redraws (a hint, the answer) don't fade the mask in again
         body.requestLayout(); // the measures in fits() were probes: let the real layout pass measure again
         if (focusView != null) { // after a tick, screen-reader focus goes back to that point
             final View v = focusView;
@@ -822,10 +827,18 @@ final class CardView extends FrameLayout {
 
     // --- pictures from Anki cards
 
-    private Bitmap bitmap(boolean answer) {
-        if (answer) { if (!ansTried) { ansTried = true; ansBmp = Ui.picture(s.answerImage, W); } return ansBmp; }
-        if (!picTried) { picTried = true; picBmp = Ui.picture(s.image, W); }
-        return picBmp;
+    /** Starts decoding a picture at the width it's drawn, off the main thread; it's handed to the latest view when ready. */
+    private void load(final boolean answer, File file, int w) {
+        if (answer ? ansLoading : picLoading) return;
+        if (answer) ansLoading = true; else picLoading = true;
+        Ui.picture(file.getPath(), w, new Ui.PictureLoaded() {
+            @Override public void loaded(Bitmap b) {
+                if (answer) { ansBmp = b; if (b == null) ansThere = false; if (ansView != null) ansView.setBitmap(b); }
+                else { picBmp = b; if (b == null) picThere = false; if (picView != null) picView.setBitmap(b); }
+                // a picture that can't be read is left out, as if it had gone (an occlusion card keeps its masks)
+                if (b == null && (answer || !s.isOcclusion()) && isAttachedToWindow()) renderBody();
+            }
+        });
     }
 
     /**
@@ -834,11 +847,13 @@ final class CardView extends FrameLayout {
      * as wide as it can be while staying clear of the rail, with the masks drawn over it.
      */
     private void addPicture(boolean answer) {
-        String path = answer ? s.answerImage : s.image;
-        if (path == null) return;
+        String ref = answer ? s.answerImage : s.image;
+        if (ref == null) return;
         boolean io = !answer && s.isOcclusion();
-        Bitmap bmp = bitmap(answer);
-        if (bmp == null && !io) return; // the file's gone: leave it out (an occlusion card still needs its masks)
+        File file = Store.mediaFile(getContext(), ref);
+        if (answer ? ansThere == null : picThere == null) { if (answer) ansThere = file.isFile(); else picThere = file.isFile(); }
+        if (!(answer ? ansThere : picThere) && !io) return; // the file's gone: leave it out (an occlusion card still needs its masks)
+        Bitmap bmp = answer ? ansBmp : picBmp; // null until it's decoded
         int iw = answer ? s.answerImageW : s.imageW, ih = answer ? s.answerImageH : s.imageH;
         if (iw <= 0 || ih <= 0) { iw = bmp != null ? bmp.getWidth() : 4; ih = bmp != null ? bmp.getHeight() : 3; }
         float r = iw / (float) ih, maxH = u(io ? 240 : answer ? 150 : 220) * fit;
@@ -851,6 +866,9 @@ final class CardView extends FrameLayout {
         }
         int h = Math.max(1, Math.round(w / r));
         PicView v = new PicView(getContext(), bmp, u(14), sheet);
+        v.missing = !(answer ? ansThere : picThere);
+        if (answer) ansView = v; else picView = v;
+        if (bmp == null && !v.missing) load(answer, file, w);
         if (io) {
             v.shapes = s.occlusion;
             v.target = s.occlusionTarget;
@@ -859,6 +877,7 @@ final class CardView extends FrameLayout {
             v.labelPx = tpx(12);
             v.labelFace = bold();
             v.open = outcome.revealed ? 1f : 0f;
+            v.maskIn = !maskShown && !outcome.revealed; // fades in when the card first appears
             v.setContentDescription(outcome.revealed ? "Picture, with the highlighted part uncovered" : "Picture: name the highlighted part");
         } else v.setContentDescription(answer ? "Picture from the answer" : "Picture from the card");
         if (!sheet) v.setElevation(u(8));
@@ -2120,19 +2139,22 @@ final class CardView extends FrameLayout {
 
     /** A picture with rounded corners; on an image occlusion card, the masks over it (fractions of the picture). */
     static final class PicView extends View {
-        private final Bitmap bmp;
+        private Bitmap bmp;                // null while it's still decoding
         private final boolean flat;
         private final float dp;
         private final Paint p = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.FILTER_BITMAP_FLAG);
         private final RectF r = new RectF();
         private final Path path = new Path();
         private final float radius;
-        private ValueAnimator anim;
+        private ValueAnimator anim, inAnim;
         private static final android.animation.ArgbEvaluator ARGB = new android.animation.ArgbEvaluator();
         List<Occlusion.Shape> shapes;  // null: a plain picture
         int target, acc;
         boolean others = true;         // cover the other labels too ("occlude inactive")
         float open;                    // 0 = target masked, 1 = uncovered
+        boolean missing;               // the picture's file has gone (or can't be read)
+        boolean maskIn;                // fade the target mask in once it's on screen (the web demo's "maskin")
+        private float in = 1f;         // that fade, 0..1
         float labelPx;
         Typeface labelFace;
 
@@ -2147,6 +2169,27 @@ final class CardView extends FrameLayout {
             });
             setClipToOutline(true);
             setImportantForAccessibility(IMPORTANT_FOR_ACCESSIBILITY_YES);
+        }
+
+        /** The decoded picture arrives (null: it couldn't be read). */
+        void setBitmap(Bitmap b) {
+            bmp = b;
+            if (b == null) missing = true;
+            invalidate();
+        }
+
+        @Override protected void onAttachedToWindow() {
+            super.onAttachedToWindow();
+            if (!maskIn || shapes == null || open > 0f) return;
+            maskIn = false;
+            in = 0f;
+            inAnim = ValueAnimator.ofFloat(0f, 1f);
+            inAnim.setDuration(500);
+            inAnim.setInterpolator(new DecelerateInterpolator());
+            inAnim.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
+                @Override public void onAnimationUpdate(ValueAnimator a) { in = (Float) a.getAnimatedValue(); invalidate(); }
+            });
+            inAnim.start();
         }
 
         /** The target mask fades to an outline, uncovering the label under it. */
@@ -2164,6 +2207,7 @@ final class CardView extends FrameLayout {
         @Override protected void onDetachedFromWindow() {
             super.onDetachedFromWindow();
             if (anim != null) anim.cancel();
+            if (inAnim != null) { inAnim.cancel(); in = 1f; }
         }
 
         @Override
@@ -2175,7 +2219,7 @@ final class CardView extends FrameLayout {
             if (bmp != null) {
                 r.set(0, 0, w, h);
                 c.drawBitmap(bmp, null, r, p);
-            } else {
+            } else if (missing) {
                 p.setColor(0xFF8A8A8A);
                 p.setTextSize(13 * dp);
                 p.setTextAlign(Paint.Align.CENTER);
@@ -2189,7 +2233,7 @@ final class CardView extends FrameLayout {
                     if (!t && (!sh.oi || !others)) continue;
                     if (!shapePath(sh, w, h)) continue;
                     p.setStyle(Paint.Style.FILL);
-                    if (t) p.setColor((acc & 0x00FFFFFF) | (Math.round(255 * (1f - 0.88f * open)) << 24));
+                    if (t) p.setColor((acc & 0x00FFFFFF) | (Math.round(255 * (1f - 0.88f * open) * (0.4f + 0.6f * in)) << 24));
                     else p.setColor(0xFFF3E7C9);
                     c.drawPath(path, p);
                     p.setStyle(Paint.Style.STROKE);

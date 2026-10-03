@@ -1,0 +1,30 @@
+# card id	note type	ord	suspended	question	answer	type	due	interval	stability	difficulty
+1791042622810	Basic	0	0	What does the mitochondria do?	Aerobic respiration	2	8	8	8.2956	1.0000
+1791042622811	Basic	0	0	Name the three main parts of a neurone.	Cell body\nAxon\nDendrites	0	2	0		
+1791042622812	Basic	0	0	Put the stages of mitosis in order.	Prophase\nMetaphase\nAnaphase\nTelophase	0	3	0		
+1791042622813	Basic	0	0	Word equation for aerobic respiration?	glucose + oxygen\n→ carbon dioxide + water	0	4	0		
+1791042622814	Basic	0	0	Which organelle is this?	A mitochondrion	0	5	0		
+1791042622815	Basic	0	0	Is 5 g < 7 g?	Yes & by 2 g	0	6	0		
+1791042622816	Basic	0	0	What's the formula for water?	H2O	0	7	0		
+1791042622817	Basic	0	0	[anki:play:q:0]	[anki:play:a:0]	0	8	0		
+1791042622818	Basic (and reversed card)	0	0	Osmosis	The diffusion of water across a partially permeable membrane	2	6	6	8.2956	1.0000
+1791042622819	Basic (and reversed card)	1	0	The diffusion of water across a partially permeable membrane	Osmosis	2	10	10	8.2956	1.0000
+1791042622820	Basic (optional reversed card)	0	0	Ion	An atom that has gained or lost electrons	2	12	0		
+1791042622821	Basic (optional reversed card)	1	0	An atom that has gained or lost electrons	Ion	0	10	0		
+1791042622822	Basic (optional reversed card)	0	0	Isotope	Same element, different number of neutrons	0	11	0		
+1791042622823	Basic (type in the answer)	0	0	Chemical symbol for sodium?\n[[type:Back]]	[[type:Back]]	0	12	0		
+1791042622824	Cloze	1	0	Mitochondria are the site of [type of respiration].	Mitochondria are the site of aerobic respiration.\nThey have a folded inner membrane.	0	13	0		
+1791042622825	Cloze	0	0	[...] are the site of aerobic respiration.	Mitochondria are the site of aerobic respiration.\nThey have a folded inner membrane.	0	13	0		
+1791042622826	Cloze	0	0	The three states of matter are [...], [...] and [...].	The three states of matter are solid, liquid and gas.	0	14	0		
+1791042622827	Cloze	0	0	[...] showed the nucleus.	Rutherford's gold foil experiment showed the nucleus.	0	15	0		
+1791042622828	Cloze	1	0	Rutherford's [...] experiment showed the nucleus.	Rutherford's gold foil experiment showed the nucleus.	0	15	0		
+1791042622829	Cloze	0	1	[...] makes a squeaky pop with a lit splint.	Hydrogen makes a squeaky pop with a lit splint.	0	16	0		
+1791042622830	Spanish vocab	0	0	la manzana	the apple\nComo una manzana.	0	17	0		
+1791042622831	Spanish vocab	1	0	How do you say the apple?	la manzana	0	17	0		
+1791042622832	Spanish vocab	0	0	el perro	the dog	0	18	0		
+1791042622833	Spanish vocab	1	0	How do you say the dog?	el perro	0	18	0		
+1791042622834	Image Occlusion	2	0	Label the heart	Label the heart\nToggle Masks\nLeft and right are swapped on a diagram.	0	19	0		
+1791042622835	Image Occlusion	0	0	Label the heart	Label the heart\nToggle Masks\nLeft and right are swapped on a diagram.	0	19	0		
+1791042622836	Image Occlusion	1	0	Label the heart	Label the heart\nToggle Masks\nLeft and right are swapped on a diagram.	0	19	0		
+1791042622837	Image Occlusion	3	0	Label the heart	Label the heart\nToggle Masks\nLeft and right are swapped on a diagram.	0	19	0		
+# crt	1791000000

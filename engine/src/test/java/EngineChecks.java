@@ -67,6 +67,8 @@ public class EngineChecks {
         copy();
         longAnswers();
         ankiFiles();
+        realAnkiExports();
+        ankiDroidNotes();
         notes();
         forecast();
         System.out.println();
@@ -595,6 +597,99 @@ public class EngineChecks {
         }
     }
 
+    /**
+     * Decks exported by Anki's own code (tools/real-anki-decks.py), checked against anki-says.tsv:
+     * how Anki itself shows each card (question, answer, schedule), written by the same script.
+     */
+    static void realAnkiExports() {
+        System.out.println("Anki's own exports (tools/real-anki-decks.py)");
+        try {
+            com.reelcards.engine.anki.AnkiPackage.Result latest = readDeck("real/anki-latest.apkg"), legacy = readDeck("real/anki-legacy.apkg"), colpkg = readDeck("real/anki-collection.colpkg");
+            List<Card> cs = latest.cards;
+            check("reads Anki's exports (the default, \"support older Anki versions\" and a collection package) to the same " + cs.size() + " cards",
+                    cs.size() == 26 && dump(cs).equals(dump(legacy.cards)) && dump(cs).equals(dump(colpkg.cards)));
+            List<String[]> says = new java.util.ArrayList<>();
+            long crt = 0;
+            java.io.BufferedReader in = new java.io.BufferedReader(new java.io.InputStreamReader(new java.io.FileInputStream(deckFile("real/anki-says.tsv")), "UTF-8"));
+            try {
+                for (String line; (line = in.readLine()) != null; ) {
+                    String[] f = line.split("\t", -1);
+                    if (line.startsWith("# crt")) crt = Long.parseLong(f[1]);
+                    else if (!line.startsWith("#")) says.add(f);
+                }
+            } finally { in.close(); }
+            List<String> wrong = new java.util.ArrayList<>(), wrongSched = new java.util.ArrayList<>();
+            int shown = 0, leftOut = 0, io = 0, reviewed = 0;
+            for (String[] r : says) {
+                Card c = byId(cs, "apkg:" + r[0]);
+                String type = r[1], q = r[4].replace("\\n", "\n"), a = r[5].replace("\\n", " ");
+                if (r[3].equals("1") || q.contains("[anki:play")) { leftOut++; if (c != null) wrong.add(r[0] + " should be left out"); continue; }
+                if (c == null) { wrong.add(r[0] + " missing"); continue; }
+                shown++;
+                boolean ok;
+                if (type.equals("Image Occlusion")) {
+                    io++;
+                    ok = c.occlusionTarget == Integer.parseInt(r[2]) + 1 && q.startsWith(c.front) && c.extra.length() > 0 && a.contains(c.extra);
+                } else {
+                    StringBuilder want = new StringBuilder();
+                    for (String l : q.split("\n")) if (!l.contains("[[type:")) want.append(want.length() > 0 ? "\n" : "").append(l);
+                    ok = c.front.equals(want.toString().replace("[...]", "[…]"));
+                    if (!a.contains("[[type:")) { // a typed answer is filled in by Anki's reviewer, not the template
+                        for (String part : c.back.split(c.cloze ? "; " : "\n")) if (!a.contains(part)) ok = false;
+                        if (!c.extra.isEmpty() && !a.replace(" ", "").contains(c.extra.replace(" ", ""))) ok = false;
+                    }
+                }
+                if (r[6].equals("2")) {
+                    reviewed++;
+                    long due = (crt + Long.parseLong(r[7]) * 86400L) * 1000L;
+                    boolean mem = r[9].isEmpty() ? c.stability == Math.max(1, Long.parseLong(r[8]))
+                            : Math.abs(c.stability - Double.parseDouble(r[9])) < 1e-3 && Math.abs(c.difficulty - Double.parseDouble(r[10])) < 1e-3;
+                    if (c.state != Card.REVIEW || c.due != due || !mem) wrongSched.add(r[0] + " s=" + c.stability + " d=" + c.difficulty + " due=" + c.due);
+                } else if (c.state != Card.NEW) wrongSched.add(r[0] + " should be new");
+                if (!ok) wrong.add(r[0] + " " + type + ": \"" + c.front + "\" / \"" + c.back + "\"");
+            }
+            check("each card reads as Anki shows it: " + shown + " questions and answers (lists, line breaks, entities, subscript, cloze hints, nested cloze, reversed, optional reversed, typed, a custom note type), "
+                    + leftOut + " left out (suspended, audio only)" + (wrong.isEmpty() ? "" : " " + wrong), wrong.isEmpty() && shown == 26 && leftOut == 2);
+            check("the " + reviewed + " reviewed cards keep Anki's FSRS memory state, interval and due date; the rest stay new" + (wrongSched.isEmpty() ? "" : " " + wrongSched), reviewed == 4 && wrongSched.isEmpty());
+            boolean labels = true;
+            for (Card c : cs) if (c.occlusion != null) {
+                boolean label = false;
+                for (Occlusion.Shape sh : Occlusion.parse(c.occlusion)) if ("text".equals(sh.kind)) label = sh.ord == 0 && "Aorta".equals(sh.text);
+                if (!label || c.imageW != 400 || c.imageH != 300) labels = false;
+            }
+            check("image occlusion: " + io + " cards, each covering the shape Anki's card does; the text label is drawn but isn't a card", io == 4 && labels);
+        } catch (java.io.IOException ex) {
+            check("Anki's own exports readable (" + ex + ")", false);
+        }
+    }
+
+    /** AnkiDroid hands over a note's fields and note type; they go through the same rules as an imported deck. */
+    static void ankiDroidNotes() {
+        System.out.println("AnkiDroid notes");
+        List<String[]> basicT = new java.util.ArrayList<>(), clozeT = new java.util.ArrayList<>(), ioT = new java.util.ArrayList<>();
+        basicT.add(new String[]{"Card 1", "{{Front}}", "{{FrontSide}}\n\n<hr id=answer>\n\n{{Back}}"});
+        clozeT.add(new String[]{"Cloze", "{{cloze:Text}}", "{{cloze:Text}}<br>\n{{Back Extra}}"});
+        ioT.add(new String[]{"Image Occlusion", "{{#Header}}<div>{{Header}}</div>{{/Header}}<div style=\"display: none\">{{cloze:Occlusion}}</div>{{Image}}", "{{Image}}"});
+        com.reelcards.engine.anki.AnkiPackage.NoteCard cz = com.reelcards.engine.anki.AnkiPackage.noteCard("Cloze", true, list("Text", "Back Extra"), clozeT,
+                "{{c1::Mitochondria}} are the site of {{c2::aerobic respiration::type of respiration}}.\u001fThey have a folded inner membrane.", "", "GCSE Biology::Cells", "Biology", 1);
+        com.reelcards.engine.anki.AnkiPackage.NoteCard br = com.reelcards.engine.anki.AnkiPackage.noteCard("Basic", false, list("Front", "Back"), basicT,
+                "Stages of mitosis?\u001fProphase<br>Metaphase<br>Anaphase<br>Telophase", "", "Biology", "Biology", 0);
+        check("cloze from AnkiDroid: the gap is a blank and the answer is just the deletion (\"" + (cz.card == null ? "" : cz.card.front) + "\")",
+                cz.card != null && cz.card.cloze && cz.card.front.equals("Mitochondria are the site of [type of respiration].") && cz.card.back.equals("aerobic respiration")
+                && cz.card.extra.equals("Mitochondria are the site of aerobic respiration. They have a folded inner membrane."));
+        check("line breaks from AnkiDroid stay separate points (4 stages, not one run-on line)", br.card != null && AnswerShape.of(br.card).points.size() == 4);
+        com.reelcards.engine.anki.AnkiPackage.NoteCard pic = com.reelcards.engine.anki.AnkiPackage.noteCard("Basic", false, list("Front", "Back"), basicT,
+                "Which organelle is this?<br><img src=\"organelle.png\">\u001fA mitochondrion", "", "Biology", "Biology", 0);
+        com.reelcards.engine.anki.AnkiPackage.NoteCard io = com.reelcards.engine.anki.AnkiPackage.noteCard("Image Occlusion", true, list("Occlusion", "Image", "Header", "Back Extra", "Comments"), ioT,
+                "{{c1::image-occlusion:rect:left=.2:top=.3:width=.2:height=.4:oi=1}}\u001f<img src=\"heart.png\">\u001fLabel the heart\u001f\u001f", "", "Biology", "Biology", 0);
+        com.reelcards.engine.anki.AnkiPackage.NoteCard ansPic = com.reelcards.engine.anki.AnkiPackage.noteCard("Basic", false, list("Front", "Back"), basicT,
+                "What does a mitochondrion look like?\u001fBean-shaped, with folds <img src=\"organelle.png\">", "", "Biology", "Biology", 0);
+        check("a question that needs a picture, and image occlusion, are flagged for the \"export as .apkg\" tip; a picture only on the answer side still shows",
+                pic.card == null && pic.needsPicture && io.card == null && io.needsPicture && ansPic.card != null && !ansPic.needsPicture && ansPic.card.back.equals("Bean-shaped, with folds"));
+        check("numeric HTML entities are decoded (&#x27; &#8217; from decks made by scripts), escaped ones aren't",
+                com.reelcards.engine.anki.AnkiPackage.clean("What&#x27;s it&#8217;s &amp;#39; &#0;").equals("What's it’s &#39; &#0;"));
+    }
+
     // ------------------------------------------------------------------ notes
 
     static void notes() {
@@ -609,6 +704,15 @@ public class EngineChecks {
         for (Card c : r.cards) System.out.println("        " + c.front + "  |  " + c.back);
         check("5 cards from 6 facts, 1 non-fact line skipped", r.cards.size() == 5 && r.skippedLines == 1);
         check("\"X is Y\" becomes a question", r.cards.size() > 3 && r.cards.get(3).front.equals("What are enzymes?"));
+        String reply = "Here are your flashcards:\n\n**Q:** What does the mitochondria do?\n**A:** Aerobic respiration\n\n"
+            + "Q1: Name the three main parts of a neurone.\nA1: cell body; axon; dendrites\n\nQuestion 2: What is the charge on an electron?\nAnswer 2: −1\n";
+        NotesParser.Result ai = NotesParser.parse(reply, "Biology");
+        check("a chatbot's reply to the \"Make cards with AI\" prompt becomes cards (bold labels, Q1:/A1:, its intro line left out)",
+                ai.cards.size() == 3 && ai.skippedLines == 1 && ai.cards.get(0).front.equals("What does the mitochondria do?") && ai.cards.get(0).back.equals("Aerobic respiration")
+                && ai.cards.get(2).back.equals("−1"));
+        check("a several-part answer on one A: line (as the prompt asks) is a 3-mark card", ai.cards.size() > 1 && AnswerShape.of(ai.cards.get(1)).points.size() == 3);
+        check("the prompt asks for exactly the Q:/A: lines the parser reads", NotesParser.AI_PROMPT.contains("Q: the question\nA: the answer\n")
+                && NotesParser.parse("Q: the question\nA: the answer\n", "x").cards.size() == 1 && NotesParser.AI_PROMPT.endsWith("My notes:\n\n"));
     }
 
     // ------------------------------------------------------------------ forecast

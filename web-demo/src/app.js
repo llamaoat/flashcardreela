@@ -84,6 +84,10 @@ function renderPhone(anim){
     case "notes": {
       const r = UI.notesResult;
       h = '<div class="app"><h3>Paste your notes</h3><p class="muted">One fact per line: “Osmosis - diffusion of water”, “Mitochondria: site of respiration”, “Enzymes are biological catalysts.”, Q:/A: pairs, or tab-separated from Quizlet or Anki.</p>'+
+        '<div class="box"><b>Make cards with AI</b><span class="muted" style="font-size:12.5px">Copy our prompt into a chatbot you already use, paste your notes under it, then paste its reply in Notes below. Your notes go to that chatbot, not to Reelcards.</span>'+
+        '<button class="abtn ghost" data-act="copyPrompt">Copy the AI prompt</button>'+
+        (UI.aiCopied === true ? '<span class="muted" role="status" style="font-size:12.5px;color:var(--good,#3ecf8e)">Copied. Paste it into the chatbot, add your notes underneath, and send. Then copy the reply and paste it below.</span>' :
+         UI.aiCopied === false ? '<span class="muted" role="status" style="font-size:12.5px">Couldn\'t copy here: select the prompt and copy it.</span><textarea id="aiprompt" readonly rows="6">'+esc(AI_PROMPT)+'</textarea>' : '')+'</div>'+
         '<label for="ndeck">Deck name<input type="text" id="ndeck" value="'+esc(UI.notesDeck)+'"></label><label for="ntext">Notes<textarea id="ntext" placeholder="Paste or type your notes here">'+esc(UI.notesText)+'</textarea></label>'+
         '<button class="alink" data-act="exampleNotes">Fill with example notes</button><button class="abtn" data-act="makeCards">Make cards</button>';
       if (r) h += r.cards.length ? '<div class="box"><b style="font-family:var(--display);font-weight:400;font-size:20px">Made '+r.cards.length+' cards</b>'+(r.skipped?'<span class="muted" style="font-size:12.5px">'+r.skipped+(r.skipped===1?" line didn't":" lines didn't")+' look like a fact, so we left '+(r.skipped===1?"it":"them")+' out.</span>':'')+
@@ -299,7 +303,9 @@ $("screen").addEventListener("click", e => {
   if (b) {
     const a = b.dataset.act, v = b.dataset.v, it = UI.current;
     switch (a) {
-      case "go": if (v==="notes") UI.notesResult = null; go(v); return;
+      case "go": if (v==="notes") { UI.notesResult = null; UI.aiCopied = null; } go(v); return;
+      case "copyPrompt": { UI.notesText = $("ntext").value; const done = ok => { UI.aiCopied = ok; renderPhone(false); };
+        try { navigator.clipboard.writeText(AI_PROMPT).then(() => done(true), () => done(false)); } catch (err) { done(false); } return; }
       case "tab": UI.screen = v; UI.confirmReset = false; render(true); return;
       case "deck": UI.decks.has(v) ? UI.decks.delete(v) : UI.decks.add(v); renderPhone(false); return;
       case "decksNext": { for (const n of UI.decks) E.addCards(deckCards(n)); E.addCards(UI.notes); E.addCards(UI.apkgCards); UI.decks.clear(); UI.notes = []; UI.apkgCards = [];

@@ -78,6 +78,7 @@ public final class MainActivity extends Activity {
         getWindow().setStatusBarColor(Ui.BG);
         getWindow().setNavigationBarColor(Ui.BG);
         engine = Store.engine(this);
+        Store.cleanMedia(this, null); // pictures from an import that was never used, or a deck since removed
         if (Store.prefs(this).getBoolean("onboarded", false)) showDashboard();
         else showWelcome();
     }
@@ -320,8 +321,9 @@ public final class MainActivity extends Activity {
                             String safe = media.replaceAll("[^A-Za-z0-9._-]", "_");
                             if (safe.length() > 60) safe = safe.substring(safe.length() - 60);
                             File f = new File(dir, Long.toHexString(crc.getValue()) + "-" + Integer.toHexString(data.length) + "-" + safe);
-                            if (f.isFile() && f.length() == data.length) return f.getAbsolutePath(); // already saved by an earlier import
-                            try { FileOutputStream o = new FileOutputStream(f); try { o.write(data); } finally { o.close(); } return f.getAbsolutePath(); }
+                            // the card keeps just the name (Store.mediaFile finds it), so it survives the folder moving
+                            if (f.isFile() && f.length() == data.length) { f.setLastModified(System.currentTimeMillis()); return f.getName(); } // saved by an earlier import
+                            try { FileOutputStream o = new FileOutputStream(f); try { o.write(data); } finally { o.close(); } return f.getName(); }
                             catch (IOException e) { return null; }
                         }
                     });
@@ -369,9 +371,11 @@ public final class MainActivity extends Activity {
                 row.setBackground(Ui.round(Ui.SURFACE2, dp(10)));
                 row.setPadding(dp(10), dp(8), dp(10), dp(8));
                 if (c.image != null) {
-                    ImageView iv = new ImageView(this);
+                    final ImageView iv = new ImageView(this);
                     iv.setScaleType(ImageView.ScaleType.CENTER_CROP);
-                    iv.setImageBitmap(Ui.picture(c.image, dp(64)));
+                    Ui.picture(Store.mediaFile(this, c.image).getPath(), dp(64), new Ui.PictureLoaded() {
+                        @Override public void loaded(android.graphics.Bitmap b) { iv.setImageBitmap(b); }
+                    });
                     iv.setClipToOutline(true);
                     iv.setBackground(Ui.round(0xFFFFFFFF, dp(6)));
                     LinearLayout.LayoutParams il = new LinearLayout.LayoutParams(dp(48), dp(36));
@@ -414,10 +418,30 @@ public final class MainActivity extends Activity {
         LinearLayout col = page("notes", new Runnable() { @Override public void run() { showDecks(); } });
         Ui.add(col, Ui.title(this, "Paste your notes"), 0);
         Ui.add(col, Ui.body(this, "One fact per line. These all work:"), 8);
-        TextView ex = Ui.text(this, "Osmosis - diffusion of water\nMitochondria: site of respiration\nEnzymes are biological catalysts.\nQ: Which organ makes bile?  A: The liver\nCopied from Quizlet or Anki (tab-separated)", 13, Ui.MUTED, Ui.MONO);
+        TextView ex = Ui.text(this, "Osmosis - diffusion of water\nMitochondria: site of respiration\nEnzymes are biological catalysts.\nQ: Which organ makes bile?\nA: The liver\nCopied from Quizlet or Anki (tab-separated)", 13, Ui.MUTED, Ui.MONO);
         ex.setBackground(Ui.round(Ui.SURFACE, dp(12)));
         ex.setPadding(dp(12), dp(10), dp(12), dp(10));
         Ui.add(col, ex, 8);
+
+        // AI-made cards with no AI in the app: a prompt for a chatbot the student already uses
+        LinearLayout ai = Ui.panel(this);
+        ai.addView(Ui.text(this, "Make cards with AI", 16, Ui.TEXT, Ui.MEDIUM));
+        Ui.add(ai, Ui.muted(this, "Copy our prompt into a chatbot you already use, paste your notes under it, then paste its reply in Notes below. "
+                + "Your notes go to that chatbot, not to Reelcards."), 4);
+        final TextView copied = Ui.muted(this, "");
+        Button copy = Ui.button(this, "Copy the AI prompt", false);
+        copy.setOnClickListener(go(new Runnable() {
+            @Override public void run() {
+                android.content.ClipboardManager cb = (android.content.ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
+                if (cb == null) return;
+                cb.setPrimaryClip(android.content.ClipData.newPlainText("Reelcards prompt", NotesParser.AI_PROMPT));
+                copied.setText("Copied. Paste it into the chatbot, add your notes underneath, and send. Then copy the reply and paste it below.");
+                copied.setTextColor(Ui.GOOD);
+            }
+        }));
+        Ui.add(ai, copy, 10);
+        Ui.add(ai, copied, 6);
+        Ui.add(col, ai, 10);
 
         final EditText name = new EditText(this);
         name.setText(notesDeck);
@@ -901,6 +925,7 @@ public final class MainActivity extends Activity {
                     engine.removeDeck(deck);
                     AnkiBridge.unselect(MainActivity.this, deck); // an AnkiDroid deck would otherwise come back on the next refill
                     Store.saveNow(MainActivity.this);
+                    Store.cleanMedia(MainActivity.this, null); // its pictures go too
                     showDashboard();
                 }
             });
@@ -909,6 +934,11 @@ public final class MainActivity extends Activity {
         }
         String ankiNames = AnkiBridge.selectedNames(this);
         if (!ankiNames.isEmpty()) Ui.add(dp_, Ui.muted(this, "Anki decks: " + ankiNames + ". Answers go straight back to AnkiDroid."), 10);
+        for (String deck : AnkiBridge.pictureDecks(this)) {
+            if (AnkiBridge.deckId(this, deck) < 0) continue;
+            Ui.add(dp_, Ui.muted(this, "Some “" + deck + "” cards need a picture, and AnkiDroid doesn't share pictures with other apps, so those stay in AnkiDroid. "
+                    + "To get them here, export the deck from Anki as a .apkg and open it with Add cards."), 6);
+        }
         if (engine.cards.isEmpty() && ankiNames.isEmpty()) Ui.add(dp_, Ui.muted(this, "No cards yet."), 8);
         Button add = Ui.button(this, "Add cards", false);
         add.setOnClickListener(go(new Runnable() { @Override public void run() { addMode = true; showDecks(); } }));
