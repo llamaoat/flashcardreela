@@ -7,7 +7,9 @@ in plain Java that runs anywhere.
 
 - **App:** open the folder in Android Studio, or `./gradlew assembleDebug`.
 - **Engine:** `./gradlew :engine:engineChecks` (103 checks) and `./gradlew :engine:simulate`.
-- **Web demo:** edit `web-demo/src/`, then `python3 tools/build-web-demo.py`.
+- **Web demo:** edit `web-demo/src/`, then `python3 tools/build-web-demo.py`; `python3 tools/lab-shots.py` screenshots the design lab.
+- **Both engines:** `tools/crosscheck/run.sh` checks the Java engine against the JavaScript port.
+- **Using Claude Code or another coding assistant?** [CLAUDE.md](CLAUDE.md) has the rules and commands, and [docs/ROADMAP.md](docs/ROADMAP.md) what's next.
 
 ## Where things go
 
@@ -15,7 +17,7 @@ in plain Java that runs anywhere.
 |---|---|---|
 | Scheduling, grading, rhythm, formats | `engine/src/main/java/…/engine/` | Add or update a check in `engine/src/test/java/EngineChecks.java`; re-run the simulation if behaviour changes, and save its output to `engine/results/` |
 | Card design | `web-demo/src/head.html` + `render.js` first (check every app, interest and state in the design lab), then `app/…/CardView.java` | Keep both in step; [docs/DESIGN.md](docs/DESIGN.md) is the spec |
-| Engine logic used by the web demo | also `web-demo/src/engine.js` | The JS port must match the Java engine |
+| Engine logic used by the web demo | also `web-demo/src/engine.js` (and `apkg.js` for Anki files) | The JS port must match the Java engine: run `tools/crosscheck/run.sh` |
 | Reel detection for an app update | `REEL_IDS` in `app/…/ReelDetector.java` | Include the detection-log lines that show the new view name |
 | Ready-made decks | `engine/…/SampleDecks.java` | Check facts against the exam board's specification |
 

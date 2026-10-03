@@ -141,7 +141,8 @@ No Gradle? Use `javac -d out $(find engine/src -name '*.java') && java -cp out E
 - **Command line:** `./gradlew assembleDebug` → `app/build/outputs/apk/debug/app-debug.apk`.
 - **GitHub Actions:** every push runs the engine checks and builds the APK (download it from the run's **Artifacts**). Pushing a tag like `v1.0.0` publishes a Release with the APK attached. [`pages.yml`](.github/workflows/pages.yml) publishes the web demo to GitHub Pages.
 - **Without Gradle:** `tools/build-apk.sh` builds the APK straight from `aapt2`, `javac`, a dexer and `apksigner`. That's how the APK in `release/` was made.
-- **Web demo:** edit `web-demo/src/`, then `python3 tools/build-web-demo.py` rebuilds the single-file `web-demo/index.html`.
+- **Web demo:** edit `web-demo/src/`, then `python3 tools/build-web-demo.py` rebuilds the single-file `web-demo/index.html`. `python3 tools/lab-shots.py` screenshots the design lab.
+- **Keeping the two engines in step:** `tools/crosscheck/run.sh` checks the Java engine against the web demo's JavaScript port (CI runs it too).
 
 All builds are signed with the shared debug key in `tools/`, so any teammate's build can update the same installed app. **Use your own private key for anything you publish.**
 
@@ -191,8 +192,10 @@ app/src/main/java/com/reelcards/app/   the Android app
   Store.java                  saves everything to one JSON file on the phone
 app/src/main/assets/fonts/    TikTok Sans, Anton, Caveat, Fraunces (SIL OFL, licences included)
 web-demo/                     browser version of the whole journey (src/ + built index.html)
-docs/                         ENGINE.md, DESIGN.md, design critique, screenshots
-tools/                        Gradle-free APK build, web-demo build, test-deck maker, shared debug key
+docs/                         ENGINE.md, DESIGN.md, ROADMAP.md, design critique, screenshots
+tools/                        Gradle-free APK build, web-demo build, test-deck maker,
+                              Java/JS cross-check, design-lab screenshots, shared debug key
+CLAUDE.md                     project rules and commands for Claude Code (and anyone new)
 ```
 
 ---
@@ -215,4 +218,4 @@ Reelcards is free software under the [GNU GPL v3](LICENSE). The code stays open,
 - **Copy is templated.** Next step: on-device AI (Gemini Nano via ML Kit's GenAI APIs, on phones that have it) to rewrite each card in the hook's voice and turn messy notes into cards. `CopyWriter` is the plug-in point.
 - **The simulation is a model.** Real numbers need a pilot with real students.
 
-See [CHANGELOG.md](CHANGELOG.md) for what changed, and [CONTRIBUTING.md](CONTRIBUTING.md) to help.
+What's next, in order: [docs/ROADMAP.md](docs/ROADMAP.md). See [CHANGELOG.md](CHANGELOG.md) for what changed, and [CONTRIBUTING.md](CONTRIBUTING.md) to help.

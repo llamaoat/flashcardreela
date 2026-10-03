@@ -1,6 +1,6 @@
 name: Build
 
-# Every push and pull request: run the engine checks and build the APK (download it from the run's
+# Every push and pull request: run the engine checks and the Java/JS cross-check, and build the APK (download it from the run's
 # Artifacts). Pushing a version tag (git tag v1.0.0 && git push --tags) also publishes a GitHub
 # Release with the APK attached.
 on:
@@ -28,6 +28,9 @@ jobs:
 
       - name: Engine checks (plain Java)
         run: ./gradlew :engine:engineChecks --no-daemon
+
+      - name: Java engine vs JavaScript port (web demo)
+        run: tools/crosscheck/run.sh
 
       - name: Build APK
         run: ./gradlew :app:assembleDebug --no-daemon
