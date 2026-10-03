@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Listens only for scroll events (a new reel) and window changes (you left the app).
+     It never reads text, messages or what you watch.
+     canTakeScreenshot is only used by the opt-in "Match my feed's colours" setting (off by default,
+     Android 11+): one screenshot per card, shrunk to 24x48 pixels and reduced to a single colour in
+     memory, then discarded. -->
+<accessibility-service xmlns:android="http://schemas.android.com/apk/res/android"
+    android:accessibilityEventTypes="typeViewScrolled|typeWindowStateChanged"
+    android:accessibilityFeedbackType="feedbackGeneric"
+    android:accessibilityFlags="flagReportViewIds"
+    android:canRetrieveWindowContent="true"
+    android:canTakeScreenshot="true"
+    android:description="@string/service_description"
+    android:isAccessibilityTool="false"
+    android:notificationTimeout="80"
+    android:settingsActivity="com.reelcards.app.MainActivity" />

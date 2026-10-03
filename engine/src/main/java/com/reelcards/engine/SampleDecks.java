@@ -1,0 +1,135 @@
+package com.reelcards.engine;
+
+import java.util.ArrayList;
+import java.util.List;
+
+/** Ready-made GCSE decks so a student can try the app with zero typing. */
+public final class SampleDecks {
+
+    public static final String BIOLOGY = "GCSE Biology";
+    public static final String CHEMISTRY = "GCSE Chemistry";
+    public static final String SPANISH = "GCSE Spanish";
+    /** 2- to 5-mark questions with answers in points, for the long-answer card designs. */
+    public static final String SCIENCE_LONG = "GCSE Science: longer answers";
+
+    public static String[] names() { return new String[]{BIOLOGY, CHEMISTRY, SPANISH, SCIENCE_LONG}; }
+
+    public static List<Card> get(String name) {
+        if (BIOLOGY.equals(name)) return build("bio", name, BIO);
+        if (CHEMISTRY.equals(name)) return build("chem", name, CHEM);
+        if (SPANISH.equals(name)) return build("es", name, ES);
+        if (SCIENCE_LONG.equals(name)) return build("sci", name, SCI);
+        return new ArrayList<>();
+    }
+
+    public static int size(String name) {
+        if (BIOLOGY.equals(name)) return BIO.length;
+        if (CHEMISTRY.equals(name)) return CHEM.length;
+        if (SPANISH.equals(name)) return ES.length;
+        if (SCIENCE_LONG.equals(name)) return SCI.length;
+        return 0;
+    }
+
+    static List<Card> build(String prefix, String deck, String[][] rows) {
+        List<Card> out = new ArrayList<>();
+        for (int i = 0; i < rows.length; i++) {
+            out.add(new Card(prefix + "-" + (i + 1), deck, rows[i][0], rows[i][1], rows[i].length > 2 ? rows[i][2] : ""));
+        }
+        return out;
+    }
+
+    static final String[][] BIO = {
+        {"What does the mitochondria actually do?", "Aerobic respiration", "It releases energy from glucose for the cell."},
+        {"What's the difference between osmosis and diffusion?", "Osmosis is diffusion of water", "Water moves across a partially permeable membrane, from a dilute to a more concentrated solution."},
+        {"Which enzyme breaks down starch?", "Amylase", "Made in the salivary glands and pancreas. Starch in, sugars out."},
+        {"Which organ actually makes bile?", "The liver", "The gall bladder only stores it."},
+        {"What do ribosomes do?", "Make proteins", "They're where protein synthesis happens."},
+        {"Word equation for photosynthesis?", "Carbon dioxide + water → glucose + oxygen", "Needs light energy. Happens in the chloroplasts."},
+        {"What carries oxygen in red blood cells?", "Haemoglobin", "It becomes oxyhaemoglobin in the lungs."},
+        {"Where does gas exchange happen in the lungs?", "The alveoli", "Huge surface area, thin walls and a great blood supply."},
+        {"Which type of cell division makes gametes?", "Meiosis", "Four genetically different cells, each with half the chromosomes."},
+        {"What does insulin do?", "Lowers blood glucose", "It makes cells take in glucose. The liver and muscles store extra as glycogen."},
+        {"Which organ releases insulin?", "The pancreas", "It monitors and controls blood glucose."},
+        {"What's the job of white blood cells?", "Fight pathogens", "Phagocytosis, plus making antibodies and antitoxins."},
+        {"What controls what enters and leaves a cell?", "The cell membrane", "It's partially permeable."},
+        {"Where is the genetic material in an animal cell?", "In the nucleus", "Bacteria have no nucleus: their DNA floats in the cytoplasm."},
+        {"What are enzymes?", "Biological catalysts", "They speed up reactions without being used up."},
+        {"What does lipase break down?", "Lipids (fats)", "Into fatty acids and glycerol."},
+        {"What does protease break down?", "Proteins", "Into amino acids."},
+        {"Word equation for aerobic respiration?", "Glucose + oxygen → carbon dioxide + water", "It releases energy."},
+        {"What does anaerobic respiration in muscles make?", "Lactic acid", "It builds up and causes an oxygen debt."},
+        {"What does xylem carry?", "Water and mineral ions", "From the roots up to the leaves."},
+        {"What does phloem carry?", "Dissolved sugars", "Around the plant, both ways. This is translocation."},
+        {"What are stomata?", "Tiny holes in leaves", "They let gases in and out. Guard cells open and close them."},
+        {"What type of pathogen causes measles?", "A virus", "Spread by droplets from coughs and sneezes."},
+        {"What do antibiotics kill?", "Bacteria", "They don't work on viruses."},
+        {"Which blood vessels carry blood away from the heart?", "Arteries", "Thick, elastic walls to handle high pressure."},
+        {"What's the smallest type of blood vessel?", "Capillaries", "Walls one cell thick, so substances diffuse in and out easily."},
+        {"Which hormone triggers ovulation?", "LH (luteinising hormone)", "Released by the pituitary gland."},
+        {"What's the main male reproductive hormone?", "Testosterone", "Made in the testes."},
+        {"What does DNA stand for?", "Deoxyribonucleic acid", "A polymer made of two strands in a double helix."},
+        {"What is a gene?", "A small section of DNA", "It codes for a sequence of amino acids to make a specific protein."},
+    };
+
+    static final String[][] CHEM = {
+        {"What's the charge on a proton?", "+1", "Electrons are −1. Neutrons have no charge."},
+        {"What does the atomic number tell you?", "The number of protons", "Every atom of an element has the same number."},
+        {"What's the mass number?", "Protons + neutrons", "Electrons weigh almost nothing."},
+        {"What are isotopes?", "Same element, different number of neutrons", "Same protons, so same chemistry."},
+        {"What bond forms between a metal and a non-metal?", "Ionic bond", "Electrons are transferred."},
+        {"What bond forms between two non-metals?", "Covalent bond", "Electrons are shared."},
+        {"What's the pH of a neutral solution?", "7", "Below 7 is acidic, above 7 is alkaline."},
+        {"Acid + alkali → ?", "Salt + water", "That's neutralisation."},
+        {"What gas do metals make when they react with acids?", "Hydrogen", "Test: a lit splint gives a squeaky pop."},
+        {"How do you test for carbon dioxide?", "Bubble it through limewater", "Limewater turns milky (cloudy)."},
+        {"How do you test for oxygen?", "A glowing splint relights", "Oxygen supports combustion."},
+        {"How do you test for chlorine?", "Damp litmus paper is bleached", "It turns white."},
+        {"What are the Group 1 metals called?", "The alkali metals", "They get more reactive going down the group."},
+        {"What are the Group 0 elements called?", "The noble gases", "Unreactive: full outer shell."},
+        {"What does a catalyst do?", "Speeds up a reaction without being used up", "It lowers the activation energy."},
+        {"What's an exothermic reaction?", "One that gives out energy", "The surroundings get warmer."},
+        {"Formula of water?", "H₂O", "Two hydrogen atoms, one oxygen."},
+        {"Formula of carbon dioxide?", "CO₂", "One carbon, two oxygens."},
+        {"What is crude oil mostly made of?", "Hydrocarbons", "Compounds of hydrogen and carbon only."},
+        {"General formula of the alkanes?", "CₙH₂ₙ₊₂", "e.g. methane CH₄, ethane C₂H₆."},
+    };
+
+    static final String[][] ES = {
+        {"Spanish for “the weekend”?", "el fin de semana", "Los fines de semana = at weekends."},
+        {"Spanish for “I went”?", "fui", "Preterite of ir. Also means “I was” (ser)."},
+        {"Spanish for “the beach”?", "la playa", "Fui a la playa = I went to the beach."},
+        {"Spanish for “I would like”?", "me gustaría", "Me gustaría ir a España."},
+        {"Spanish for “yesterday”?", "ayer", "A time phrase for the preterite."},
+        {"Spanish for “tomorrow”?", "mañana", "Also means “morning”."},
+        {"Spanish for “to eat”?", "comer", "Como = I eat. Comí = I ate."},
+        {"Spanish for “I have”?", "tengo", "From tener. Tengo que = I have to."},
+        {"Spanish for “my family”?", "mi familia", "Mis padres = my parents."},
+        {"Spanish for “school subject”?", "la asignatura", "Mi asignatura favorita es…"},
+        {"Spanish for “boring”?", "aburrido", "Aburrida for a feminine noun."},
+        {"Spanish for “fun”?", "divertido", "Es muy divertido."},
+        {"Spanish for “because”?", "porque", "Por qué? (two words, accent) = why?"},
+        {"Spanish for “however”?", "sin embargo", "A connective that impresses examiners."},
+        {"Spanish for “I usually…”?", "suelo + infinitive", "Suelo ir al cine = I usually go to the cinema."},
+        {"Spanish for “there is / there are”?", "hay", "Hay un parque = there is a park."},
+        {"Spanish for “the environment”?", "el medio ambiente", "Proteger el medio ambiente."},
+        {"Spanish for “to help”?", "ayudar", "Ayudo en casa = I help at home."},
+        {"Spanish for “healthy”?", "sano", "Also saludable. Una dieta sana."},
+        {"Spanish for “last summer”?", "el verano pasado", "Another preterite time phrase."},
+    };
+
+    static final String[][] SCI = {
+        {"Explain why enzymes stop working at high temperatures.", "The active site changes shape (the enzyme is denatured); the substrate no longer fits the active site; so the reaction stops", "It's permanent. Below the optimum, warming speeds reactions up because particles collide more often."},
+        {"Describe how the alveoli are adapted for gas exchange.", "A huge surface area; walls only one cell thick, so a short diffusion distance; a rich blood supply keeps the concentration gradient steep", "Breathing in and out (ventilation) keeps the gradient steep too."},
+        {"What's the path of a nerve impulse in a reflex arc?", "Receptor → sensory neurone → relay neurone → motor neurone → effector", "A stimulus sets it off and the effector makes the response. It skips the conscious part of the brain, so it's fast."},
+        {"A potato cylinder is left in a concentrated sugar solution for an hour. Explain why its mass goes down.", "The sugar solution is more concentrated than the cell contents. So water moves out of the cells by osmosis. The potato loses water, so it loses mass.", "In pure water it would gain mass instead."},
+        {"Why can't antibiotics treat flu?", "Flu is caused by a virus. Antibiotics only kill bacteria. Viruses live inside body cells, so drugs that kill them can damage the cells too.", "Painkillers only ease the symptoms."},
+        {"Name the four main parts of the blood.", "Red blood cells, white blood cells, platelets and plasma", "Plasma is the liquid that carries everything else around the body."},
+        {"Compare aerobic and anaerobic respiration in muscles.", "Aerobic needs oxygen, anaerobic doesn't; aerobic makes carbon dioxide and water, anaerobic makes lactic acid; aerobic releases much more energy", "Anaerobic respiration is what happens in a sprint, when you can't get oxygen in fast enough."},
+        {"What does the law of conservation of mass say?", "No atoms are lost or made in a reaction, so the mass of the products equals the mass of the reactants", "If the mass seems to change, a gas has usually got in or out."},
+        {"How do you make pure, dry crystals of copper sulfate from copper oxide and sulfuric acid?", "1. Warm the acid and add copper oxide until no more dissolves 2. Filter off the leftover copper oxide 3. Heat the solution to evaporate some of the water 4. Leave it to cool and crystallise, then pat the crystals dry", "Adding copper oxide until no more dissolves (in excess) makes sure all the acid gets used up."},
+        {"Explain why metals conduct electricity.", "Metals have delocalised electrons. These electrons are free to move through the whole structure. So they carry electrical charge through the metal.", ""},
+        {"Why does a higher temperature make a reaction faster?", "Particles move faster, so they collide more often; more collisions have at least the activation energy; so more collisions are successful each second", "This is collision theory."},
+        {"Describe how the particles are arranged in a solid, a liquid and a gas.", "Solid: regular pattern, vibrating in place\nLiquid: random, touching, moving around each other\nGas: random, far apart, moving quickly", ""},
+        {"A student adds magnesium ribbon to hydrochloric acid and sees fizzing. Name the gas, and describe a test for it.", "Hydrogen; a lit splint makes a squeaky pop", "Magnesium + hydrochloric acid → magnesium chloride + hydrogen."},
+    };
+}
