@@ -1,0 +1,106 @@
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Reelcards <span>demo</span></h1>
+      <p class="sub">The whole student journey in a browser, running the same engine as the Android app. Set up on the phone, then scroll: flashcard reels slip in between normal reels, styled for the app you're in (TikTok, Instagram or YouTube) and the things you watch. The panels explain every decision. The design lab at the bottom shows every card style side by side.</p>
+    </div>
+    <div class="stats" id="stats"></div>
+  </header>
+
+  <div class="main">
+    <div class="phonecol">
+      <div class="hostbar" role="group" aria-label="App you're scrolling in" id="hostbar"></div>
+      <input type="file" id="apkgFile" accept=".apkg,.colpkg" hidden>
+      <div class="phone" id="phone" aria-label="Reelcards on a phone"><div class="screen" id="screen"></div></div>
+      <div class="row">
+        <button class="btn primary" id="swipe">Swipe up ↑</button>
+        <button class="btn" id="nextday">Next day</button>
+      </div>
+      <p class="hint" id="hint">Follow the setup on the phone, or <button class="alink" id="skipSetup" style="padding:0;min-height:0">skip straight to the feed</button>.</p>
+      <p class="hint" id="gestures" hidden>On a card: tap = reveal · double-tap or heart = “knew it” · speech bubble = hint · bookmark = save · swipe or ↓ = next.</p>
+    </div>
+
+    <div class="panels">
+      <section class="panel" aria-labelledby="h-why">
+        <h2 id="h-why">Why this card</h2>
+        <dl class="why" id="why"></dl>
+      </section>
+      <section class="panel" aria-labelledby="h-sim">
+        <h2 id="h-sim">Controls &amp; simulated student</h2>
+        <div class="controls">
+          <label for="persona">Student to simulate
+            <select id="persona">
+              <option value="quiz">Loves quiz formats</option>
+              <option value="chat">Loves text-chat formats</option>
+              <option value="gamer">Gamer (gameplay backgrounds)</option>
+              <option value="random">No preference</option>
+            </select>
+          </label>
+          <label for="mins">Time on reels per day (forecast) <output id="minsOut">60 min</output><input type="range" id="mins" min="10" max="240" step="5" value="60"></label>
+          <label for="night">Night mode
+            <select id="night"><option value="auto">Auto (10pm–6am)</option><option value="on">On</option><option value="off">Off</option></select>
+          </label>
+          <div style="display:flex;flex-direction:column;gap:8px;justify-content:flex-end">
+            <label class="toggle" for="tint"><input type="checkbox" id="tint"> Match colours of the reel just watched</label>
+            <label class="toggle" for="voice"><input type="checkbox" id="voice"> Voiceover (reads the hook aloud)</label>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn primary" id="auto">Simulate 80 swipes</button>
+          <button class="btn" id="autoWeek">Simulate a week</button>
+          <button class="btn" id="reset">Reset</button>
+        </div>
+        <p class="muted" style="margin:0;font-size:12px">The simulated student has a taste in card styles and a tolerance for how often cards appear. Watch the format scores and the rhythm adapt to them.</p>
+      </section>
+
+      <section class="panel wide" aria-labelledby="h-fmt">
+        <h2 id="h-fmt">Format scores <span class="note">· bar = how well each piece holds attention · yellow = used on the last card · per-app favourites below</span></h2>
+        <div class="dims" id="dims"></div>
+        <div class="mono muted" id="perapp"></div>
+      </section>
+
+      <section class="panel" aria-labelledby="h-rhythm">
+        <h2 id="h-rhythm">Rhythm <span class="note">· learned spacing between cards</span></h2>
+        <div class="arms" id="arms"></div>
+        <div id="rhythmText" style="font-size:13px"></div>
+      </section>
+      <section class="panel" aria-labelledby="h-mem">
+        <h2 id="h-mem">Memory model</h2>
+        <div id="memText" style="font-size:13px"></div>
+      </section>
+
+      <section class="panel wide" aria-labelledby="h-prog">
+        <h2 id="h-prog">Progress, skips &amp; forecast</h2>
+        <div class="kpis" id="kpis"></div>
+        <div class="mini2" id="forecast"></div>
+        <div class="dims">
+          <div><h3 style="margin:0 0 6px;font-size:13px">Skip rate by layout</h3><div id="skiplayout"></div></div>
+          <div><h3 style="margin:0 0 6px;font-size:13px">Most skipped cards</h3><div id="skipcards"></div></div>
+        </div>
+      </section>
+
+      <section class="panel wide" aria-labelledby="h-deck">
+        <h2 id="h-deck">Deck <span class="note">· FSRS-6 schedule: stability = days until recall drops to 90%</span></h2>
+        <div class="tablewrap"><table><thead><tr><th>Card</th><th>Deck</th><th>State</th><th>Recall now</th><th>Stability</th><th>Next due</th><th>Last</th><th>Skips</th></tr></thead><tbody id="deck"></tbody></table></div>
+      </section>
+
+      <section class="panel wide" aria-labelledby="h-anki">
+        <h2 id="h-anki">Sent to AnkiDroid <span class="note">· what the Android app sends through AnkiDroid's API for Anki decks (ease 1 = Again, 2 = Hard, 3 = Good, 4 = Easy)</span></h2>
+        <div class="log" id="anki"><span class="muted">Nothing graded yet.</span></div>
+      </section>
+    </div>
+  </div>
+
+  <section class="panel wide" aria-labelledby="h-lab">
+    <h2 id="h-lab">Design lab <span class="note">· every layout, in the app and vibe you pick. These are the real card components the feed uses.</span></h2>
+    <div class="labbar">
+      <label for="labCards" style="flex-direction:row;align-items:center;gap:6px">Cards <select id="labCards"><option value="short">Short answers</option><option value="long" selected>Long answers &amp; questions</option><option value="anki">Anki: cloze &amp; image occlusion</option></select></label>
+      <label for="labHost" style="flex-direction:row;align-items:center;gap:6px">App <select id="labHost"><option value="tiktok">TikTok</option><option value="instagram">Instagram Reels</option><option value="youtube">YouTube Shorts</option></select></label>
+      <label for="labVibe" style="flex-direction:row;align-items:center;gap:6px">Vibe <select id="labVibe"><option value="">None</option></select></label>
+      <label for="labState" style="flex-direction:row;align-items:center;gap:6px">State <select id="labState"><option value="q">Question</option><option value="a">Answer revealed</option><option value="part">Part marks</option><option value="liked">Knew it</option><option value="more">Caption opened (…more)</option><option value="hint">Hint</option></select></label>
+      <label class="toggle" for="labNight"><input type="checkbox" id="labNight"> Night</label>
+      <button class="btn" id="labShuffle">Shuffle looks</button>
+    </div>
+    <div class="lab" id="lab"></div>
+  </section>
+</div>

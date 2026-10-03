@@ -1,0 +1,108 @@
+name: Build
+
+# Every push and pull request: run the engine checks and the Java/JS cross-check, and build the APK (download it from the run's
+# Artifacts). Pushing a version tag (git tag v1.0.0 && git push --tags) also publishes a GitHub
+# Release with the APK attached.
+on:
+  push:
+    branches: ["**"]
+    tags: ["v*"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write   # only used to publish releases on version tags
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Engine checks (plain Java)
+        run: ./gradlew :engine:engineChecks --no-daemon
+
+      - name: Java engine vs JavaScript port (web demo)
+        run: tools/crosscheck/run.sh
+
+      - name: Build APK
+        run: ./gradlew :app:assembleDebug --no-daemon
+
+      - name: Name the APK
+        run: cp app/build/outputs/apk/debug/app-debug.apk Reelcards.apk
+
+      - name: The Play bundle builds (demo-signed here, so the upload check must refuse it)
+        run: |
+          ./gradlew :app:bundleRelease --no-daemon
+          if tools/check-play-bundle.sh app/build/outputs/bundle/release/app-release.aab; then
+            echo "::error::check-play-bundle.sh accepted a bundle signed with the shared demo key"; exit 1
+          fi
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Reelcards-apk
+          path: Reelcards.apk
+
+      - name: Publish release (version tags only)
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: Reelcards.apk
+          generate_release_notes: true
+
+  # Google Play wants a signed app bundle (.aab), signed with your private upload key, never the shared
+  # demo key. Runs on version tags and by hand (Actions > Build > Run workflow), once the key is in
+  # the repository's secrets: tools/make-upload-key.sh says which, and docs/PLAY-STORE.md how.
+  play-bundle:
+    if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
+    needs: build
+    runs-on: ubuntu-latest
+    env:
+      KEYSTORE_BASE64: ${{ secrets.REELCARDS_KEYSTORE_BASE64 }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Upload key
+        id: key
+        run: |
+          if [ -z "$KEYSTORE_BASE64" ]; then
+            echo "::notice::No upload key in this repository's secrets yet, so no Play bundle (see docs/PLAY-STORE.md)."
+            echo "ok=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/upload.jks"
+          echo "REELCARDS_KEYSTORE=$RUNNER_TEMP/upload.jks" >> "$GITHUB_ENV"
+          echo "ok=true" >> "$GITHUB_OUTPUT"
+
+      - if: steps.key.outputs.ok == 'true'
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - if: steps.key.outputs.ok == 'true'
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Build and check the app bundle
+        if: steps.key.outputs.ok == 'true'
+        env:
+          REELCARDS_KEYSTORE_PASSWORD: ${{ secrets.REELCARDS_KEYSTORE_PASSWORD }}
+          REELCARDS_KEY_ALIAS: ${{ secrets.REELCARDS_KEY_ALIAS }}
+          REELCARDS_KEY_PASSWORD: ${{ secrets.REELCARDS_KEY_PASSWORD }}
+        run: |
+          ./gradlew :app:bundleRelease --no-daemon
+          tools/check-play-bundle.sh app/build/outputs/bundle/release/app-release.aab
+          cp app/build/outputs/bundle/release/app-release.aab Reelcards.aab
+
+      - if: steps.key.outputs.ok == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: Reelcards-play-bundle
+          path: Reelcards.aab

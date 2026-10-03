@@ -1,0 +1,61 @@
+name: Web demo
+
+# Publishes web-demo/ to GitHub Pages so anyone can try Reelcards in a browser, and the privacy policy
+# (PRIVACY.md as privacy.html), which Google Play needs at a public address and the app links to.
+# One-time setup: Settings → Pages → Build and deployment → Source: "GitHub Actions".
+# Until then this workflow skips the deploy instead of failing.
+on:
+  push:
+    branches: [main, master]
+    paths: ["web-demo/**", "tools/build-web-demo.py", "PRIVACY.md", "tools/build-privacy-page.py", ".github/workflows/pages.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Is GitHub Pages switched on?
+        id: pages
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh api "repos/${{ github.repository }}/pages" > /dev/null 2>&1; then
+            echo "on=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "on=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::GitHub Pages is off. Turn it on in Settings → Pages → Source: GitHub Actions, then re-run this workflow."
+          fi
+
+      - name: Build the page
+        if: steps.pages.outputs.on == 'true'
+        run: |
+          python3 tools/build-web-demo.py
+          mkdir -p _site
+          cp web-demo/index.html _site/index.html
+          python3 tools/build-privacy-page.py _site/privacy.html
+
+      - if: steps.pages.outputs.on == 'true'
+        uses: actions/configure-pages@v5
+
+      - if: steps.pages.outputs.on == 'true'
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+      - id: deployment
+        if: steps.pages.outputs.on == 'true'
+        uses: actions/deploy-pages@v4
