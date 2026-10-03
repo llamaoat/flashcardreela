@@ -132,6 +132,10 @@ python3 tools/make-test-decks.py   # regenerate engine/src/test/resources/anki/*
   times of day (a test checks this). `docs/PILOT.md` and PRIVACY.md describe it.
 - "Make cards with AI" copies `NotesParser.AI_PROMPT` (mirrored in `web-demo/src/notes.js`); the
   reply is Q:/A: lines. Change the prompt and the parser together.
+- `Store` keeps the previous save as `engine.json.bak`; a save that won't load is renamed
+  `engine.json.damaged` (never overwritten) and the backup is used.
+- Paper look: the rules are drawn under each line of Caveat text (`CardView.drawRules`, and `lh`-based
+  backgrounds in `head.html`), not as a fixed grid, so they never cross the writing.
 - `Store` saves the session too (skipped cards waiting to come back, skips this session, the
   warm-up count), so a restart mid-session carries on. New engine state that matters within a
   session needs saving there as well.

@@ -208,10 +208,10 @@ input[type=text]{width:100%;min-height:42px;border-radius:12px;border:1px solid 
 .card.sheet .body{background:var(--sheet);border-radius:18px;padding:18px 16px 16px;bottom:auto;max-height:calc(100% - var(--st) - 44px - var(--sb) - 104px);box-shadow:0 24px 48px -20px rgba(0,0,0,.85);transform:rotate(-.6deg)}
 .card.sheet.l-bigtext .body,.card.sheet.l-captions .body{top:calc(var(--st) + 70px);max-height:calc(100% - var(--st) - 70px - var(--sb) - 104px)}
 .card.sheet.rv.mp .body{top:calc(var(--st) + 44px);max-height:calc(100% - var(--st) - 44px - var(--sb) - 104px)}
-.card.sheet.k-paper .body{background:
-  linear-gradient(90deg,transparent 30px,rgba(228,87,46,.5) 30px,rgba(228,87,46,.5) 32px,transparent 32px),
-  repeating-linear-gradient(to bottom,var(--sheet) 0 29px,rgba(47,107,255,.25) 29px 30px);padding-left:42px}
-.card.sheet.k-paper.night .body{background:repeating-linear-gradient(to bottom,var(--sheet) 0 29px,rgba(255,255,255,.08) 29px 30px);padding-left:16px}
+.card.sheet.k-paper .body{background:linear-gradient(90deg,transparent 30px,rgba(228,87,46,.5) 30px,rgba(228,87,46,.5) 32px,transparent 32px),var(--sheet);padding-left:42px;--rule:rgba(47,107,255,.25)}
+.card.sheet.k-paper.night .body{background:var(--sheet);padding-left:16px;--rule:rgba(255,255,255,.08)}
+/* a rule under each line of handwriting, so the writing sits on the lines instead of being crossed by them (mirrors CardView's ruled body) */
+.card.sheet.k-paper .q,.card.sheet.k-paper .pt .tx,.card.sheet.k-paper .beat{background-image:repeating-linear-gradient(to bottom,transparent 0,transparent calc(.86lh - 1px),var(--rule) calc(.86lh - 1px),var(--rule) .86lh,transparent .86lh,transparent 1lh)}
 /* chat bubbles carry their own surface: no sheet behind them, whatever the look */
 .card.sheet.l-chat .body{background:none!important;box-shadow:none;padding:0!important;transform:none;bottom:calc(var(--sb) + 104px)}
 .card.sheet .reveal{color:var(--fg);text-shadow:none}

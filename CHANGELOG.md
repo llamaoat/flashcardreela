@@ -53,6 +53,12 @@
 - `docs/PHONE-TESTS.md`: the checklist for testing on real phones.
 
 **Fixes**
+- Handwritten (paper) cards: the ruled lines now sit under each line of writing instead of crossing
+  it, in the app and the web demo.
+- The first-cards tip fits the card: "Tap the answer you think is right" on a quiz, "Tap to uncover
+  it" on image occlusion.
+- A damaged save is kept (`engine.json.damaged`) instead of being overwritten, and the app goes back
+  to the copy saved just before it (`engine.json.bak`), with a note on the dashboard.
 - Share no longer loses the card. The card steps aside while the share sheet is open and comes back
   when you return to the app. A card shared without being answered isn't counted as a skip and isn't
   sent back in 3 reels.

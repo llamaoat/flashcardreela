@@ -373,7 +373,11 @@ final class CardView extends FrameLayout {
         // over there so the card doesn't clip it, while the body keeps the usual width
         if (s.isOcclusion() && !sheet) rl.rightMargin = u(12);
         addView(region, rl);
-        body = new LinearLayout(c);
+        final boolean ruled = sheet && "paper".equals(look) && !"chat".equals(layout);
+        body = new LinearLayout(c) {
+            // ruled paper: a rule under each line of handwriting, so the writing sits on the lines
+            @Override protected void dispatchDraw(Canvas cv) { if (ruled) drawRules(cv, this, this); super.dispatchDraw(cv); }
+        };
         body.setOrientation(LinearLayout.VERTICAL);
         body.setClipChildren(false);
         boolean centred = !sheet && ("bigtext".equals(layout) || "captions".equals(layout)) && !s.isOcclusion();
@@ -1761,7 +1765,7 @@ final class CardView extends FrameLayout {
     // ------------------------------------------------------------------ transient overlays
 
     private void showCoach() {
-        TextView t = tv("Tap to see the answer · Double-tap if you knew it", 13, 0xFF111111, black());
+        TextView t = tv(coachText(), 13, 0xFF111111, black());
         t.setBackground(round(0xF5FFFFFF, u(16)));
         t.setPadding(u(14), u(9), u(14), u(9));
         t.setElevation(u(8));
@@ -1774,6 +1778,13 @@ final class CardView extends FrameLayout {
         t.setTranslationY(u(8));
         t.animate().alpha(1f).translationY(0).setDuration(400).setStartDelay(300).start();
         fadeAway(t, 3800);
+    }
+
+    /** The first-cards tip, in words that fit what this card wants: a quiz is answered by picking. Mirrors coachText() in render.js. */
+    String coachText() {
+        if (show.isQuiz()) return "Tap the answer you think is right";
+        if (s.isOcclusion()) return "Tap to uncover it · Double-tap if you knew it";
+        return "Tap to see the answer · Double-tap if you knew it";
     }
 
     private void fadeAway(final View v, long after) {
@@ -2473,7 +2484,30 @@ final class CardView extends FrameLayout {
         return w + p.measureText(text, at, end);
     }
 
-    /** A notes page: plain (clean look), or ruled paper with a red margin (paper look; chalkboard at night). */
+    private final Paint rulePaint = new Paint();
+
+    /** Under every line of every handwritten (Caveat) text in the body, a rule across to the page's right edge. */
+    private void drawRules(Canvas cv, ViewGroup g, View page) {
+        Typeface hand = Fonts.caveat(getContext());
+        for (int i = 0; i < g.getChildCount(); i++) {
+            View v = g.getChildAt(i);
+            if (v.getVisibility() != VISIBLE) continue;
+            if (v instanceof ViewGroup) { drawRules(cv, (ViewGroup) v, page); continue; }
+            if (!(v instanceof TextView) || ((TextView) v).getTypeface() != hand || ((TextView) v).getLayout() == null) continue;
+            TextView t = (TextView) v;
+            float x = 0, y = 0;
+            for (View p = t; p != page && p != null; p = (View) p.getParent()) { x += p.getLeft() + p.getTranslationX(); y += p.getTop() + p.getTranslationY(); }
+            rulePaint.setColor(night ? 0x14FFFFFF : 0x402F6BFF);
+            float d = t.getPaint().descent();
+            android.text.Layout l = t.getLayout();
+            for (int k = 0; k < l.getLineCount(); k++) {
+                float ly = y + t.getTotalPaddingTop() + l.getLineBaseline(k) + d * 0.45f;
+                cv.drawRect(x, ly - 1, page.getWidth(), ly, rulePaint);
+            }
+        }
+    }
+
+    /** A notes page: plain (clean look), or paper with a red margin (paper look; chalkboard at night). The rules under the handwriting are drawn by drawRules. */
     static final class SheetDrawable extends Drawable {
         private final boolean ruled, night;
         private final int color;
@@ -2497,8 +2531,6 @@ final class CardView extends FrameLayout {
             clip.reset();
             clip.addRoundRect(r, radius, radius, android.graphics.Path.Direction.CW);
             c.clipPath(clip);
-            p.setColor(night ? 0x14FFFFFF : 0x402F6BFF);
-            for (float y = b.top + lineGap; y < b.bottom; y += lineGap) c.drawRect(b.left, y - 1, b.right, y, p);
             if (!night) {
                 p.setColor(0x80E4572E);
                 float x = b.left + lineGap;

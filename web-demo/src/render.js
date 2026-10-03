@@ -127,6 +127,12 @@ function revealOrAnswer(it){
 /* an Anki card's sound ([sound:…]): "Listen" with the question, "Hear it" with the answer (mirrors CardView.addSound) */
 const soundButton = (it, answer) => (answer ? it.s.asnd : it.s.snd) ? '<button class="snd" data-act="sound" data-v="'+(answer?"a":"q")+'" aria-label="Play the '+(answer?"answer":"question")+'\'s sound">▶&nbsp; '+(answer?"Hear it":"Listen")+'</button>' : '';
 const answerPic = it => it.s.aimg ? '<div class="pic apic" style="'+picSize(it.s.aimgW, it.s.aimgH)+'"><img src="'+esc(it.s.aimg)+'" alt=""></div>' : '';
+/* the first-cards tip, in words that fit the card: a quiz is answered by picking (mirrors CardView.coachText) */
+function coachText(it){
+  if (it.f.layout === "quiz" && it.s.correct >= 0) return "Tap the answer you think is right";
+  if (it.s.io) return "Tap to uncover it · Double-tap if you knew it";
+  return "Tap to see the answer · Double-tap if you knew it";
+}
 function revealButton(it){ return '<button class="reveal" data-act="reveal"><span class="ring">'+(it.count==null?thinkSecs(it.s):it.count)+'</span><span>'+esc(it.s.prompt)+'</span></button>'; }
 
 function bodyHTML(it){
@@ -244,7 +250,7 @@ function card(it, opts){
     k ? (k>=n ? "All "+n : k+"/"+n)+" · "+(it.hinted && partGrade==="Good" ? "Hard" : partGrade) : "");
   // the progress line runs for as long as the card takes to read
   const dur = Math.max(10, Math.min(30, (readMs(it.s.q) + readMs(it.s.points ? it.s.points.join(" ") : it.s.a) + 3000) / 1000));
-  const coach = opts.coach ? '<div class="coach" aria-hidden="true">Tap to see the answer · Double-tap if you knew it</div>' : '';
+  const coach = opts.coach ? '<div class="coach" aria-hidden="true">'+coachText(it)+'</div>' : '';
   return '<div class="'+cls+'" data-card style="'+vars+'">'+back+'<div class="scrim"></div>'+vibeHTML(it)+coach+
     '<div class="body">'+bodyHTML(it)+'</div>'+
     (badge?'<span class="badge">'+badge+'</span>':'')+

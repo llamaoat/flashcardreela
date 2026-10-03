@@ -72,6 +72,7 @@ public final class MainActivity extends Activity {
     private String notesDeck = "My notes";
     private String pendingNotes = "";
     private boolean confirmReset;
+    private String restoreNote;   // shown on the dashboard after a damaged save was recovered
 
     @Override
     protected void onCreate(Bundle b) {
@@ -79,6 +80,8 @@ public final class MainActivity extends Activity {
         getWindow().setStatusBarColor(Ui.BG);
         getWindow().setNavigationBarColor(Ui.BG);
         engine = Store.engine(this);
+        restoreNote = Store.prefs(this).getString("restore_note", null);
+        if (restoreNote != null) Store.prefs(this).edit().remove("restore_note").apply();
         Store.cleanMedia(this, null); // pictures from an import that was never used, or a deck since removed
         if (Store.prefs(this).getBoolean("onboarded", false)) showDashboard();
         else showWelcome();
@@ -898,6 +901,12 @@ public final class MainActivity extends Activity {
         LinearLayout head = Ui.row(this);
         head.addView(Ui.title(this, "Reelcards"), Ui.weight(1));
         Ui.add(col, head, 0);
+        if (restoreNote != null) { // after a damaged save (Store.engine), until the app is next opened
+            TextView n = Ui.text(this, restoreNote, 14, Ui.TEXT, Ui.BODY);
+            n.setBackground(Ui.outline(0xFF2A2410, Ui.WARN, dp(1), dp(14)));
+            n.setPadding(dp(14), dp(12), dp(14), dp(12));
+            Ui.add(col, n, 12);
+        }
 
         // status
         boolean on = accessibilityOn();

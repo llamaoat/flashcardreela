@@ -41,8 +41,21 @@ final class Store {
     static synchronized Engine engine(Context ctx) {
         if (engine == null) {
             engine = new Engine();
-            try { load(ctx.getApplicationContext(), engine); }
-            catch (Exception e) { Log.w(TAG, "Could not load saved state, starting fresh", e); engine = new Engine(); }
+            File dir = ctx.getApplicationContext().getFilesDir();
+            File main = new File(dir, FILE), bak = new File(dir, FILE + ".bak");
+            try { load(main, engine); }
+            catch (Exception e) {
+                // damaged: keep it (never overwrite it with an empty start), and fall back to the save before
+                Log.w(TAG, "Saved state is damaged; kept as " + FILE + ".damaged", e);
+                main.renameTo(new File(dir, FILE + ".damaged"));
+                engine = new Engine();
+                String note = "Your saved progress couldn't be read, so Reelcards started again. The damaged file is kept.";
+                if (bak.isFile()) {
+                    try { load(bak, engine); note = "Your saved progress couldn't be read, so Reelcards went back to the copy saved just before."; }
+                    catch (Exception e2) { Log.w(TAG, "The backup is damaged too", e2); engine = new Engine(); }
+                }
+                prefs(ctx).edit().putString("restore_note", note).apply();
+            }
             engine.ankiSink = new AnkiBridge(ctx.getApplicationContext());
         }
         return engine;
@@ -75,7 +88,13 @@ final class Store {
                     out.write(json.getBytes(Charset.forName("UTF-8")));
                     out.getFD().sync();
                     out.close();
-                    if (!tmp.renameTo(new File(dir, FILE))) Log.w(TAG, "rename failed");
+                    File main = new File(dir, FILE);
+                    if (main.isFile()) { // the save before this one, for when this one turns out damaged
+                        File bak = new File(dir, FILE + ".bak");
+                        bak.delete();
+                        main.renameTo(bak);
+                    }
+                    if (!tmp.renameTo(main)) Log.w(TAG, "rename failed");
                 } catch (Exception e) { Log.w(TAG, "Save failed", e); }
             }
         });
@@ -94,6 +113,8 @@ final class Store {
         engine = new Engine();
         engine.ankiSink = new AnkiBridge(ctx.getApplicationContext());
         new File(ctx.getFilesDir(), FILE).delete();
+        new File(ctx.getFilesDir(), FILE + ".bak").delete();
+        new File(ctx.getFilesDir(), FILE + ".damaged").delete();
         File media = mediaDir(ctx);
         File[] files = media.listFiles();
         if (files != null) for (File f : files) f.delete();
@@ -250,8 +271,7 @@ final class Store {
         return o;
     }
 
-    static void load(Context ctx, Engine e) throws Exception {
-        File f = new File(ctx.getFilesDir(), FILE);
+    static void load(File f, Engine e) throws Exception {
         if (!f.exists()) return;
         FileInputStream in = new FileInputStream(f);
         ByteArrayOutputStream buf = new ByteArrayOutputStream();
