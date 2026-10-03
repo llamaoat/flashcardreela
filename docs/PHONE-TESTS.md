@@ -58,6 +58,7 @@ Do each on at least two layouts (Dashboard → *How often* → Demo shows cards 
 | Voiceover on (dashboard) | The hook and question are read out |
 | Image occlusion card (sample deck) | The mask fades in; tap uncovers it; the picture lines up with the masks |
 | TalkBack on | The card's buttons and the gap are read sensibly ("blank") |
+| A sound card (open `anki-latest.apkg` from `anki/real/`; Spanish deck) | "Listen: what's this?" plays a short tone as it appears, and *▶ Listen* plays it again. "How do you say “hello”…" plays it when the answer shows. The reel stays quiet meanwhile. |
 
 ## 4. AnkiDroid
 
@@ -80,6 +81,7 @@ Needs AnkiDroid installed, with a deck that has a Basic card, a cloze card and a
 | Skip a card, then force-stop the app (Settings → Apps → Reelcards → Force stop), then swipe on | The skipped card still comes back in about 3 reels |
 | Remove the sample Anki deck on the dashboard | Its pictures are deleted (`adb shell run-as com.reelcards.app ls no_backup/anki-media`) |
 | *Reset everything* | Back to the welcome screen, pictures gone |
+| Dashboard → *Share my numbers (for a study)* | The whole report shows (counts only); *Share* opens the share sheet |
 
 ## Reporting back
 

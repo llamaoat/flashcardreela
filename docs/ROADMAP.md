@@ -53,9 +53,15 @@ hasn't run on a real phone yet.
    - **Options:** cards timed with Screen Time (every few minutes of TikTok), home-screen and
      lock-screen widgets, and a Shortcuts automation that opens a card when TikTok opens.
    - **Today:** the web demo's feed works on iPhone.
-8. **Audio.** Cards whose Anki fields are only audio are left out today. Play Anki's sound files, or
-    use text-to-speech where the field also has text.
+   - **Needs:** a Mac with Xcode (none in this project's cloud sessions), and Apple's Family Controls
+     entitlement for the Screen Time APIs, which Apple has to approve.
+8. **Audio, the rest.** Anki's sound files now come across from `.apkg` files and play (a question
+   that's only a sound asks "Listen: what's this?"). Still missing: Anki's `{{tts:…}}` fields
+   (text-to-speech in the deck's language), and sounds on AnkiDroid cards (other apps can't read
+   AnkiDroid's media, as with pictures).
 9. **Real footage** for the looping backgrounds, instead of the ones drawn in code. This has to stay
     small, offline and free to use.
 10. **A pilot with real students** to replace the simulation's modelled numbers with measured ones:
-    cards answered per reel, skips, and recall at the exam.
+    cards answered per reel, skips, and recall. The app side is ready: *Share my numbers* (counts only,
+    shared when the student taps it), `tools/pilot-summary.py`, and a plan in [PILOT.md](PILOT.md).
+    What's left is a school, consent, and two to four weeks.

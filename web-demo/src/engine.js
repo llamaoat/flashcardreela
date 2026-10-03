@@ -199,7 +199,7 @@ function splitQuestion(q){
 /* Everything the layouts need to know about a card's length and shape. */
 function analyse(c){
   const sp=splitPoints(c.b),sq=splitQuestion(c.f),x=plainText(c.x).replace(/\n/g," ");
-  const multi=sp.points.length>=2,pic=!!(c.img||c.io),io=!!c.io;
+  const multi=sp.points.length>=2,pic=!!(c.img||c.io||c.snd),io=!!c.io;
   // image occlusion has no written answer: the picture is the answer, the extra goes behind "more"
   const more=(sp.over.length?"Also: "+sp.over.join(". ")+". ":"")+(multi||io||x.length>INLINE_X?x:"");
   return{kind:io?"image":sp.kind,points:io?[]:sp.points,multi:multi&&!io,marks:multi&&!io?sp.points.length:0,ctx:sq.ctx,qMain:sq.main,
@@ -237,7 +237,7 @@ function layoutsFor(a,hasDistractor){if(a.pic)return["bigtext"];return PIECES.la
 function write(c,f,pool,rnd,reason,vibes){
   const a=analyse(c),q=plainText(c.f).replace(/\n/g," ");
   const s={q,a:a.multi?a.points.join("; "):(a.points[0]||""),x:a.a2,options:[],correct:-1,beats:[],hl:[],
-    shape:a.kind,points:a.points,marks:a.marks,ctx:a.ctx,qMain:a.qMain,more:a.more,img:c.img||null,imgW:c.imgW||0,imgH:c.imgH||0,aimg:c.aimg||null,aimgW:c.aimgW||0,aimgH:c.aimgH||0,io:c.io||null,cloze:!!c.cloze};
+    shape:a.kind,points:a.points,marks:a.marks,ctx:a.ctx,qMain:a.qMain,more:a.more,img:c.img||null,imgW:c.imgW||0,imgH:c.imgH||0,aimg:c.aimg||null,aimgW:c.aimgW||0,aimgH:c.aimgH||0,io:c.io||null,cloze:!!c.cloze,snd:c.snd||null,asnd:c.asnd||null};
   s.account="@"+slug(c.deck)+pickOf(rnd,[".mocks",".revision",".explained",".facts"]);s.tag=c.deck+" · "+reason;
   const vl=[...(vibes||[])];const v=!vl.length||rnd()<.4?null:pickOf(rnd,vl);s.vibe=v;
   let hooks,caps;
@@ -427,7 +427,7 @@ Engine.prototype={
 function human(days){if(days<1/24)return Math.max(1,Math.round(days*1440))+" min";if(days<1)return Math.round(days*24)+" h";const d=Math.round(days);return d+(d===1?" day":" days");}
 /* a cloze question as it's read aloud: "[…]" becomes "blank", "[hint]" becomes "blank (hint)" */
 function spokenGaps(q){ return q.replace(/\[([^\]]{0,40})\]/g, (m, h) => { h = h.trim(); return !h || h === "…" || h === "..." ? "blank" : "blank (" + h + ")"; }); }
-function makeCard(id,deck,f,b,x){return{id,deck,f,b,x:x||"",img:null,aimg:null,io:null,cloze:false,state:NEW,step:0,s:0,d:0,due:0,last:0,reps:0,lapses:0,skips:0,bounces:0,buriedUntil:-1,grade:null,layout:null,saved:false};}
+function makeCard(id,deck,f,b,x){return{id,deck,f,b,x:x||"",img:null,aimg:null,io:null,cloze:false,snd:null,asnd:null,state:NEW,step:0,s:0,d:0,due:0,last:0,reps:0,lapses:0,skips:0,bounces:0,buriedUntil:-1,grade:null,layout:null,saved:false};}
 
 return{MIN,DAY,NEW,LEARNING,REVIEW,RELEARNING,STATE,DIMS,PIECES,VIBES,LABEL,DIMLABEL,INT,MULT,Engine,Fsrs,makeCard,human,write,hint,gradeOf,fastSkip,engaged,reward,beta,fkey,
   analyse,splitPoints,splitQuestion,plainText,layoutsFor,readingMs,starts};

@@ -221,6 +221,7 @@ input[type=text]{width:100%;min-height:42px;border-radius:12px;border:1px solid 
 @keyframes coach{0%{opacity:0;transform:translateY(8px)}10%,80%{opacity:1;transform:none}100%{opacity:0}}
 
 /* reveal ring + answer */
+.card .snd{align-self:flex-start;background:var(--acc);color:var(--accfg,#111);border:none;border-radius:20px;padding:9px 18px 9px 16px;font:inherit;font-size:14px;font-weight:700;margin-top:12px;cursor:pointer}
 .card .reveal{align-self:flex-start;display:flex;align-items:center;gap:10px;background:none;border:none;color:var(--fg);padding:0;font:inherit;font-size:14.5px;font-weight:700;min-height:56px;text-shadow:0 1px 3px rgba(0,0,0,.5)}
 .card .hintchip{align-self:flex-start;max-width:100%;background:#fff;color:#111;border-radius:12px 12px 12px 4px;padding:7px 11px;font-size:14px;font-weight:700;box-shadow:0 8px 20px -10px rgba(0,0,0,.6);animation:drop .25s ease-out}
 .card .hintchip b{color:#e4572e;margin-right:4px}
@@ -751,7 +752,7 @@ function splitQuestion(q){
 /* Everything the layouts need to know about a card's length and shape. */
 function analyse(c){
   const sp=splitPoints(c.b),sq=splitQuestion(c.f),x=plainText(c.x).replace(/\n/g," ");
-  const multi=sp.points.length>=2,pic=!!(c.img||c.io),io=!!c.io;
+  const multi=sp.points.length>=2,pic=!!(c.img||c.io||c.snd),io=!!c.io;
   // image occlusion has no written answer: the picture is the answer, the extra goes behind "more"
   const more=(sp.over.length?"Also: "+sp.over.join(". ")+". ":"")+(multi||io||x.length>INLINE_X?x:"");
   return{kind:io?"image":sp.kind,points:io?[]:sp.points,multi:multi&&!io,marks:multi&&!io?sp.points.length:0,ctx:sq.ctx,qMain:sq.main,
@@ -789,7 +790,7 @@ function layoutsFor(a,hasDistractor){if(a.pic)return["bigtext"];return PIECES.la
 function write(c,f,pool,rnd,reason,vibes){
   const a=analyse(c),q=plainText(c.f).replace(/\n/g," ");
   const s={q,a:a.multi?a.points.join("; "):(a.points[0]||""),x:a.a2,options:[],correct:-1,beats:[],hl:[],
-    shape:a.kind,points:a.points,marks:a.marks,ctx:a.ctx,qMain:a.qMain,more:a.more,img:c.img||null,imgW:c.imgW||0,imgH:c.imgH||0,aimg:c.aimg||null,aimgW:c.aimgW||0,aimgH:c.aimgH||0,io:c.io||null,cloze:!!c.cloze};
+    shape:a.kind,points:a.points,marks:a.marks,ctx:a.ctx,qMain:a.qMain,more:a.more,img:c.img||null,imgW:c.imgW||0,imgH:c.imgH||0,aimg:c.aimg||null,aimgW:c.aimgW||0,aimgH:c.aimgH||0,io:c.io||null,cloze:!!c.cloze,snd:c.snd||null,asnd:c.asnd||null};
   s.account="@"+slug(c.deck)+pickOf(rnd,[".mocks",".revision",".explained",".facts"]);s.tag=c.deck+" · "+reason;
   const vl=[...(vibes||[])];const v=!vl.length||rnd()<.4?null:pickOf(rnd,vl);s.vibe=v;
   let hooks,caps;
@@ -979,7 +980,7 @@ Engine.prototype={
 function human(days){if(days<1/24)return Math.max(1,Math.round(days*1440))+" min";if(days<1)return Math.round(days*24)+" h";const d=Math.round(days);return d+(d===1?" day":" days");}
 /* a cloze question as it's read aloud: "[…]" becomes "blank", "[hint]" becomes "blank (hint)" */
 function spokenGaps(q){ return q.replace(/\[([^\]]{0,40})\]/g, (m, h) => { h = h.trim(); return !h || h === "…" || h === "..." ? "blank" : "blank (" + h + ")"; }); }
-function makeCard(id,deck,f,b,x){return{id,deck,f,b,x:x||"",img:null,aimg:null,io:null,cloze:false,state:NEW,step:0,s:0,d:0,due:0,last:0,reps:0,lapses:0,skips:0,bounces:0,buriedUntil:-1,grade:null,layout:null,saved:false};}
+function makeCard(id,deck,f,b,x){return{id,deck,f,b,x:x||"",img:null,aimg:null,io:null,cloze:false,snd:null,asnd:null,state:NEW,step:0,s:0,d:0,due:0,last:0,reps:0,lapses:0,skips:0,bounces:0,buriedUntil:-1,grade:null,layout:null,saved:false};}
 
 return{MIN,DAY,NEW,LEARNING,REVIEW,RELEARNING,STATE,DIMS,PIECES,VIBES,LABEL,DIMLABEL,INT,MULT,Engine,Fsrs,makeCard,human,write,hint,gradeOf,fastSkip,engaged,reward,beta,fkey,
   analyse,splitPoints,splitQuestion,plainText,layoutsFor,readingMs,starts};
@@ -1414,6 +1415,19 @@ function imageSize(b){
 const DAY = 86400000;
 const GAP = "…";
 const IMG_RE = /<img[^>]*?src\s*=\s*["']?([^"'>]+)["']?[^>]*>/gi;
+const SOUND_RE = /\[sound:([^\]]+)\]/g, LISTEN = "Listen: what's this?", MAX_SOUND = 4 * 1024 * 1024;
+function sounds(html){ const out = []; let m; SOUND_RE.lastIndex = 0; while ((m = SOUND_RE.exec(html || ""))) out.push(m[1].trim()); return out; }
+/* the sound file types cards play, from the file's first bytes (mirrors AnkiPackage.audioType) */
+function audioType(b){
+  if (!b || b.length < 12) return null;
+  const s = (i, t) => [...t].every((ch, k) => b[i + k] === ch.charCodeAt(0));
+  if (s(0, "ID3") || (b[0] === 0xFF && (b[1] & 0xE0) === 0xE0)) return "mp3";
+  if (s(0, "OggS")) return "ogg";
+  if (s(4, "ftyp")) return "m4a";
+  if (s(0, "RIFF") && s(8, "WAVE")) return "wav";
+  if (s(0, "fLaC")) return "flac";
+  return null;
+}
 function entities(t){ // the few Anki's editor writes, and numeric ones (&#x27; from decks made by scripts)
   return t.replace(/&#(?:[xX]([0-9a-fA-F]{1,6})|([0-9]{1,7}));/g, (m, h, d) => { const cp = h ? parseInt(h, 16) : +d; return cp > 0 && cp <= 0x10FFFF && !(cp >= 0xD800 && cp <= 0xDFFF) ? String.fromCodePoint(cp) : m; })
     .replace(/&nbsp;/g, " ").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&amp;/g, "&"); }
@@ -1611,8 +1625,16 @@ async function read(buf, opts){
   const notes = {};
   for (const r of db.rows("notes") || []) notes[r.id] = r;
 
-  const stats = {cards: 0, imported: 0, suspended: 0, audio: 0, empty: 0, unknown: 0, images: 0, cloze: 0, occlusion: 0, kept: 0};
-  const cards = [], imgs = {};
+  const stats = {cards: 0, imported: 0, suspended: 0, audio: 0, empty: 0, unknown: 0, images: 0, cloze: 0, occlusion: 0, kept: 0, sounds: 0};
+  const cards = [], imgs = {}, snds = {}, soundRefs = {};
+  async function sound(name){ // saved once, shared by every card that plays it
+    if (!name) return null;
+    if (name in soundRefs) return soundRefs[name];
+    const d = await media(name), t = audioType(d);
+    let ref = null;
+    if (t && d.length <= MAX_SOUND) { snds[name] = d; ref = name; }
+    return (soundRefs[name] = ref);
+  }
   async function picture(name){
     if (!name) return null;
     const d = await media(name), size = imageSize(d);
@@ -1660,7 +1682,8 @@ async function read(buf, opts){
       const answers = got.map(clean).filter(x => x);
       if (answers.length && hasText(qHtml)) {
         const pic = await picture(images(qHtml)[0]);
-        card = {f: clean(qHtml), b: answers.filter((v, i) => answers.indexOf(v) === i).join("; "), x: [full].concat(extra).filter(x => x).join(" "), img: pic ? pic.name : null, imgW: pic ? pic.w : 0, imgH: pic ? pic.h : 0, cloze: true};
+        card = {f: clean(qHtml), b: answers.filter((v, i) => answers.indexOf(v) === i).join("; "), x: [full].concat(extra).filter(x => x).join(" "), img: pic ? pic.name : null, imgW: pic ? pic.w : 0, imgH: pic ? pic.h : 0, cloze: true,
+          snd: await sound(sounds(qHtml)[0])};
         stats.cloze++;
       }
     } else {
@@ -1680,9 +1703,11 @@ async function read(buf, opts){
           bHtml = a;
         }
         const qPic = await picture(images(qHtml)[0]), aPic = await picture(images(bHtml)[0]);
+        const qSnd = await sound(sounds(qHtml)[0]), aSnd = await sound(sounds(bHtml)[0]);
         const f = clean(qHtml), b = clean(bHtml);
-        if ((f || qPic) && (b || aPic)) card = {f: f || "What's this?", b: b || "", x: xText, img: qPic ? qPic.name : null, imgW: qPic ? qPic.w : 0, imgH: qPic ? qPic.h : 0,
-          aimg: aPic ? aPic.name : null, aimgW: aPic ? aPic.w : 0, aimgH: aPic ? aPic.h : 0};
+        // something to ask (words, a picture or a sound) and an answer (words or a picture, or a sound with a written or pictured question)
+        if ((f || qPic || qSnd) && (b || aPic || (aSnd && (f || qPic)))) card = {f: f || (qPic ? "What's this?" : LISTEN), b: b || "", x: xText, img: qPic ? qPic.name : null, imgW: qPic ? qPic.w : 0, imgH: qPic ? qPic.h : 0,
+          aimg: aPic ? aPic.name : null, aimgW: aPic ? aPic.w : 0, aimgH: aPic ? aPic.h : 0, snd: qSnd, asnd: aSnd};
         else if (/\[sound:/.test(qHtml + bHtml)) { stats.audio++; continue; }
       }
     }
@@ -1702,13 +1727,14 @@ async function read(buf, opts){
       stats.kept++;
     }
     if (card.img || card.aimg) stats.images++;
+    if (card.snd || card.asnd) stats.sounds++;
     cards.push(card);
     stats.imported++;
   }
-  return {cards, images: imgs, stats};
+  return {cards, images: imgs, sounds: snds, stats};
 }
 
-return {Zstd, Zip, Sqlite, pb, pbText, imageSize, read, clozeParse, clozeText, renderTpl, ioShapes, ioeShapes, clean};
+return {Zstd, Zip, Sqlite, pb, pbText, imageSize, audioType, read, clozeParse, clozeText, renderTpl, ioShapes, ioeShapes, clean};
 })();
 if (typeof module !== "undefined") module.exports = Apkg;
 
@@ -1832,12 +1858,14 @@ function revealOrAnswer(it){
     const hintChip = it.hinted && it.f.layout!=="list" ? '<div class="hintchip"><b>Hint</b> '+esc(it.s.hint)+'</div>' : '';
     return hintChip + revealButton(it);
   }
-  if (isMulti(it)) return pointsHTML(it) + answerPic(it);
+  if (isMulti(it)) return pointsHTML(it) + answerPic(it) + soundButton(it, true);
   if (it.s.io) return '<div class="selfcheck">'+(it.liked ? 'Got it' : 'Double-tap if you got it')+'</div>';
   const a = it.s.a, tier = a.length > 40 ? ' t3' : a.length > 22 ? ' t2' : '';
-  if (!a) return (it.s.x ? '<div class="ans t3"><div class="a2">'+esc(it.s.x)+'</div></div>' : '') + answerPic(it); // the answer is a picture
-  return '<div class="ans'+tier+'"><div class="a1">'+esc(a)+'</div>'+(it.s.x?'<div class="a2">'+esc(it.s.x)+'</div>':'')+'</div>' + answerPic(it);
+  if (!a) return (it.s.x ? '<div class="ans t3"><div class="a2">'+esc(it.s.x)+'</div></div>' : '') + answerPic(it) + soundButton(it, true); // the answer is a picture or a sound
+  return '<div class="ans'+tier+'"><div class="a1">'+esc(a)+'</div>'+(it.s.x?'<div class="a2">'+esc(it.s.x)+'</div>':'')+'</div>' + answerPic(it) + soundButton(it, true);
 }
+/* an Anki card's sound ([sound:…]): "Listen" with the question, "Hear it" with the answer (mirrors CardView.addSound) */
+const soundButton = (it, answer) => (answer ? it.s.asnd : it.s.snd) ? '<button class="snd" data-act="sound" data-v="'+(answer?"a":"q")+'" aria-label="Play the '+(answer?"answer":"question")+'\'s sound">▶&nbsp; '+(answer?"Hear it":"Listen")+'</button>' : '';
 const answerPic = it => it.s.aimg ? '<div class="pic apic" style="'+picSize(it.s.aimgW, it.s.aimgH)+'"><img src="'+esc(it.s.aimg)+'" alt=""></div>' : '';
 function revealButton(it){ return '<button class="reveal" data-act="reveal"><span class="ring">'+(it.count==null?thinkSecs(it.s):it.count)+'</span><span>'+esc(it.s.prompt)+'</span></button>'; }
 
@@ -1885,7 +1913,7 @@ function bodyHTML(it){
   }
   // image occlusion: the picture leads, full width at the top (clear of the rail); the header sits under it
   if (s.io) return pictureHTML(it)+questionHTML(it, .8)+revealOrAnswer(it);
-  return (compact(it) ? '' : '<div class="hook">'+esc(s.hook)+'</div>')+questionHTML(it, lay==="split"?.8:1)+pictureHTML(it)+revealOrAnswer(it);
+  return (compact(it) ? '' : '<div class="hook">'+esc(s.hook)+'</div>')+questionHTML(it, lay==="split"?.8:1)+pictureHTML(it)+soundButton(it, false)+revealOrAnswer(it);
 }
 
 function vibeHTML(it){
@@ -2126,14 +2154,17 @@ const deckCards = name => DECKS[name].map((r,i)=>makeCard(PRE[name]+"-"+(i+1), n
 const HOSTS = [["tiktok","TikTok"],["instagram","Instagram"],["youtube","YouTube"]];
 
 /* ---------------- Anki files (.apkg) ---------------- */
-const MIME = {png:"image/png", jpeg:"image/jpeg", gif:"image/gif", webp:"image/webp", bmp:"image/bmp"};
+const MIME = {png:"image/png", jpeg:"image/jpeg", gif:"image/gif", webp:"image/webp", bmp:"image/bmp", mp3:"audio/mpeg", ogg:"audio/ogg", m4a:"audio/mp4", wav:"audio/wav", flac:"audio/flac"};
 async function importApkg(bytes, name){
   const r = await Apkg.read(bytes, {name, now: now()});
   const urls = {};
   for (const k in r.images) { const t = Apkg.imageSize(r.images[k]); urls[k] = URL.createObjectURL(new Blob([r.images[k]], {type: MIME[t && t.type] || "application/octet-stream"})); }
+  const sounds = {};
+  for (const k in r.sounds) sounds[k] = URL.createObjectURL(new Blob([r.sounds[k]], {type: MIME[Apkg.audioType(r.sounds[k])] || "application/octet-stream"}));
   const cards = r.cards.map(c => {
     const m = makeCard(c.id, c.deck, c.f, c.b, c.x);
     m.img = c.img ? urls[c.img] : null; m.aimg = c.aimg ? urls[c.aimg] : null; m.io = c.io || null; m.cloze = !!c.cloze;
+    m.snd = c.snd ? sounds[c.snd] : null; m.asnd = c.asnd ? sounds[c.asnd] : null;
     Object.assign(m, {imgW: c.imgW || 0, imgH: c.imgH || 0, aimgW: c.aimgW || 0, aimgH: c.aimgH || 0});
     if (c.state === "review") Object.assign(m, {state: REVIEW, s: c.s, d: c.d, due: c.due, last: c.last, reps: c.reps, lapses: c.lapses});
     return m;
@@ -2152,7 +2183,8 @@ function apkgSummary(r){
   if (s.audio) left.push(s.audio + " audio-only");
   if (s.empty) left.push(s.empty + " blank or unsupported");
   if (s.unknown) left.push(s.unknown + " with a missing note type");
-  return (kinds.length ? kinds.join(", ") : "No cards") + "." + (s.kept ? " " + s.kept + (s.kept === 1 ? " keeps its" : " keep their") + " Anki progress." : "") + (left.length ? " Left out: " + left.join(", ") + "." : "");
+  return (kinds.length ? kinds.join(", ") : "No cards") + "." + (s.kept ? " " + s.kept + (s.kept === 1 ? " keeps its" : " keep their") + " Anki progress." : "")
+    + (s.sounds ? " " + s.sounds + (s.sounds === 1 ? " plays" : " play") + " a sound." : "") + (left.length ? " Left out: " + left.join(", ") + "." : "");
 }
 
 let E, UI, offset = 0;
@@ -2394,12 +2426,21 @@ function like(x,y){
   renderPhone(false); burst(x,y);
   if (it.likedBefore && it.f.layout!=="quiz") setTimeout(()=>{ if (UI.current===it && !it.revealed) { it.revealed = true; it.revealAt = el(); renderPhone(false); } }, 600);
 }
+/* an Anki card's sound: one at a time */
+let playing = null;
+function playSound(url){
+  if (playing) { playing.pause(); playing = null; }
+  if (!url) return;
+  playing = new Audio(url);
+  playing.play().catch(() => {}); // a browser may refuse until the page has been tapped
+}
 function reveal(){
   const it = UI.current; if (!it || it.kind!=="card") return;
   if (it.moreOpen) { it.moreOpen = false; renderPhone(false); return; }
   if (it.revealed) { if (!it.settled) { it.settled = true; renderPhone(false); } return; } // a tap shows the rest of the points now
   if (it.f.layout==="quiz"&&it.s.correct>=0) return;
   it.revealed = true; it.revealAt = el(); renderPhone(false);
+  if (it.s.asnd) playSound(it.s.asnd);
   const total = Render.ptDelays(it.s).pop() + 600; timers.push(setTimeout(()=>{ if (UI.current===it) it.settled = true; }, total));
 }
 /* self-marking: tap a point you got. Unticking a point on a card you'd liked turns it into part marks */
@@ -2444,6 +2485,7 @@ $("screen").addEventListener("click", e => {
       case "resetApp": if (!UI.confirmReset) { UI.confirmReset = true; renderPhone(false); return; } resetAll(); render(true); return;
       case "like": { const r = b.getBoundingClientRect(), p = $("screen").getBoundingClientRect(); like(r.left-p.left+r.width/2, r.top-p.top+r.height/2); return; }
       case "reveal": reveal(); return;
+      case "sound": if (it && it.s) playSound(v === "a" ? it.s.asnd : it.s.snd); return;
       // a tap on a point that hasn't dropped in yet just shows the rest; it doesn't mark it
       case "tick": if (it && !it.settled && parseFloat(getComputedStyle(b).opacity) < .99) { it.settled = true; renderPhone(false); return; } tick(+v); return;
       case "more": if (it) { it.moreOpen = !it.moreOpen; it.settled = true; renderPhone(false); } return;

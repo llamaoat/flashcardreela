@@ -57,6 +57,10 @@ or uninstalling deletes them. The Anki file itself is read from the copy you pic
 - **Share button:** only when you tap it, the question (not the answer) goes to the app you pick in
   Android's share sheet.
 - **Voiceover:** reads the hook and question with your phone's own text-to-speech engine.
+- **Share my numbers (for a study):** only when you tap *Share*, a summary of counts (reels swiped,
+  cards shown, answered and skipped each day, how many you remembered, which card styles you skipped)
+  goes wherever you send it, with a random code instead of your name. It has no cards, deck or file
+  names, or apps in it, and the app shows you all of it first.
 - **Make cards with AI:** *Copy the AI prompt* puts a ready-made prompt on your clipboard. If you paste
   it, with your notes, into a chatbot, that's between you and that chatbot's maker, under their
   privacy policy (and their age rules). Reelcards only sees the reply if you paste it back in.

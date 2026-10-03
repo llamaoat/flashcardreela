@@ -24,9 +24,9 @@ const f = v => v.toFixed(5);
     const rev = c.state === "review";
     b += [c.id, c.deck, c.f, c.b, c.x, c.img || "", c.imgW || 0, c.imgH || 0, c.aimg || "", c.aimgW || 0, c.aimgH || 0,
       c.cloze ? "1" : "0", io, rev ? "review" : "new", rev ? f(c.s) : "", rev ? f(c.d) : "", rev ? "" + c.due : "", rev ? "" + c.last : "",
-      "" + c.reps, "" + c.lapses].join("\t").replace(/\n/g, "\\n") + "\n";
+      "" + c.reps, "" + c.lapses, c.snd || "", c.asnd || ""].join("\t").replace(/\n/g, "\\n") + "\n";
   }
   const s = r.stats;
-  b += "stats " + [s.cards, s.imported, s.suspended, s.audio, s.empty, s.unknown, s.images, s.cloze, s.occlusion, s.kept].join(" ") + "\n";
+  b += "stats " + [s.cards, s.imported, s.suspended, s.audio, s.empty, s.unknown, s.images, s.cloze, s.occlusion, s.kept, s.sounds].join(" ") + "\n";
   process.stdout.write(b);
 })().catch(e => { console.error(e); process.exit(1); });

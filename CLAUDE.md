@@ -26,7 +26,7 @@ looks*. Audience: UK GCSE students, 14–16. Android first, open source (GPLv3).
 ## Commands
 
 ```
-./gradlew :engine:engineChecks     # 115 checks, must all pass (no Gradle: see README "Run them yourself")
+./gradlew :engine:engineChecks     # 116 checks, must all pass (no Gradle: see README "Run them yourself")
 ./gradlew :engine:simulate         # 30-day simulated students, ~2 min → compare with engine/results/simulation.txt
 tools/crosscheck/run.sh            # Java engine vs JS port: answer splitting, notes, every card from the test decks
 python3 tools/build-web-demo.py    # rebuild web-demo/index.html after editing web-demo/src/
@@ -125,6 +125,11 @@ python3 tools/make-test-decks.py   # regenerate engine/src/test/resources/anki/*
   under 10 minutes old. Card pictures decode off the main thread (`Ui.picture` with a callback).
 - MainActivity handles rotation itself (`configChanges` in the manifest), so an import that's still
   reading survives it. Don't add orientation-specific resources without revisiting that.
+- Anki sounds: `Card.audio`/`answerAudio` (stored like pictures, cleaned up with them). CardView plays
+  the question's when it's attached and the answer's on reveal, and releases its `MediaPlayer` when
+  detached. Sound cards use the big-text layout, which has room for the *▶ Listen* button.
+- *Share my numbers* (`PilotReport`) must stay counts only: no card text, deck or file names, apps or
+  times of day (a test checks this). `docs/PILOT.md` and PRIVACY.md describe it.
 - "Make cards with AI" copies `NotesParser.AI_PROMPT` (mirrored in `web-demo/src/notes.js`); the
   reply is Q:/A: lines. Change the prompt and the parser together.
 - `Store` saves the session too (skipped cards waiting to come back, skips this session, the

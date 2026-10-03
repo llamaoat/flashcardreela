@@ -86,6 +86,8 @@ third party, on or off the device, unless the user started it and expects it.
 - **Two things to think about when you answer:**
   - *Share button:* the student taps it and picks the app, so it's a user-initiated share. That isn't
     declared.
+  - *Share my numbers (for a study):* counts only, shown in full, and shared only when the student
+    taps *Share* and picks where it goes. That's also a user-initiated share.
   - *AnkiDroid:* answers go to AnkiDroid on the same phone only if the student connects their decks.
     That's also user-initiated and expected. If the Console's wording makes you unsure, declare *App
     activity → Other actions* as shared, for app functionality, optional.

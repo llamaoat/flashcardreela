@@ -186,7 +186,7 @@ public final class ReelWatcherService extends AccessibilityService {
         overlay = v;
         v.enter();
         pauseReelAudio();
-        if (Store.engine(this).settings.voiceover) Speaker.speak(s.script.voiceover);
+        if (Store.engine(this).settings.voiceover && s.script.audio == null) Speaker.speak(s.script.voiceover); // a sound question speaks for itself
         timeout = new Runnable() { @Override public void run() { if (overlay == v) v.finishNow("timeout"); } };
         main.postDelayed(timeout, 90_000);
     }

@@ -34,7 +34,7 @@ public final class AnswerShape {
     public String inlineExplanation = "";           // explanation short enough to show with the answer
     public String more = "";                        // what goes behind "more" in the caption
 
-    public boolean pic;                             // the card has a picture (or is image occlusion)
+    public boolean pic;                             // the card has a picture (or is image occlusion), or a sound to listen to first
     public boolean io;                              // image occlusion: the picture is the answer
     public boolean cloze;                           // a cloze card: the question has [gaps]
 
@@ -51,7 +51,7 @@ public final class AnswerShape {
 
     public static AnswerShape of(Card c) {
         AnswerShape a = of(c.front, c.back, c.extra);
-        a.pic = c.image != null || c.occlusion != null;
+        a.pic = c.image != null || c.occlusion != null || c.audio != null; // big text, with room for the picture or the play button
         a.io = c.occlusion != null;
         a.cloze = c.cloze;
         if (a.io) { // image occlusion has no written answer: the picture is the answer, the extra goes behind "more"

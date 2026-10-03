@@ -28,8 +28,10 @@ import java.util.zip.ZipFile;
  *  - Cloze: one card per deletion number, with "[…]" (or "[hint]") where the gap is.
  *  - Image occlusion (Anki's built-in note type, and the older Image Occlusion Enhanced add-on): one
  *    card per covered label, with the picture and its masks.
- *  - Pictures on either side come along (PNG, JPEG, GIF, WebP, BMP up to 8 MB). Sounds are dropped;
- *    cards that are only sound, and suspended cards, are left out.
+ *  - Pictures on either side come along (PNG, JPEG, GIF, WebP, BMP up to 8 MB), and so do sounds
+ *    (MP3, Ogg, M4A, WAV, FLAC up to 4 MB): the first on each side plays with the question or the
+ *    answer. A question that's only a sound becomes "Listen: what's this?". Cards with nothing to
+ *    read on either side (only sounds), and suspended cards, are left out.
  *  - Review cards keep their progress: FSRS memory state if the deck has it, otherwise the interval
  *    becomes the stability.
  *
@@ -38,11 +40,11 @@ import java.util.zip.ZipFile;
 public final class AnkiPackage {
     private AnkiPackage() {}
 
-    /** Where pictures go. Returns what to store on the card (a file path on the phone). */
+    /** Where pictures and sounds go. Returns what to store on the card (a file name on the phone). */
     public interface Media { String save(String name, byte[] data, String type); }
 
     public static final class Stats {
-        public int cards, imported, suspended, audio, empty, unknown, images, cloze, occlusion, kept;
+        public int cards, imported, suspended, audio, empty, unknown, images, cloze, occlusion, kept, sounds;
 
         /** "8 image occlusion, 3 cloze, 7 more. 2 keep their Anki progress. Left out: 1 suspended." */
         public String summary() {
@@ -56,6 +58,7 @@ public final class AnkiPackage {
             if (empty > 0) left.add(empty + " blank or unsupported");
             if (unknown > 0) left.add(unknown + " with a missing note type");
             return (kinds.isEmpty() ? "No cards" : join(kinds, ", ")) + "." + (kept > 0 ? " " + kept + (kept == 1 ? " keeps its" : " keep their") + " Anki progress." : "")
+                    + (sounds > 0 ? " " + sounds + (sounds == 1 ? " plays" : " play") + " a sound." : "")
                     + (left.isEmpty() ? "" : " Left out: " + join(left, ", ") + ".");
         }
     }
@@ -69,6 +72,8 @@ public final class AnkiPackage {
 
     static final long DAY = 86_400_000L;
     static final String GAP = "…";
+    static final String LISTEN = "Listen: what's this?";
+    static final Pattern SOUND = Pattern.compile("\\[sound:([^\\]]+)\\]");
     static final Pattern IMG = Pattern.compile("<img[^>]*?src\\s*=\\s*[\"']?([^\"'>]+)[\"']?[^>]*>", Pattern.CASE_INSENSITIVE);
 
     // ------------------------------------------------------------------ reading the file
@@ -158,6 +163,20 @@ public final class AnkiPackage {
 
     static final class Pic { String ref; int w, h; }
 
+    static final int MAX_SOUND = 4 * 1024 * 1024;
+
+    /** The sound file types cards play, from the file's first bytes: "mp3", "ogg", "m4a", "wav", "flac", or null. */
+    public static String audioType(byte[] b) {
+        if (b == null || b.length < 12) return null;
+        int b0 = b[0] & 0xFF, b1 = b[1] & 0xFF;
+        if ((b0 == 'I' && b1 == 'D' && b[2] == '3') || (b0 == 0xFF && (b1 & 0xE0) == 0xE0)) return "mp3";
+        if (b0 == 'O' && b1 == 'g' && b[2] == 'g' && b[3] == 'S') return "ogg";
+        if (b[4] == 'f' && b[5] == 't' && b[6] == 'y' && b[7] == 'p') return "m4a";
+        if (b0 == 'R' && b1 == 'I' && b[2] == 'F' && b[3] == 'F' && b[8] == 'W' && b[9] == 'A' && b[10] == 'V' && b[11] == 'E') return "wav";
+        if (b0 == 'f' && b1 == 'L' && b[2] == 'a' && b[3] == 'C') return "flac";
+        return null;
+    }
+
     static final class Reader {
         final ZipFile zip; final Map<String, String> mediaMap; final Media sink; final long now; final String fileName;
         final Map<String, byte[]> mediaCache = new HashMap<>();
@@ -175,6 +194,20 @@ public final class AnkiPackage {
             if (d != null && Zstd.isZstd(d)) d = Zstd.decompress(d);
             mediaCache.put(name, d);
             return d;
+        }
+
+        final Map<String, String> soundRefs = new HashMap<>();
+
+        /** A sound file, saved once and shared by every card that plays it; null if it's missing, too big or not a type cards play. */
+        String sound(String name) throws IOException {
+            if (name == null) return null;
+            if (soundRefs.containsKey(name)) return soundRefs.get(name);
+            byte[] d = media(name);
+            String type = audioType(d), ref = null;
+            if (type != null && d.length <= MAX_SOUND) ref = sink == null ? name : sink.save(name, d, type);
+            mediaCache.remove(name);
+            soundRefs.put(name, ref);
+            return ref;
         }
 
         Pic picture(String name) throws IOException {
@@ -299,6 +332,7 @@ public final class AnkiPackage {
                     st.kept++;
                 }
                 if (card.image != null || card.answerImage != null) st.images++;
+                if (card.audio != null || card.answerAudio != null) st.sounds++;
                 out.cards.add(card);
                 st.imported++;
             }
@@ -390,6 +424,8 @@ public final class AnkiPackage {
                     xs.addAll(extra);
                     card = new Card(null, deck, clean(qHtml), join(answers, "; "), join(xs, " "));
                     if (pic != null) setPic(card, pic);
+                    List<String> qs = sounds(qHtml);
+                    card.audio = sound(qs.isEmpty() ? null : qs.get(0));
                     card.cloze = true;
                     st.cloze++;
                 }
@@ -421,11 +457,19 @@ public final class AnkiPackage {
                 List<String> qi = images(qHtml), ai = images(bHtml);
                 questionPicture = !qi.isEmpty();
                 Pic qPic = picture(qi.isEmpty() ? null : qi.get(0)), aPic = picture(ai.isEmpty() ? null : ai.get(0));
+                List<String> qs = sounds(qHtml), as = sounds(bHtml);
+                String qSnd = sound(qs.isEmpty() ? null : qs.get(0)), aSnd = sound(as.isEmpty() ? null : as.get(0));
                 String f = clean(qHtml), b = clean(bHtml);
-                if ((!f.isEmpty() || qPic != null) && (!b.isEmpty() || aPic != null)) {
-                    card = new Card(null, deck, f.isEmpty() ? "What's this?" : f, b, xText);
+                // something to ask (words, a picture or a sound) and an answer (words or a picture, or a
+                // sound when there's a written or pictured question to go with it)
+                boolean ask = !f.isEmpty() || qPic != null || qSnd != null;
+                boolean answer = !b.isEmpty() || aPic != null || (aSnd != null && (!f.isEmpty() || qPic != null));
+                if (ask && answer) {
+                    card = new Card(null, deck, !f.isEmpty() ? f : qPic == null ? LISTEN : "What's this?", b, xText);
                     if (qPic != null) setPic(card, qPic);
                     if (aPic != null) { card.answerImage = aPic.ref; card.answerImageW = aPic.w; card.answerImageH = aPic.h; }
+                    card.audio = qSnd;
+                    card.answerAudio = aSnd;
                 } else if ((qHtml + bHtml).contains("[sound:")) { st.audio++; return null; }
             }
             return card;
@@ -455,6 +499,13 @@ public final class AnkiPackage {
             t = b.toString();
         }
         return t.replace("&nbsp;", " ").replace("&lt;", "<").replace("&gt;", ">").replace("&quot;", "\"").replace("&#39;", "'").replace("&amp;", "&");
+    }
+
+    static List<String> sounds(String html) {
+        List<String> out = new ArrayList<>();
+        Matcher m = SOUND.matcher(html == null ? "" : html);
+        while (m.find()) out.add(m.group(1).trim());
+        return out;
     }
 
     static List<String> images(String html) {

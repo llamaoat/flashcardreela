@@ -38,12 +38,12 @@ public class AnkiFiles {
                     c.answerImage == null ? "" : c.answerImage, "" + c.answerImageW, "" + c.answerImageH,
                     c.cloze ? "1" : "0", io, rev ? "review" : "new",
                     rev ? f(c.stability) : "", rev ? f(c.difficulty) : "", rev ? "" + c.due : "", rev ? "" + c.lastReview : "",
-                    "" + c.reps, "" + c.lapses).replace("\n", "\\n")).append('\n');
+                    "" + c.reps, "" + c.lapses, c.audio == null ? "" : c.audio, c.answerAudio == null ? "" : c.answerAudio).replace("\n", "\\n")).append('\n');
         }
         AnkiPackage.Stats s = r.stats;
         b.append("stats ").append(s.cards).append(' ').append(s.imported).append(' ').append(s.suspended).append(' ').append(s.audio)
          .append(' ').append(s.empty).append(' ').append(s.unknown).append(' ').append(s.images).append(' ').append(s.cloze)
-         .append(' ').append(s.occlusion).append(' ').append(s.kept).append('\n');
+         .append(' ').append(s.occlusion).append(' ').append(s.kept).append(' ').append(s.sounds).append('\n');
         new java.io.PrintStream(System.out, true, "UTF-8").print(b); // UTF-8 whatever the console's encoding
     }
 }

@@ -22,11 +22,23 @@
 - Turning the phone while a deck is still reading keeps the result (it was dropped).
 - Image occlusion masks fade in on Android, as in the web demo.
 
+**Sound**
+- Anki's sound files come across from `.apkg` files (MP3, Ogg, M4A, WAV, FLAC up to 4 MB). A question
+  that's only a sound asks "Listen: what's this?" and plays it as the card appears; a sound on the
+  answer plays when it shows. *▶ Listen* and *▶ Hear it* play them again. Cards with nothing to read on
+  either side are still left out. In the app and the web demo.
+
+**Pilot**
+- Dashboard → *Share my numbers (for a study)*: counts only (reels, cards answered and skipped per
+  day, measured recall after a day or more, card styles), with a random code instead of a name,
+  shown in full and shared only when the student taps *Share*. `tools/pilot-summary.py` adds up a
+  class's reports; `docs/PILOT.md` is a plan for a school pilot.
+
 **Notes**
 - *Make cards with AI* on the paste-notes screen copies a ready-made prompt for any chatbot; its reply
   (Q:/A: lines) pastes straight back in. The app itself stays offline.
 - The notes reader copes with how chatbots write: `**Q:**`, `Q1:`/`A1:`, and intro lines ending in a
-  colon. 115 engine checks (was 104), and the Java/JS cross-check now covers notes too.
+  colon. 116 engine checks (was 104), and the Java/JS cross-check now covers notes too.
 
 **Google Play**
 - Targets Android 16 (API 36), as Play requires from 31 August 2026. Pages keep clear of the system

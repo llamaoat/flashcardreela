@@ -101,7 +101,7 @@ final class Store {
         prefs(ctx).edit().clear().apply();
     }
 
-    /** Pictures from imported Anki decks. Kept out of Android's backup, which stops altogether once an app passes 25MB. */
+    /** Pictures and sounds from imported Anki decks. Kept out of Android's backup, which stops altogether once an app passes 25MB. */
     static File mediaDir(Context ctx) { return new File(ctx.getNoBackupFilesDir(), "anki-media"); }
 
     /** A card's picture file. Cards store its name in the media folder (older saves kept the whole path). */
@@ -120,15 +120,16 @@ final class Store {
     static final long KEEP_NEW_MEDIA_MS = 10 * 60_000L;
 
     /**
-     * Deletes pictures that no card uses any more: a removed deck's, or an import's that wasn't used.
+     * Deletes pictures and sounds that no card uses any more: a removed deck's, or an import's that wasn't used.
      * Pictures written in the last 10 minutes are kept, since an import may be on screen waiting for
      * "Use these cards" (or still saving them).
      * @param pending cards not in the engine yet whose pictures must stay (an import being set up)
      */
     static void cleanMedia(final Context ctx, List<Card> pending) {
         final java.util.Set<String> keep = new java.util.HashSet<>();
-        for (Card c : engine(ctx).cards) { if (c.image != null) keep.add(mediaRef(c.image)); if (c.answerImage != null) keep.add(mediaRef(c.answerImage)); }
-        if (pending != null) for (Card c : pending) { if (c.image != null) keep.add(mediaRef(c.image)); if (c.answerImage != null) keep.add(mediaRef(c.answerImage)); }
+        List<Card> all = new ArrayList<>(engine(ctx).cards);
+        if (pending != null) all.addAll(pending);
+        for (Card c : all) for (String ref : new String[]{c.image, c.answerImage, c.audio, c.answerAudio}) if (ref != null) keep.add(mediaRef(ref));
         final File dir = mediaDir(ctx);
         IO.execute(new Runnable() {
             @Override public void run() {
@@ -171,6 +172,8 @@ final class Store {
             if (c.image != null) { j.put("img", c.image); j.put("iw", c.imageW); j.put("ih", c.imageH); }
             if (c.answerImage != null) { j.put("aimg", c.answerImage); j.put("aiw", c.answerImageW); j.put("aih", c.answerImageH); }
             if (c.occlusion != null) { j.put("occ", c.occlusion); j.put("occt", c.occlusionTarget); }
+            if (c.audio != null) j.put("snd", c.audio);
+            if (c.answerAudio != null) j.put("asnd", c.answerAudio);
             if (c.cloze) j.put("cz", true);
             if (c.sessionBounces > 0) j.put("sb", c.sessionBounces);
             if (c.buriedUntilSession >= 0) j.put("bu", c.buriedUntilSession);
@@ -286,6 +289,8 @@ final class Store {
                 if (j.has("img")) { c.image = mediaRef(j.getString("img")); c.imageW = j.optInt("iw"); c.imageH = j.optInt("ih"); }
                 if (j.has("aimg")) { c.answerImage = mediaRef(j.getString("aimg")); c.answerImageW = j.optInt("aiw"); c.answerImageH = j.optInt("aih"); }
                 if (j.has("occ")) { c.occlusion = j.getString("occ"); c.occlusionTarget = j.optInt("occt"); }
+                if (j.has("snd")) c.audio = mediaRef(j.getString("snd"));
+                if (j.has("asnd")) c.answerAudio = mediaRef(j.getString("asnd"));
                 c.cloze = j.optBoolean("cz", false);
                 c.sessionBounces = j.optInt("sb", 0);
                 c.buriedUntilSession = j.optInt("bu", -1);

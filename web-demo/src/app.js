@@ -13,14 +13,17 @@ const deckCards = name => DECKS[name].map((r,i)=>makeCard(PRE[name]+"-"+(i+1), n
 const HOSTS = [["tiktok","TikTok"],["instagram","Instagram"],["youtube","YouTube"]];
 
 /* ---------------- Anki files (.apkg) ---------------- */
-const MIME = {png:"image/png", jpeg:"image/jpeg", gif:"image/gif", webp:"image/webp", bmp:"image/bmp"};
+const MIME = {png:"image/png", jpeg:"image/jpeg", gif:"image/gif", webp:"image/webp", bmp:"image/bmp", mp3:"audio/mpeg", ogg:"audio/ogg", m4a:"audio/mp4", wav:"audio/wav", flac:"audio/flac"};
 async function importApkg(bytes, name){
   const r = await Apkg.read(bytes, {name, now: now()});
   const urls = {};
   for (const k in r.images) { const t = Apkg.imageSize(r.images[k]); urls[k] = URL.createObjectURL(new Blob([r.images[k]], {type: MIME[t && t.type] || "application/octet-stream"})); }
+  const sounds = {};
+  for (const k in r.sounds) sounds[k] = URL.createObjectURL(new Blob([r.sounds[k]], {type: MIME[Apkg.audioType(r.sounds[k])] || "application/octet-stream"}));
   const cards = r.cards.map(c => {
     const m = makeCard(c.id, c.deck, c.f, c.b, c.x);
     m.img = c.img ? urls[c.img] : null; m.aimg = c.aimg ? urls[c.aimg] : null; m.io = c.io || null; m.cloze = !!c.cloze;
+    m.snd = c.snd ? sounds[c.snd] : null; m.asnd = c.asnd ? sounds[c.asnd] : null;
     Object.assign(m, {imgW: c.imgW || 0, imgH: c.imgH || 0, aimgW: c.aimgW || 0, aimgH: c.aimgH || 0});
     if (c.state === "review") Object.assign(m, {state: REVIEW, s: c.s, d: c.d, due: c.due, last: c.last, reps: c.reps, lapses: c.lapses});
     return m;
@@ -39,7 +42,8 @@ function apkgSummary(r){
   if (s.audio) left.push(s.audio + " audio-only");
   if (s.empty) left.push(s.empty + " blank or unsupported");
   if (s.unknown) left.push(s.unknown + " with a missing note type");
-  return (kinds.length ? kinds.join(", ") : "No cards") + "." + (s.kept ? " " + s.kept + (s.kept === 1 ? " keeps its" : " keep their") + " Anki progress." : "") + (left.length ? " Left out: " + left.join(", ") + "." : "");
+  return (kinds.length ? kinds.join(", ") : "No cards") + "." + (s.kept ? " " + s.kept + (s.kept === 1 ? " keeps its" : " keep their") + " Anki progress." : "")
+    + (s.sounds ? " " + s.sounds + (s.sounds === 1 ? " plays" : " play") + " a sound." : "") + (left.length ? " Left out: " + left.join(", ") + "." : "");
 }
 
 let E, UI, offset = 0;
@@ -281,12 +285,21 @@ function like(x,y){
   renderPhone(false); burst(x,y);
   if (it.likedBefore && it.f.layout!=="quiz") setTimeout(()=>{ if (UI.current===it && !it.revealed) { it.revealed = true; it.revealAt = el(); renderPhone(false); } }, 600);
 }
+/* an Anki card's sound: one at a time */
+let playing = null;
+function playSound(url){
+  if (playing) { playing.pause(); playing = null; }
+  if (!url) return;
+  playing = new Audio(url);
+  playing.play().catch(() => {}); // a browser may refuse until the page has been tapped
+}
 function reveal(){
   const it = UI.current; if (!it || it.kind!=="card") return;
   if (it.moreOpen) { it.moreOpen = false; renderPhone(false); return; }
   if (it.revealed) { if (!it.settled) { it.settled = true; renderPhone(false); } return; } // a tap shows the rest of the points now
   if (it.f.layout==="quiz"&&it.s.correct>=0) return;
   it.revealed = true; it.revealAt = el(); renderPhone(false);
+  if (it.s.asnd) playSound(it.s.asnd);
   const total = Render.ptDelays(it.s).pop() + 600; timers.push(setTimeout(()=>{ if (UI.current===it) it.settled = true; }, total));
 }
 /* self-marking: tap a point you got. Unticking a point on a card you'd liked turns it into part marks */
@@ -331,6 +344,7 @@ $("screen").addEventListener("click", e => {
       case "resetApp": if (!UI.confirmReset) { UI.confirmReset = true; renderPhone(false); return; } resetAll(); render(true); return;
       case "like": { const r = b.getBoundingClientRect(), p = $("screen").getBoundingClientRect(); like(r.left-p.left+r.width/2, r.top-p.top+r.height/2); return; }
       case "reveal": reveal(); return;
+      case "sound": if (it && it.s) playSound(v === "a" ? it.s.asnd : it.s.snd); return;
       // a tap on a point that hasn't dropped in yet just shows the rest; it doesn't mark it
       case "tick": if (it && !it.settled && parseFloat(getComputedStyle(b).opacity) < .99) { it.settled = true; renderPhone(false); return; } tick(+v); return;
       case "more": if (it) { it.moreOpen = !it.moreOpen; it.settled = true; renderPhone(false); } return;

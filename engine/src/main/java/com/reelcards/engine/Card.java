@@ -37,6 +37,8 @@ public final class Card {
     public String occlusion;        // image occlusion masks (see Occlusion), or null
     public int occlusionTarget;     // which masks this card asks about (c1 = 1)
     public boolean cloze;           // a cloze card: the question has [gaps]
+    public String audio;            // a sound on the question side (Anki's [sound:…]): a stored file, or null
+    public String answerAudio;      // a sound on the answer side, played when the answer shows
 
     // AnkiDroid-sourced cards: Anki owns the schedule, we only display and send grades back.
     public long ankiNoteId = -1;

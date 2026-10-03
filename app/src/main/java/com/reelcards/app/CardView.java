@@ -181,6 +181,8 @@ final class CardView extends FrameLayout {
     private Boolean picThere, ansThere; // whether the picture files exist (null: not looked yet)
     private PicView picView, ansView;   // the latest drawn, which a picture still decoding is handed to
     private boolean maskShown;          // the occlusion mask has faded in once
+    private android.media.MediaPlayer player; // the card's sound, while it plays
+    private boolean questionSoundPlayed;
     private int railTop;            // top of the right-hand rail (px): an occlusion picture may run under its column only above this
     private float capDownX, capDownY;
     private int capDownScroll;
@@ -513,6 +515,7 @@ final class CardView extends FrameLayout {
                 if (!compact()) addToBody(hook(s.hookLine));
                 addQuestion("split".equals(layout) ? 0.8f : 1f);
                 addPicture(false);
+                addSound(false);
                 addRevealOrAnswer();
             }
         }
@@ -745,6 +748,7 @@ final class CardView extends FrameLayout {
         } else if (multi()) {
             addPoints();
             addPicture(true);
+            addSound(true);
         } else if (s.isOcclusion()) { // the mask has opened; self-mark with a double-tap
             boolean k = outcome.liked;
             addToBody(selfCheck(k ? "Got it" : "Double-tap if you got it", k));
@@ -756,8 +760,54 @@ final class CardView extends FrameLayout {
                 if (justRevealed) drop(a);
             }
             addPicture(true);
+            addSound(true);
         }
     }
+
+    // --- sounds from Anki cards ([sound:…]): the question's plays when the card appears, the answer's when it shows
+
+    /** A "Listen" pill that plays the card's sound again; it's a control, so tapping it doesn't reveal. */
+    private void addSound(final boolean answer) {
+        if ((answer ? s.answerAudio : s.audio) == null) return;
+        TextView b = tvb("▶  " + (answer ? "Hear it" : "Listen"), 14, P.accFg, bold());
+        b.setBackground(round(P.acc, u(20)));
+        b.setPadding(u(16), u(9), u(18), u(9));
+        b.setContentDescription(answer ? "Play the answer's sound" : "Play the question's sound");
+        b.setOnClickListener(new OnClickListener() { @Override public void onClick(View v) { play(answer); } });
+        bodyControls.add(b);
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-2, -2);
+        lp.topMargin = body.getChildCount() == 0 ? 0 : Math.round(u(12) * fit);
+        lp.gravity = Gravity.START;
+        body.addView(b, lp);
+    }
+
+    /** Plays one of the card's sounds from its stored file, stopping any that's playing. Quietly does nothing if it's gone. */
+    void play(boolean answer) {
+        stopSound();
+        File f = Store.mediaFile(getContext(), answer ? s.answerAudio : s.audio);
+        if (f == null || !f.isFile()) return;
+        final android.media.MediaPlayer p = new android.media.MediaPlayer();
+        player = p;
+        try {
+            p.setAudioAttributes(new android.media.AudioAttributes.Builder().setUsage(android.media.AudioAttributes.USAGE_MEDIA)
+                    .setContentType(android.media.AudioAttributes.CONTENT_TYPE_SPEECH).build());
+            p.setDataSource(f.getPath());
+            p.setOnPreparedListener(new android.media.MediaPlayer.OnPreparedListener() { @Override public void onPrepared(android.media.MediaPlayer m) { if (player == m) m.start(); } });
+            p.setOnCompletionListener(new android.media.MediaPlayer.OnCompletionListener() { @Override public void onCompletion(android.media.MediaPlayer m) { if (player == m) stopSound(); } });
+            p.setOnErrorListener(new android.media.MediaPlayer.OnErrorListener() { @Override public boolean onError(android.media.MediaPlayer m, int what, int extra) { if (player == m) stopSound(); return true; } });
+            p.prepareAsync();
+        } catch (Exception e) {
+            stopSound();
+        }
+    }
+
+    private void stopSound() {
+        if (player == null) return;
+        try { player.release(); } catch (Exception ignored) { }
+        player = null;
+    }
+
+    boolean playingSound() { return player != null; }
 
     /** The round "self check" pill under an answer: "Tap the ones you got", "Got it", … */
     private TextView selfCheck(String text, boolean on) {
@@ -1810,6 +1860,7 @@ final class CardView extends FrameLayout {
         justRevealed = true;
         renderBody();
         updateCaption();
+        if (s.answerAudio != null) play(true);
     }
 
     /** Self-marking a long answer: tap a point you got. Unticking a point on a liked card turns it into part marks. */
@@ -1872,6 +1923,7 @@ final class CardView extends FrameLayout {
         justRevealed = true;
         renderBody();
         updateCaption();
+        if (s.answerAudio != null) play(true);
     }
 
     void hint() {
@@ -1962,7 +2014,14 @@ final class CardView extends FrameLayout {
     boolean isFinished() { return finished; }
 
     @Override
+    protected void onAttachedToWindow() {
+        super.onAttachedToWindow();
+        if (s.audio != null && !questionSoundPlayed && !outcome.revealed) { questionSoundPlayed = true; play(false); } // a sound question starts by itself
+    }
+
+    @Override
     protected void onDetachedFromWindow() {
+        stopSound();
         if (typingPulse != null) { typingPulse.cancel(); typingPulse = null; }
         if (progress != null) { progress.cancel(); progress = null; } // up to 30 s long: don't let it run on a closed card
         super.onDetachedFromWindow();

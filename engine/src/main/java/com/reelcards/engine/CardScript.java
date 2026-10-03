@@ -33,6 +33,7 @@ public final class CardScript {
     public final List<Occlusion.Shape> occlusion = new ArrayList<>(); // image occlusion masks
     public int occlusionTarget;                     // which masks this card asks about
     public boolean cloze;                           // the question has [gaps]
+    public String audio, answerAudio;               // sounds to play: with the question, and with the answer (or null)
 
     public boolean multi() { return points.size() >= 2; }
     public boolean isOcclusion() { return !occlusion.isEmpty(); }

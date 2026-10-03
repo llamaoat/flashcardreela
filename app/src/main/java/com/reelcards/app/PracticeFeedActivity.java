@@ -192,7 +192,7 @@ public final class PracticeFeedActivity extends Activity {
         }).withTint(engine.settings.matchColours ? watchedHue : Float.NaN).withCoach(Store.takeCoachMark(this));
         root.addView(card, root.getChildCount() - 1, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
         card.enter();
-        if (engine.settings.voiceover) Speaker.speak(s.script.voiceover);
+        if (engine.settings.voiceover && s.script.audio == null) Speaker.speak(s.script.voiceover); // a sound question speaks for itself
         notes.setVisibility(View.GONE); // don't cover the card; tap "Why?" to see the reasoning
         StringBuilder b = new StringBuilder();
         for (String w : s.why) { if (b.length() > 0) b.append('\n'); b.append(w); }

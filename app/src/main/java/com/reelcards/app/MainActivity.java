@@ -423,7 +423,8 @@ public final class MainActivity extends Activity {
                     il.rightMargin = dp(10);
                     row.addView(iv, il);
                 }
-                String text = c.occlusion != null ? c.front + " (image occlusion)" : c.front + (c.back.isEmpty() ? "" : "\n→ " + c.back.replace("\n", "; "));
+                String text = (c.occlusion != null ? c.front + " (image occlusion)" : c.front + (c.back.isEmpty() ? "" : "\n→ " + c.back.replace("\n", "; ")))
+                        + (c.audio != null || c.answerAudio != null ? "  🔊" : "");
                 row.addView(Ui.text(this, text, 14, Ui.TEXT, Ui.BODY), new LinearLayout.LayoutParams(0, -2, 1));
                 Ui.add(p, row, 8);
             }
@@ -1167,6 +1168,7 @@ public final class MainActivity extends Activity {
         }), 8);
         secondary(col, "Practice feed", go(new Runnable() { @Override public void run() { startActivity(new Intent(MainActivity.this, PracticeFeedActivity.class)); } }), 8);
         secondary(col, "Reel detection log", go(new Runnable() { @Override public void run() { showLog(); } }), 8);
+        secondary(col, "Share my numbers (for a study)", go(new Runnable() { @Override public void run() { showPilot(); } }), 8);
         secondary(col, "Privacy policy", go(new Runnable() { @Override public void run() { openPrivacyPolicy(); } }), 8);
         final Button reset = Ui.button(this, confirmReset ? "Tap again to erase everything" : "Reset everything", false);
         if (confirmReset) reset.setTextColor(Ui.BAD);
@@ -1191,6 +1193,35 @@ public final class MainActivity extends Activity {
         LinearLayout.LayoutParams lp = Ui.weight(1);
         if (!first) lp.leftMargin = dp(8);
         row.addView(t, lp);
+    }
+
+    // ------------------------------------------------------------------ pilot study (docs/PILOT.md)
+
+    /** Shows exactly what would be shared (counts only), and shares it only when the student taps Share. */
+    private void showPilot() {
+        LinearLayout col = page("pilot", new Runnable() { @Override public void run() { showDashboard(); } });
+        Ui.add(col, Ui.title(this, "Share your numbers"), 0);
+        Ui.add(col, Ui.body(this, "For a study of how well Reelcards works. Below is everything that's shared: counts, like reels swiped and cards answered each day, "
+                + "and how many cards you remembered. No cards, no deck or file names, no apps. It only goes where you send it."), 8);
+        String json;
+        try { json = PilotReport.build(this, engine, System.currentTimeMillis()).toString(2); }
+        catch (Exception e) { json = null; }
+        if (json == null) { Ui.add(col, Ui.text(this, "Couldn't put the numbers together.", 14, Ui.BAD, Ui.MEDIUM), 10); return; }
+        final String report = json;
+        TextView box = Ui.text(this, report, 12, Ui.MUTED, Ui.MONO);
+        box.setBackground(Ui.round(Ui.SURFACE, dp(12)));
+        box.setPadding(dp(12), dp(10), dp(12), dp(10));
+        box.setTextIsSelectable(true);
+        Ui.add(col, box, 12);
+        primary(col, "Share", go(new Runnable() {
+            @Override public void run() {
+                Intent send = new Intent(Intent.ACTION_SEND).setType("text/plain")
+                        .putExtra(Intent.EXTRA_SUBJECT, "Reelcards study: " + PilotReport.studentCode(MainActivity.this))
+                        .putExtra(Intent.EXTRA_TEXT, report);
+                try { startActivity(Intent.createChooser(send, "Share your numbers")); } catch (Exception ignored) { }
+            }
+        }), 14);
+        Ui.add(col, Ui.muted(this, "Your code, " + PilotReport.studentCode(this) + ", is random. It tells reports apart without saying who you are."), 8);
     }
 
     // ------------------------------------------------------------------ detection log

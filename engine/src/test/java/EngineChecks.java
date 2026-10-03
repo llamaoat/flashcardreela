@@ -607,7 +607,7 @@ public class EngineChecks {
             com.reelcards.engine.anki.AnkiPackage.Result latest = readDeck("real/anki-latest.apkg"), legacy = readDeck("real/anki-legacy.apkg"), colpkg = readDeck("real/anki-collection.colpkg");
             List<Card> cs = latest.cards;
             check("reads Anki's exports (the default, \"support older Anki versions\" and a collection package) to the same " + cs.size() + " cards",
-                    cs.size() == 26 && dump(cs).equals(dump(legacy.cards)) && dump(cs).equals(dump(colpkg.cards)));
+                    cs.size() == 28 && dump(cs).equals(dump(legacy.cards)) && dump(cs).equals(dump(colpkg.cards)));
             List<String[]> says = new java.util.ArrayList<>();
             long crt = 0;
             java.io.BufferedReader in = new java.io.BufferedReader(new java.io.InputStreamReader(new java.io.FileInputStream(deckFile("real/anki-says.tsv")), "UTF-8"));
@@ -622,8 +622,10 @@ public class EngineChecks {
             int shown = 0, leftOut = 0, io = 0, reviewed = 0;
             for (String[] r : says) {
                 Card c = byId(cs, "apkg:" + r[0]);
-                String type = r[1], q = r[4].replace("\\n", "\n"), a = r[5].replace("\\n", " ");
-                if (r[3].equals("1") || q.contains("[anki:play")) { leftOut++; if (c != null) wrong.add(r[0] + " should be left out"); continue; }
+                String type = r[1], play = "\\[anki:play:[^\\]]*\\]";
+                boolean qSound = r[4].contains("[anki:play"), aSound = r[5].contains("[anki:play");
+                String q = r[4].replaceAll(play, "").replace("\\n", "\n").trim(), a = r[5].replaceAll(play, "").replace("\\n", " ").trim();
+                if (r[3].equals("1") || (q.isEmpty() && a.isEmpty())) { leftOut++; if (c != null) wrong.add(r[0] + " should be left out"); continue; }
                 if (c == null) { wrong.add(r[0] + " missing"); continue; }
                 shown++;
                 boolean ok;
@@ -633,7 +635,8 @@ public class EngineChecks {
                 } else {
                     StringBuilder want = new StringBuilder();
                     for (String l : q.split("\n")) if (!l.contains("[[type:")) want.append(want.length() > 0 ? "\n" : "").append(l);
-                    ok = c.front.equals(want.toString().replace("[...]", "[…]"));
+                    ok = want.length() == 0 ? c.front.equals("Listen: what's this?") : c.front.equals(want.toString().replace("[...]", "[…]"));
+                    if (qSound != (c.audio != null) || aSound != (c.answerAudio != null)) ok = false;
                     if (!a.contains("[[type:")) { // a typed answer is filled in by Anki's reviewer, not the template
                         for (String part : c.back.split(c.cloze ? "; " : "\n")) if (!a.contains(part)) ok = false;
                         if (!c.extra.isEmpty() && !a.replace(" ", "").contains(c.extra.replace(" ", ""))) ok = false;
@@ -649,7 +652,11 @@ public class EngineChecks {
                 if (!ok) wrong.add(r[0] + " " + type + ": \"" + c.front + "\" / \"" + c.back + "\"");
             }
             check("each card reads as Anki shows it: " + shown + " questions and answers (lists, line breaks, entities, subscript, cloze hints, nested cloze, reversed, optional reversed, typed, a custom note type), "
-                    + leftOut + " left out (suspended, audio only)" + (wrong.isEmpty() ? "" : " " + wrong), wrong.isEmpty() && shown == 26 && leftOut == 2);
+                    + leftOut + " left out (suspended, sounds only)" + (wrong.isEmpty() ? "" : " " + wrong), wrong.isEmpty() && shown == 28 && leftOut == 2);
+            int listen = 0, said = 0;
+            for (Card c : cs) { if (c.audio != null && c.front.equals("Listen: what's this?") && c.back.equals("hello")) listen++; if (c.answerAudio != null && c.back.equals("hola")) said++; }
+            check("sounds come along: a question that's only a sound asks \"Listen: what's this?\", a sound on the answer plays with it, sounds-only cards stay out (\""
+                    + latest.stats.summary() + "\")", listen == 1 && said == 1 && latest.stats.sounds == 2 && latest.stats.audio == 1 && latest.stats.summary().contains("2 play a sound."));
             check("the " + reviewed + " reviewed cards keep Anki's FSRS memory state, interval and due date; the rest stay new" + (wrongSched.isEmpty() ? "" : " " + wrongSched), reviewed == 4 && wrongSched.isEmpty());
             boolean labels = true;
             for (Card c : cs) if (c.occlusion != null) {

@@ -17,7 +17,7 @@ Default OUT_DIR: engine/src/test/resources/anki/real. Not covered: a shared deck
 the old Image Occlusion Enhanced add-on (its note type is made by the add-on, not Anki), which still
 need trying by hand (docs/ROADMAP.md).
 """
-import html, io, os, re, sys, tempfile
+import html, io, math, os, re, struct, sys, tempfile
 
 from anki.collection import Collection, ExportAnkiPackageOptions
 from anki.scheduler.v3 import CardAnswer
@@ -42,6 +42,13 @@ def heart(d):
 
 def organelle(d):
     d.rounded_rectangle((20, 30, 220, 110), radius=40, fill="#ffb15c", outline="#c46a12", width=5)
+
+def wav(seconds=0.4, hz=440, rate=8000):
+    """A short tone as a real WAV file, so a phone can actually play the sound cards."""
+    n = int(seconds * rate)
+    pcm = b"".join(struct.pack("<h", int(12000 * math.sin(2 * math.pi * hz * i / rate))) for i in range(n))
+    return (b"RIFF" + struct.pack("<I", 36 + len(pcm)) + b"WAVEfmt " + struct.pack("<IHHIIHH", 16, 1, 1, rate, rate * 2, 2, 16)
+            + b"data" + struct.pack("<I", len(pcm)) + pcm)
 
 def notetype(col, kind):
     return col.models.by_name({
@@ -85,6 +92,7 @@ def build(path):
     spanish = col.decks.id("Spanish")
     col.media.write_data("organelle.png", png(240, 140, organelle))
     col.media.write_data("pop.mp3", b"ID3\x03\x00\x00\x00\x00\x00\x00")
+    col.media.write_data("hola.wav", wav())
 
     basic = notetype(col, StockNotetypeKind.KIND_BASIC)
     n_mito = add(col, basic, cells, {"Front": "What does the mitochondria do?", "Back": "Aerobic respiration"}, ["biology"])
@@ -94,7 +102,9 @@ def build(path):
     add(col, basic, cells, {"Front": 'Which organelle is this?<br><img src="organelle.png">', "Back": "A mitochondrion"})
     add(col, basic, chem, {"Front": "Is 5&nbsp;g &lt; 7&nbsp;g?", "Back": "Yes &amp; by 2&nbsp;g"})
     add(col, basic, chem, {"Front": "What&#x27;s the formula for water?", "Back": "H<sub>2</sub>O"})  # as genanki writes it
-    add(col, basic, chem, {"Front": "[sound:pop.mp3]", "Back": "[sound:pop.mp3]"})  # audio only: left out
+    add(col, basic, chem, {"Front": "[sound:pop.mp3]", "Back": "[sound:pop.mp3]"})  # sounds only, nothing to read: left out
+    add(col, basic, spanish, {"Front": "[sound:hola.wav]", "Back": "hello"})  # listen, then say what it means
+    add(col, basic, spanish, {"Front": "How do you say “hello” in Spanish?", "Back": "hola [sound:hola.wav]"})  # the answer is said too
     rev = notetype(col, StockNotetypeKind.KIND_BASIC_AND_REVERSED)
     n_osm = add(col, rev, cells, {"Front": "Osmosis", "Back": "The diffusion of water across a partially permeable membrane"})
     opt = notetype(col, StockNotetypeKind.KIND_BASIC_OPTIONAL_REVERSED)

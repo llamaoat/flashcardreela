@@ -171,13 +171,16 @@ itself shows it: question, answer, cloze gaps, image occlusion targets and the F
 - **Progress carries over:** a review card keeps its memory state. If the deck has FSRS data, its
   stability and difficulty are used as they are; otherwise stability is the interval, and difficulty
   comes from ease (250% → 5, each 25% less → +1). The due date is kept. New and learning cards start as
-  new. Suspended and audio-only cards are left out, and pictures over 8 MB or in vector formats are
-  dropped.
+  new. Suspended cards are left out, and so are cards with nothing to read on either side (only
+  sounds). Pictures over 8 MB or in vector formats are dropped.
+- **Sounds:** the first `[sound:…]` on each side comes along (MP3, Ogg, M4A, WAV or FLAC, found from
+  the file's first bytes, up to 4 MB). A question that's only a sound becomes "Listen: what's this?";
+  a sound on the answer needs a written or pictured question to go with it. Sound cards use big text.
 - **One way:** answers stay in Reelcards. Two-way sync with Anki is what the AnkiDroid connection is for.
 
 ## Evaluation
 
-[`EngineChecks`](../engine/src/test/java/EngineChecks.java) runs 115 checks:
+[`EngineChecks`](../engine/src/test/java/EngineChecks.java) runs 116 checks:
 [`results/checks.txt`](../engine/results/checks.txt).
 
 [`Simulate`](../engine/src/test/java/Simulate.java) runs simulated students on the real engine for 30

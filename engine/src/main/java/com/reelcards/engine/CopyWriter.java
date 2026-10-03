@@ -33,6 +33,7 @@ public class CopyWriter {
         s.answerImage = c.answerImage; s.answerImageW = c.answerImageW; s.answerImageH = c.answerImageH;
         if (c.occlusion != null) { s.occlusion.addAll(Occlusion.parse(c.occlusion)); s.occlusionTarget = c.occlusionTarget; }
         s.cloze = c.cloze;
+        s.audio = c.audio; s.answerAudio = c.answerAudio;
         s.account = "@" + slug(c.deck) + pick(rnd, new String[]{".mocks", ".revision", ".explained", ".facts"});
         s.tag = c.deck + " · " + reason;
         String vibe = vibes == null || vibes.isEmpty() || rnd.nextDouble() < 0.4 ? null : pickFrom(rnd, vibes);

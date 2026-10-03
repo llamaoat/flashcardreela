@@ -118,12 +118,14 @@ function revealOrAnswer(it){
     const hintChip = it.hinted && it.f.layout!=="list" ? '<div class="hintchip"><b>Hint</b> '+esc(it.s.hint)+'</div>' : '';
     return hintChip + revealButton(it);
   }
-  if (isMulti(it)) return pointsHTML(it) + answerPic(it);
+  if (isMulti(it)) return pointsHTML(it) + answerPic(it) + soundButton(it, true);
   if (it.s.io) return '<div class="selfcheck">'+(it.liked ? 'Got it' : 'Double-tap if you got it')+'</div>';
   const a = it.s.a, tier = a.length > 40 ? ' t3' : a.length > 22 ? ' t2' : '';
-  if (!a) return (it.s.x ? '<div class="ans t3"><div class="a2">'+esc(it.s.x)+'</div></div>' : '') + answerPic(it); // the answer is a picture
-  return '<div class="ans'+tier+'"><div class="a1">'+esc(a)+'</div>'+(it.s.x?'<div class="a2">'+esc(it.s.x)+'</div>':'')+'</div>' + answerPic(it);
+  if (!a) return (it.s.x ? '<div class="ans t3"><div class="a2">'+esc(it.s.x)+'</div></div>' : '') + answerPic(it) + soundButton(it, true); // the answer is a picture or a sound
+  return '<div class="ans'+tier+'"><div class="a1">'+esc(a)+'</div>'+(it.s.x?'<div class="a2">'+esc(it.s.x)+'</div>':'')+'</div>' + answerPic(it) + soundButton(it, true);
 }
+/* an Anki card's sound ([sound:…]): "Listen" with the question, "Hear it" with the answer (mirrors CardView.addSound) */
+const soundButton = (it, answer) => (answer ? it.s.asnd : it.s.snd) ? '<button class="snd" data-act="sound" data-v="'+(answer?"a":"q")+'" aria-label="Play the '+(answer?"answer":"question")+'\'s sound">▶&nbsp; '+(answer?"Hear it":"Listen")+'</button>' : '';
 const answerPic = it => it.s.aimg ? '<div class="pic apic" style="'+picSize(it.s.aimgW, it.s.aimgH)+'"><img src="'+esc(it.s.aimg)+'" alt=""></div>' : '';
 function revealButton(it){ return '<button class="reveal" data-act="reveal"><span class="ring">'+(it.count==null?thinkSecs(it.s):it.count)+'</span><span>'+esc(it.s.prompt)+'</span></button>'; }
 
@@ -171,7 +173,7 @@ function bodyHTML(it){
   }
   // image occlusion: the picture leads, full width at the top (clear of the rail); the header sits under it
   if (s.io) return pictureHTML(it)+questionHTML(it, .8)+revealOrAnswer(it);
-  return (compact(it) ? '' : '<div class="hook">'+esc(s.hook)+'</div>')+questionHTML(it, lay==="split"?.8:1)+pictureHTML(it)+revealOrAnswer(it);
+  return (compact(it) ? '' : '<div class="hook">'+esc(s.hook)+'</div>')+questionHTML(it, lay==="split"?.8:1)+pictureHTML(it)+soundButton(it, false)+revealOrAnswer(it);
 }
 
 function vibeHTML(it){

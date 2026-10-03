@@ -427,6 +427,19 @@ function imageSize(b){
 const DAY = 86400000;
 const GAP = "…";
 const IMG_RE = /<img[^>]*?src\s*=\s*["']?([^"'>]+)["']?[^>]*>/gi;
+const SOUND_RE = /\[sound:([^\]]+)\]/g, LISTEN = "Listen: what's this?", MAX_SOUND = 4 * 1024 * 1024;
+function sounds(html){ const out = []; let m; SOUND_RE.lastIndex = 0; while ((m = SOUND_RE.exec(html || ""))) out.push(m[1].trim()); return out; }
+/* the sound file types cards play, from the file's first bytes (mirrors AnkiPackage.audioType) */
+function audioType(b){
+  if (!b || b.length < 12) return null;
+  const s = (i, t) => [...t].every((ch, k) => b[i + k] === ch.charCodeAt(0));
+  if (s(0, "ID3") || (b[0] === 0xFF && (b[1] & 0xE0) === 0xE0)) return "mp3";
+  if (s(0, "OggS")) return "ogg";
+  if (s(4, "ftyp")) return "m4a";
+  if (s(0, "RIFF") && s(8, "WAVE")) return "wav";
+  if (s(0, "fLaC")) return "flac";
+  return null;
+}
 function entities(t){ // the few Anki's editor writes, and numeric ones (&#x27; from decks made by scripts)
   return t.replace(/&#(?:[xX]([0-9a-fA-F]{1,6})|([0-9]{1,7}));/g, (m, h, d) => { const cp = h ? parseInt(h, 16) : +d; return cp > 0 && cp <= 0x10FFFF && !(cp >= 0xD800 && cp <= 0xDFFF) ? String.fromCodePoint(cp) : m; })
     .replace(/&nbsp;/g, " ").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&amp;/g, "&"); }
@@ -624,8 +637,16 @@ async function read(buf, opts){
   const notes = {};
   for (const r of db.rows("notes") || []) notes[r.id] = r;
 
-  const stats = {cards: 0, imported: 0, suspended: 0, audio: 0, empty: 0, unknown: 0, images: 0, cloze: 0, occlusion: 0, kept: 0};
-  const cards = [], imgs = {};
+  const stats = {cards: 0, imported: 0, suspended: 0, audio: 0, empty: 0, unknown: 0, images: 0, cloze: 0, occlusion: 0, kept: 0, sounds: 0};
+  const cards = [], imgs = {}, snds = {}, soundRefs = {};
+  async function sound(name){ // saved once, shared by every card that plays it
+    if (!name) return null;
+    if (name in soundRefs) return soundRefs[name];
+    const d = await media(name), t = audioType(d);
+    let ref = null;
+    if (t && d.length <= MAX_SOUND) { snds[name] = d; ref = name; }
+    return (soundRefs[name] = ref);
+  }
   async function picture(name){
     if (!name) return null;
     const d = await media(name), size = imageSize(d);
@@ -673,7 +694,8 @@ async function read(buf, opts){
       const answers = got.map(clean).filter(x => x);
       if (answers.length && hasText(qHtml)) {
         const pic = await picture(images(qHtml)[0]);
-        card = {f: clean(qHtml), b: answers.filter((v, i) => answers.indexOf(v) === i).join("; "), x: [full].concat(extra).filter(x => x).join(" "), img: pic ? pic.name : null, imgW: pic ? pic.w : 0, imgH: pic ? pic.h : 0, cloze: true};
+        card = {f: clean(qHtml), b: answers.filter((v, i) => answers.indexOf(v) === i).join("; "), x: [full].concat(extra).filter(x => x).join(" "), img: pic ? pic.name : null, imgW: pic ? pic.w : 0, imgH: pic ? pic.h : 0, cloze: true,
+          snd: await sound(sounds(qHtml)[0])};
         stats.cloze++;
       }
     } else {
@@ -693,9 +715,11 @@ async function read(buf, opts){
           bHtml = a;
         }
         const qPic = await picture(images(qHtml)[0]), aPic = await picture(images(bHtml)[0]);
+        const qSnd = await sound(sounds(qHtml)[0]), aSnd = await sound(sounds(bHtml)[0]);
         const f = clean(qHtml), b = clean(bHtml);
-        if ((f || qPic) && (b || aPic)) card = {f: f || "What's this?", b: b || "", x: xText, img: qPic ? qPic.name : null, imgW: qPic ? qPic.w : 0, imgH: qPic ? qPic.h : 0,
-          aimg: aPic ? aPic.name : null, aimgW: aPic ? aPic.w : 0, aimgH: aPic ? aPic.h : 0};
+        // something to ask (words, a picture or a sound) and an answer (words or a picture, or a sound with a written or pictured question)
+        if ((f || qPic || qSnd) && (b || aPic || (aSnd && (f || qPic)))) card = {f: f || (qPic ? "What's this?" : LISTEN), b: b || "", x: xText, img: qPic ? qPic.name : null, imgW: qPic ? qPic.w : 0, imgH: qPic ? qPic.h : 0,
+          aimg: aPic ? aPic.name : null, aimgW: aPic ? aPic.w : 0, aimgH: aPic ? aPic.h : 0, snd: qSnd, asnd: aSnd};
         else if (/\[sound:/.test(qHtml + bHtml)) { stats.audio++; continue; }
       }
     }
@@ -715,12 +739,13 @@ async function read(buf, opts){
       stats.kept++;
     }
     if (card.img || card.aimg) stats.images++;
+    if (card.snd || card.asnd) stats.sounds++;
     cards.push(card);
     stats.imported++;
   }
-  return {cards, images: imgs, stats};
+  return {cards, images: imgs, sounds: snds, stats};
 }
 
-return {Zstd, Zip, Sqlite, pb, pbText, imageSize, read, clozeParse, clozeText, renderTpl, ioShapes, ioeShapes, clean};
+return {Zstd, Zip, Sqlite, pb, pbText, imageSize, audioType, read, clozeParse, clozeText, renderTpl, ioShapes, ioeShapes, clean};
 })();
 if (typeof module !== "undefined") module.exports = Apkg;

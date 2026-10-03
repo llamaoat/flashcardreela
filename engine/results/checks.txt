@@ -114,8 +114,9 @@ Anki files (.apkg)
   PASS  imported cards play in the feed (occlusion in big text with its masks)
   PASS  a zip with no Anki deck inside is refused with a clear message
 Anki's own exports (tools/real-anki-decks.py)
-  PASS  reads Anki's exports (the default, "support older Anki versions" and a collection package) to the same 26 cards
-  PASS  each card reads as Anki shows it: 26 questions and answers (lists, line breaks, entities, subscript, cloze hints, nested cloze, reversed, optional reversed, typed, a custom note type), 2 left out (suspended, audio only)
+  PASS  reads Anki's exports (the default, "support older Anki versions" and a collection package) to the same 28 cards
+  PASS  each card reads as Anki shows it: 28 questions and answers (lists, line breaks, entities, subscript, cloze hints, nested cloze, reversed, optional reversed, typed, a custom note type), 2 left out (suspended, sounds only)
+  PASS  sounds come along: a question that's only a sound asks "Listen: what's this?", a sound on the answer plays with it, sounds-only cards stay out ("4 image occlusion, 5 cloze, 19 more. 4 keep their Anki progress. 2 play a sound. Left out: 1 suspended, 1 audio-only.")
   PASS  the 4 reviewed cards keep Anki's FSRS memory state, interval and due date; the rest stay new
   PASS  image occlusion: 4 cards, each covering the shape Anki's card does; the text label is drawn but isn't a card
 AnkiDroid notes
@@ -138,4 +139,4 @@ Forecast
         210 min/day -> 150 cards/day, 25 new/day, deck in 2 days
   PASS  3.5 h of reels ~ 150 cards a day at the default rhythm (the Normal cap)
 
-115 passed, 0 failed
+116 passed, 0 failed
