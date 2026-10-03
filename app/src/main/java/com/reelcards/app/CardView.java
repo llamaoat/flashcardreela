@@ -147,10 +147,11 @@ final class CardView extends FrameLayout {
     private final boolean sheetLook, sheet, night;
     private float tintHue = Float.NaN;
     private boolean coach;
+    private Runnable shareHandler;
     private Palette P;
     private final long shownAtUptime = SystemClock.uptimeMillis();
     private long countdownStart = SystemClock.uptimeMillis();
-    private ObjectAnimator typingPulse;
+    private ObjectAnimator typingPulse, progress;
     private final GestureDetector gestures;
     private final int slop;
     private VelocityTracker velocity;
@@ -266,6 +267,9 @@ final class CardView extends FrameLayout {
 
     /** Show the one-line gesture tip (first cards only). Call before it's shown. */
     CardView withCoach(boolean on) { coach = on; return this; }
+
+    /** Runs once the share sheet has opened (the overlay uses it to step out of the sheet's way). */
+    CardView withShareHandler(Runnable r) { shareHandler = r; return this; }
 
     // ------------------------------------------------------------------ units
 
@@ -421,14 +425,14 @@ final class CardView extends FrameLayout {
         bar.setPivotX(0);
         bar.setScaleX(0);
         addView(bar, new LayoutParams(-1, u(3), Gravity.BOTTOM));
-        ObjectAnimator a = ObjectAnimator.ofFloat(bar, "scaleX", 0f, 1f);
+        progress = ObjectAnimator.ofFloat(bar, "scaleX", 0f, 1f);
         // runs for as long as the card takes to read
         StringBuilder ans = new StringBuilder();
         for (String pt : s.points) ans.append(pt).append(' ');
         long ms = Grade.readingMs(s.question) + Grade.readingMs(ans.toString().trim()) + 3000;
-        a.setDuration(Math.max(10000, Math.min(30000, ms)));
-        a.setInterpolator(new LinearInterpolator());
-        a.start();
+        progress.setDuration(Math.max(10000, Math.min(30000, ms)));
+        progress.setInterpolator(new LinearInterpolator());
+        progress.start();
     }
 
     // ------------------------------------------------------------------ body (redrawn on every change)
@@ -1883,6 +1887,7 @@ final class CardView extends FrameLayout {
         chooser.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
         try {
             getContext().startActivity(chooser);
+            if (shareHandler != null) shareHandler.run();
         } catch (RuntimeException e) { // no share targets, or the system blocked it: copy instead
             ClipboardManager cm = (ClipboardManager) getContext().getSystemService(Context.CLIPBOARD_SERVICE);
             if (cm != null) cm.setPrimaryClip(ClipData.newPlainText("Reelcards question", text));
@@ -1940,6 +1945,7 @@ final class CardView extends FrameLayout {
     @Override
     protected void onDetachedFromWindow() {
         if (typingPulse != null) { typingPulse.cancel(); typingPulse = null; }
+        if (progress != null) { progress.cancel(); progress = null; } // up to 30 s long: don't let it run on a closed card
         super.onDetachedFromWindow();
     }
 

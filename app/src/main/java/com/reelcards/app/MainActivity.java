@@ -899,6 +899,7 @@ public final class MainActivity extends Activity {
                 @Override public void onClick(View v) {
                     if (!armed) { armed = true; rm.setText("Tap to confirm"); rm.setTextColor(Ui.BAD); return; }
                     engine.removeDeck(deck);
+                    AnkiBridge.unselect(MainActivity.this, deck); // an AnkiDroid deck would otherwise come back on the next refill
                     Store.saveNow(MainActivity.this);
                     showDashboard();
                 }

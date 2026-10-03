@@ -121,6 +121,16 @@ final class AnkiBridge implements Engine.GradeSink {
         Store.prefs(c).edit().putString("anki_decks", b.toString()).apply();
     }
 
+    /** Stops using an AnkiDroid deck (the dashboard's Remove), so the next refill doesn't bring its cards back. */
+    static void unselect(Context c, String deck) {
+        List<Deck> keep = new ArrayList<>();
+        for (Deck d : selected(c)) if (!deckLabel(d.name).equals(deck)) keep.add(d);
+        saveSelection(c, keep);
+    }
+
+    /** The deck name shown on a card from this AnkiDroid deck. */
+    static String deckLabel(String deckName) { return deckName == null || deckName.isEmpty() ? "Anki" : deckName; }
+
     /**
      * Tops up the engine with cards Anki has scheduled now. Throttled to once a minute unless forced.
      * Safe to call often (from every reel swipe).
@@ -142,8 +152,12 @@ final class AnkiBridge implements Engine.GradeSink {
                 MAIN.post(new Runnable() {
                     @Override public void run() {
                         long t = System.currentTimeMillis();
+                        // a deck removed while this refill was running stays removed
+                        java.util.Set<String> still = new java.util.HashSet<>();
+                        for (Deck d : selected(c)) still.add(deckLabel(d.name));
                         List<Card> add = new ArrayList<>();
                         for (Card f : fetched) {
+                            if (!still.contains(f.deck)) continue;
                             Card existing = engine.find(f.id);
                             if (existing != null) { existing.due = t; existing.front = f.front; existing.back = f.back; }
                             else add.add(f);
@@ -184,7 +198,7 @@ final class AnkiBridge implements Engine.GradeSink {
             String q = col(cur, "question_simple"), a = col(cur, "answer_pure");
             if (q == null) q = col(cur, "question");
             if (a == null) a = col(cur, "answer");
-            String deck = deckName == null || deckName.isEmpty() ? "Anki" : deckName;
+            String deck = deckLabel(deckName);
             String front = plain(q), back = plain(a);
             if (front.isEmpty() || back.isEmpty()) return null;
             Card c = new Card("anki:" + noteId + ":" + ord, deck, front, back, "");

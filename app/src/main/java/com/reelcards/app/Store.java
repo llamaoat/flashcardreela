@@ -135,6 +135,8 @@ final class Store {
             if (c.answerImage != null) { j.put("aimg", c.answerImage); j.put("aiw", c.answerImageW); j.put("aih", c.answerImageH); }
             if (c.occlusion != null) { j.put("occ", c.occlusion); j.put("occt", c.occlusionTarget); }
             if (c.cloze) j.put("cz", true);
+            if (c.sessionBounces > 0) j.put("sb", c.sessionBounces);
+            if (c.buriedUntilSession >= 0) j.put("bu", c.buriedUntilSession);
             cards.put(j);
         }
         o.put("cards", cards);
@@ -190,6 +192,17 @@ final class Store {
         ses.put("newShown", new JSONArray(e.newShownToday));
         if (e.lastHost != null) ses.put("lastHost", e.lastHost);
         if (e.lastDeckShown != null) ses.put("lastDeck", e.lastDeckShown);
+        // where the student is in this session, so a restart mid-session carries on where it was:
+        // skipped cards keep their "back in 3 reels" slot, the warm-up isn't repeated, quiet mode keeps counting
+        ses.put("reels", e.sessionReels); ses.put("sinceCard", e.reelsSinceCard); ses.put("postponed", e.postponed);
+        ses.put("startAt", e.sessionStartAt);
+        JSONArray rq = new JSONArray();
+        for (Engine.Requeue r : e.requeue) rq.put(new JSONArray().put(r.cardId).put(r.atReel));
+        ses.put("requeue", rq);
+        JSONArray fast = new JSONArray(), reelSec = new JSONArray();
+        for (Boolean f : e.recentFast) fast.put(f.booleanValue());
+        for (Double d : e.recentReelSec) reelSec.put(d.doubleValue());
+        ses.put("fast", fast); ses.put("reelSec", reelSec);
         JSONArray log = new JSONArray();
         for (String l : e.log) log.put(l);
         ses.put("log", log);
@@ -237,6 +250,8 @@ final class Store {
                 if (j.has("aimg")) { c.answerImage = j.getString("aimg"); c.answerImageW = j.optInt("aiw"); c.answerImageH = j.optInt("aih"); }
                 if (j.has("occ")) { c.occlusion = j.getString("occ"); c.occlusionTarget = j.optInt("occt"); }
                 c.cloze = j.optBoolean("cz", false);
+                c.sessionBounces = j.optInt("sb", 0);
+                c.buriedUntilSession = j.optInt("bu", -1);
                 list.add(c);
             }
         }
@@ -330,6 +345,17 @@ final class Store {
             e.lastDeckShown = ses.has("lastDeck") ? ses.getString("lastDeck") : null;
             JSONArray ns = ses.optJSONArray("newShown");
             if (ns != null) for (int i = 0; i < ns.length(); i++) e.newShownToday.add(ns.getString(i));
+            e.sessionReels = ses.optInt("reels"); e.reelsSinceCard = ses.optInt("sinceCard"); e.postponed = ses.optInt("postponed");
+            e.sessionStartAt = ses.optLong("startAt");
+            JSONArray rq = ses.optJSONArray("requeue");
+            if (rq != null) for (int i = 0; i < rq.length(); i++) {
+                JSONArray r = rq.getJSONArray(i);
+                e.requeue.add(new Engine.Requeue(r.getString(0), r.getInt(1)));
+            }
+            JSONArray fast = ses.optJSONArray("fast");
+            if (fast != null) for (int i = 0; i < fast.length(); i++) e.recentFast.add(fast.getBoolean(i));
+            JSONArray reelSec = ses.optJSONArray("reelSec");
+            if (reelSec != null) for (int i = 0; i < reelSec.length(); i++) e.recentReelSec.add(reelSec.getDouble(i));
             JSONArray log = ses.optJSONArray("log");
             if (log != null) for (int i = 0; i < log.length(); i++) e.log.add(log.getString(i));
         }

@@ -397,13 +397,16 @@ Engine.prototype={
       if(this.calibration.maybeRefit(this.fsrs))summary+=" · memory calibration updated (×"+this.calibration.scale+")";
       if(c.lapses>=LEECH_LAPSES&&g===1)summary+=" · flagged as a tricky card";
       this.anki.unshift({g:GL[g],line:"answerCard(note="+c.id+", ease="+g+", time_taken="+Math.round(o.dwell)+"ms) → next in "+human(ivl)});this.anki.length=Math.min(this.anki.length,40);
+    }else if(o.shared){
+      // shared without answering: engaged, so not a skip and not re-queued; no grade, schedule left as it was
+      summary="Shared (not graded)";
     }else{
       dd.skips++;c.skips++;c.bounces++;(this.stats.layout[sh.f.layout]=this.stats.layout[sh.f.layout]||[0,0])[1]++;if(fastSkip(o))dd.fastSkips++;
       if(c.bounces>=2){c.buriedUntil=this.sessionId;summary="Skipped twice this session → saved for next session, in a different look";}
       else{this.requeue.push({id:c.id,at:this.sessionReels+3});summary="Not graded (swiped past) → back in 3 reels";}
     }
     if(o.saved&&!c.saved){c.saved=true;if(c.state===REVIEW&&c.due>t+DAY)c.due=t+DAY;summary+=" · saved: back within a day";}
-    if(o.shared)summary+=" · shared";
+    if(o.shared&&g)summary+=" · shared";
     const rw=reward(o);this.bandit.update(sh.f,sh.host,rw);summary+=" · look scored "+rw.toFixed(2);
     if(this.adaptiveRhythm&&!this.isDemo()&&!sh.test){const before=this.currentGap(t);if(this.rhythmArm>=0)this.rhythm.update(this.rhythmArm,engaged(o)?1:0);this.rhythmArm=this.rhythm.choose(this.rnd,this.I().gap);const after=this.currentGap(t);if(after!==before)summary+=" · next card in ~"+after+" reels";}
     this.recentFast.push(fastSkip(o));if(this.recentFast.length>10)this.recentFast.shift();

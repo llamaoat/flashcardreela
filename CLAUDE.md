@@ -26,7 +26,7 @@ looks*. Audience: UK GCSE students, 14–16. Android first, open source (GPLv3).
 ## Commands
 
 ```
-./gradlew :engine:engineChecks     # 103 checks, must all pass (no Gradle: see README "Run them yourself")
+./gradlew :engine:engineChecks     # 104 checks, must all pass (no Gradle: see README "Run them yourself")
 ./gradlew :engine:simulate         # 30-day simulated students, ~2 min → compare with engine/results/simulation.txt
 tools/crosscheck/run.sh            # Java engine vs JS port: answer splitting + every card from the test decks
 python3 tools/build-web-demo.py    # rebuild web-demo/index.html after editing web-demo/src/
@@ -95,6 +95,14 @@ python3 tools/make-test-decks.py   # regenerate engine/src/test/resources/anki/*
   - Reelcards reads due cards through AnkiDroid's content provider and writes grades back.
   - It's text only, so pictures and image occlusion aren't shown and cloze shows plain `[...]`.
   - `.apkg` import handles all three, but one way only.
+  - The chosen decks live in preferences (`AnkiBridge.selected`). Removing a deck on the dashboard
+    also unselects it, or the next refill would bring its cards back.
+- The overlay is drawn above every app, including the share sheet. While sharing, the card steps
+  aside (invisible, `FLAG_NOT_TOUCHABLE`) rather than closing, and comes back when the app it was
+  shown over returns (`ReelWatcherService.stepAside`/`comeBack`).
+- `Store` saves the session too (skipped cards waiting to come back, skips this session, the
+  warm-up count), so a restart mid-session carries on. New engine state that matters within a
+  session needs saving there as well.
 - In cloud sessions, Google Fonts and Google's Maven repository may be blocked:
   - The engine checks, the cross-check and the web demo only need a JDK, Node and Python.
   - `FONTS_DIR` makes the screenshots use local fonts.

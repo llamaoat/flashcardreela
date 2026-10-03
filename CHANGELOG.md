@@ -1,5 +1,20 @@
 # Changelog
 
+## Unreleased
+
+**Fixes**
+- Share no longer loses the card. The card steps aside while the share sheet is open and comes back
+  when you return to the app. A card shared without being answered isn't counted as a skip and isn't
+  sent back in 3 reels.
+- Removing an AnkiDroid deck on the dashboard now sticks (the deck is unselected, so the next refill
+  doesn't bring its cards back).
+- A restart mid-session carries on where it was: skipped cards keep their "back in 3 reels" place,
+  cards skipped twice stay away until the next session, and the warm-up isn't repeated.
+- A card's reading-progress bar stops when the card is closed, instead of running on for up to 30 s.
+- The engine checks print UTF-8 whatever the console, so `engine/results/checks.txt` keeps its quotes
+  and arrows. 104 checks (was 103).
+- Docs: `docs/ENGINE.md` check count, and the APK size in `app/build.gradle`.
+
 ## 1.2.0: Anki files, cloze and image occlusion
 
 **Import**

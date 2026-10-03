@@ -12,6 +12,7 @@ import android.os.Handler;
 import android.os.Looper;
 import android.view.Display;
 import android.view.Gravity;
+import android.view.View;
 import android.view.WindowManager;
 import android.view.accessibility.AccessibilityEvent;
 
@@ -38,6 +39,8 @@ public final class ReelWatcherService extends AccessibilityService {
     private AudioManager audio;
     private AudioFocusRequest focus;
     private String currentPkg = "";
+    private String cardPkg = "";   // the app the card is shown over
+    private boolean sharing;       // the card has stepped aside for the share sheet
     private Runnable timeout;
 
     static boolean isRunning() { return instance != null; }
@@ -68,6 +71,13 @@ public final class ReelWatcherService extends AccessibilityService {
         int type = e.getEventType();
 
         if (type == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) {
+            if (overlay != null && sharing) {
+                // the share sheet, and whichever app the question is sent with, open while the card
+                // waits; it comes back when the student returns to the app it was shown over (the
+                // whole window, not a pop-up "pane" inside it, which would put it back over the sheet)
+                if (pkg.equals(cardPkg) && e.getContentChangeTypes() == AccessibilityEvent.CONTENT_CHANGE_TYPE_UNDEFINED) comeBack();
+                return;
+            }
             if (!pkg.equals(getPackageName()) && !isSystemOverlay(pkg)) {
                 // left the reel app (home button, notification, another app): take the card down
                 if (overlay != null && !ReelDetector.isReelApp(pkg) && !pkg.equals(currentPkg)) overlay.finishNow("left_app");
@@ -76,6 +86,7 @@ public final class ReelWatcherService extends AccessibilityService {
             return;
         }
         if (type != AccessibilityEvent.TYPE_VIEW_SCROLLED) return;
+        if (overlay != null && sharing && pkg.equals(cardPkg)) { overlay.finishNow("shared"); return; } // back and scrolling on: done with it
         if (!ReelDetector.isReelApp(pkg) || overlay != null) return;
 
         int screenH = getResources().getDisplayMetrics().heightPixels;
@@ -88,7 +99,8 @@ public final class ReelWatcherService extends AccessibilityService {
         main.removeCallbacks(settledCapture);
         if (s != null) {
             // let the swipe animation finish, then slide the card in where the next reel would be
-            main.postDelayed(new Runnable() { @Override public void run() { present(s); } }, 250);
+            final String over = pkg;
+            main.postDelayed(new Runnable() { @Override public void run() { present(s, over); } }, 250);
         } else {
             // opt-in colour matching: note the colour of this reel once it has settled on screen,
             // so the next card can match the reel the student was actually watching
@@ -103,7 +115,7 @@ public final class ReelWatcherService extends AccessibilityService {
     private void showNow() {
         if (overlay != null) return;
         Show s = Store.engine(this).forceShow(System.currentTimeMillis(), ReelDetector.isReelApp(currentPkg) ? ReelDetector.hostKey(currentPkg) : "tiktok");
-        if (s != null) present(s);
+        if (s != null) present(s, getPackageName()); // asked for from Reelcards' own screens
     }
 
     private float feedHue = Float.NaN;
@@ -143,11 +155,15 @@ public final class ReelWatcherService extends AccessibilityService {
         static void coverSystemBars(WindowManager.LayoutParams lp) { lp.setFitInsetsTypes(0); }
     }
 
-    private void present(Show s) {
+    private void present(Show s, String overPkg) {
         if (overlay != null || wm == null) return;
         final CardView v = new CardView(this, s, new CardView.Listener() {
             @Override public void onFinished(CardView view, Outcome o) { done(view, o); }
-        }).withTint(feedHue).withCoach(Store.takeCoachMark(this));
+        }).withTint(feedHue).withCoach(Store.takeCoachMark(this)).withShareHandler(new Runnable() {
+            @Override public void run() { stepAside(); }
+        });
+        cardPkg = overPkg;
+        sharing = false;
         WindowManager.LayoutParams lp = new WindowManager.LayoutParams(
                 WindowManager.LayoutParams.MATCH_PARENT,
                 WindowManager.LayoutParams.MATCH_PARENT,
@@ -173,7 +189,37 @@ public final class ReelWatcherService extends AccessibilityService {
         main.postDelayed(timeout, 90_000);
     }
 
+    /**
+     * Share: the overlay is drawn above every app, so it would hide the share sheet. The card steps
+     * aside (invisible, touches pass through to the sheet) and comes back when the student returns.
+     * If they come back and scroll on instead, or don't come back before the timeout, it ends there.
+     */
+    private void stepAside() {
+        if (overlay == null || sharing) return;
+        sharing = true;
+        Speaker.stop();
+        overlay.setVisibility(View.INVISIBLE);
+        setTouchable(false);
+    }
+
+    private void comeBack() {
+        if (overlay == null || !sharing) return;
+        sharing = false;
+        overlay.setVisibility(View.VISIBLE);
+        setTouchable(true);
+    }
+
+    private void setTouchable(boolean on) {
+        try {
+            WindowManager.LayoutParams lp = (WindowManager.LayoutParams) overlay.getLayoutParams();
+            if (on) lp.flags &= ~WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE;
+            else lp.flags |= WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE;
+            wm.updateViewLayout(overlay, lp);
+        } catch (Exception ignored) { /* the window has gone */ }
+    }
+
     private void done(CardView v, Outcome o) {
+        sharing = false;
         if (timeout != null) main.removeCallbacks(timeout);
         try { wm.removeView(v); } catch (Exception ignored) { }
         if (overlay == v) overlay = null;

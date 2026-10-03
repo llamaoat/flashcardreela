@@ -172,7 +172,7 @@ test decks to identical cards.
 
 ## Evaluation
 
-[`EngineChecks`](../engine/src/test/java/EngineChecks.java) runs 80 checks:
+[`EngineChecks`](../engine/src/test/java/EngineChecks.java) runs 104 checks:
 [`results/checks.txt`](../engine/results/checks.txt).
 
 [`Simulate`](../engine/src/test/java/Simulate.java) runs simulated students on the real engine for 30

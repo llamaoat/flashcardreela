@@ -46,19 +46,20 @@ Reel-native copy
   PASS  reply-to-comment format: "Replying to @notes.pls" / "which organ actually makes bile help"
   PASS  themed hook for a football fan: "POV: last minute of the mock, extra time"
   PASS  voiceover reads the hook and question
-  PASS  hint gives the shape, not the answer: "Starts with ?A? ? 7 letters" / "Starts with ?The?? ? 2 words"
+  PASS  hint gives the shape, not the answer: "Starts with “A” · 7 letters" / "Starts with “The…” · 2 words"
 Rail buttons: hint, save, share
   PASS  used a hint, then knew it = Hard
   PASS  used a hint and still had to look = Again
   PASS  saving a card flags it and brings it back within a day (saved: back within a day)
   PASS  sharing counts as full engagement for the look, even with a quick exit
+  PASS  sharing without answering isn't a skip: not graded, not counted, not re-queued ("Shared (not graded)")
 Long answers and long questions
   PASS  semicolons -> 3 points: [The active site changes shape (the enzyme is denatured), The substrate no longer fits the active site, So the reaction stops]
   PASS  arrows -> 5 steps: [Receptor, Sensory neurone, Relay neurone, Motor neurone, Effector]
   PASS  sentences -> 3 points (prose)
   PASS  "A, B, C and D" -> 4 points: [Red blood cells, White blood cells, Platelets, Plasma]
   PASS  one long sentence splits at ", so": [No atoms are lost or made in a reaction, So the mass of the products equals the mass of the reactants]
-  PASS  inline "1. ? 2. ?" -> 4 steps
+  PASS  inline "1. … 2. …" -> 4 steps
   PASS  one point per line -> 3 points
   PASS  long question split into set-up and question: "Explain why its mass goes down."
   PASS  the question keeps every command sentence: "Name the gas, and describe a test for it."
@@ -77,7 +78,7 @@ The shape picks the layouts
 Words for long answers
   PASS  chat: one message per point, question kept for after the reveal
   PASS  numbered-list hook counts the points: "3 marks. Can you get all 3?"
-  PASS  hint for a long answer: "3 points: ?Active?? ?Substrate?? ?Reaction??"
+  PASS  hint for a long answer: "3 points: “Active…” “Substrate…” “Reaction…”"
   PASS  points that start alike get longer hints [Aerobic, Aerobic makes, Aerobic releases]
   PASS  a long explanation goes behind "more"
 Part marks for long answers
@@ -87,7 +88,7 @@ Part marks for long answers
   PASS  2 of 4 = Hard (half counts)
   PASS  all points but with a hint = Hard
   PASS  knowing 3 points takes longer: a like at reading time + 4.5 s is still Easy
-  PASS  the engine grades by points ticked: "Graded Again (1 of 3 points) ? next in 1 min"
+  PASS  the engine grades by points ticked: "Graded Again (1 of 3 points) → next in 1 min"
 Anki files (.apkg)
   PASS  reads all three Anki file formats (2.0, 2.1, and 2.1.50+ with zstd) to the same 18 cards
   PASS  leaves out suspended and audio-only cards: "8 image occlusion, 3 cloze, 7 more. 2 keep their Anki progress. Left out: 1 suspended, 1 audio-only."
@@ -96,7 +97,7 @@ Anki files (.apkg)
   PASS  reversed note: the second card asks the other way round
   PASS  type-in-the-answer note: the typed answer is the answer
   PASS  custom note type: answer field, then the rest as the explanation
-  PASS  cloze: the gap is [?], the deletion is the answer: "[?] are the site of aerobic respiration."
+  PASS  cloze: the gap is […], the deletion is the answer: "[…] are the site of aerobic respiration."
   PASS  cloze hint shows in the gap
   PASS  a gap is read aloud as "blank" (voiceover and screen readers)
   PASS  one cloze number used three times = one card with 3 points
@@ -105,9 +106,9 @@ Anki files (.apkg)
   PASS  image occlusion: 8 cards (Anki's built-in kind and the old add-on), each with its picture and masks in 0..1
   PASS  occlusion shapes: rectangles, polygons and ellipses
   PASS  old add-on: the mask to answer comes from the SVG's qshape
-  PASS  pictures come along, with their size (JPEG 420?240)
-  PASS  review cards keep their Anki progress: interval ? stability, due date kept
-  PASS  ?and Anki's FSRS memory state when the deck has it
+  PASS  pictures come along, with their size (JPEG 420×240)
+  PASS  review cards keep their Anki progress: interval → stability, due date kept
+  PASS  …and Anki's FSRS memory state when the deck has it
   PASS  new cards stay new
   PASS  pictures and occlusion only use big text; a cloze never becomes a comment [bigtext]
   PASS  imported cards play in the feed (occlusion in big text with its masks)
@@ -124,4 +125,4 @@ Forecast
         210 min/day -> 150 cards/day, 25 new/day, deck in 2 days
   PASS  3.5 h of reels ~ 150 cards a day at the default rhythm (the Normal cap)
 
-103 passed, 0 failed
+104 passed, 0 failed

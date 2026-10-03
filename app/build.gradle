@@ -40,6 +40,6 @@ android {
 
 dependencies {
     // The engine is plain Java in its own module. No other dependencies: the app only uses the
-    // Android framework, so it builds fast and the APK is ~100 KB.
+    // Android framework, so it builds fast and the APK is ~410 KB (most of that is the bundled fonts).
     implementation project(":engine")
 }

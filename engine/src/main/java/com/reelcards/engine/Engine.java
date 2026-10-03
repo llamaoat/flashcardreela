@@ -488,6 +488,10 @@ public final class Engine {
                 if (calibration.maybeRefit(fsrs)) res.summary += " · memory calibration updated (×" + calibration.scale + ")";
             }
             if (c.isLeech() && g == Grade.AGAIN) res.summary += " · flagged as a tricky card";
+        } else if (o.shared) {
+            // shared without answering: they engaged with it, so it isn't a skip and isn't re-queued,
+            // but there's no grade (no way to tell if they knew it); its schedule is left as it was
+            res.summary = "Shared (not graded)";
         } else {
             day.skips++;
             c.skips++;
@@ -509,7 +513,7 @@ public final class Engine {
             if (!c.isAnki() && c.state == Card.REVIEW && c.due > now + DAY) c.due = now + DAY;
             res.summary += " · saved: back within a day";
         }
-        if (o.shared) res.summary += " · shared";
+        if (o.shared && g != null) res.summary += " · shared";
 
         // reward the look they saw (0..1), per app
         res.reward = o.reward();

@@ -54,7 +54,9 @@ public class EngineChecks {
         {"D", "good", "due", "Review", "7.8155847569", "7.0034041274", "11520.0000"},
     };
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws java.io.UnsupportedEncodingException {
+        // UTF-8 whatever the console's encoding, so the saved results keep their quotes and arrows
+        System.setOut(new java.io.PrintStream(new java.io.FileOutputStream(java.io.FileDescriptor.out), true, "UTF-8"));
         fsrsMatchesReference();
         gradingFromGestures();
         rhythm();
@@ -385,6 +387,14 @@ public class EngineChecks {
                 saved.saved && se.savedCards().contains(saved) && saved.due <= t + 10_000 + Engine.DAY);
         Outcome shr = new Outcome(); shr.shared = true; shr.dwellMs = 900;
         check("sharing counts as full engagement for the look, even with a quick exit", shr.reward() == 1.0 && shr.engaged() && !shr.fastSkip());
+        Engine sk = fresh(13);
+        long ts = T0;
+        Show shown = null;
+        while (shown == null) { ts += 12_000; shown = sk.onReelSwipe(ts, "tiktok"); }
+        Outcome sharedOnly = new Outcome(); sharedOnly.shared = true; sharedOnly.dwellMs = 2500; sharedOnly.exit = "shared";
+        Engine.Result rsh = sk.onCardFinished(shown, sharedOnly, ts + 2500);
+        check("sharing without answering isn't a skip: not graded, not counted, not re-queued (\"" + rsh.summary.replaceAll(" · look.*", "") + "\")",
+                rsh.grade == null && shown.card.skips == 0 && sk.stats.total("skips") == 0 && sk.requeue.isEmpty() && shown.card.reps == 0);
     }
 
     // ------------------------------------------------------------------ long answers

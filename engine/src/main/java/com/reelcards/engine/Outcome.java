@@ -17,7 +17,7 @@ public final class Outcome {
     public int pointsGot;         // long answers: how many points the student ticked as "got it"
 
     public long dwellMs;          // total time the card was on screen
-    public String exit = "swipe"; // "swipe" | "left_app" | "timeout" | "closed"
+    public String exit = "swipe"; // "swipe" | "left_app" | "timeout" | "closed" | "shared"
 
     public boolean fastSkip() {
         return !revealed && !liked && !saved && !shared && hintAtMs == 0 && quizPick < 0 && pointsGot == 0 && dwellMs < 1200;

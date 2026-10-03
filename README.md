@@ -46,7 +46,7 @@
 | Reveal with no like, or the wrong quiz option | Didn't know it | Again (1) |
 | Swipe past without looking | Not now | not graded, comes back 3 reels later in a different look |
 | 🔖 **Save** | Bring this back soon | due within a day |
-| ➦ **Share** | Send the question to a friend | not graded |
+| ➦ **Share** | Send the question to a friend | not graded, not a skip; the card waits while you share |
 
 "Quickly" is measured against how long the question takes to read, following response-time-based scheduling research ([details](docs/ENGINE.md#grading)).
 
@@ -112,7 +112,7 @@ More, including screenshots for each app: **[docs/DESIGN.md](docs/DESIGN.md)**.
 
 ## Proof it works
 
-**Engine checks:** 103 plain-Java checks, including FSRS-6 against `py-fsrs`, gesture and response-time grading, rhythm learning, skipping, quiet mode, format learning, calibration, notes parsing, long answers and part marks, reading all three Anki file formats (cloze, image occlusion, pictures, kept progress), forecasting, and the hint, save and share buttons. Output: [`engine/results/checks.txt`](engine/results/checks.txt).
+**Engine checks:** 104 plain-Java checks, including FSRS-6 against `py-fsrs`, gesture and response-time grading, rhythm learning, skipping, quiet mode, format learning, calibration, notes parsing, long answers and part marks, reading all three Anki file formats (cloze, image occlusion, pictures, kept progress), forecasting, and the hint, save and share buttons. Output: [`engine/results/checks.txt`](engine/results/checks.txt).
 
 **30-day simulation:** 30 simulated students per row, a 600-card deck (70 real GCSE cards and 530 synthetic ones), with the exam on day 30. This is a *model*, not user data. Each simulated student has a hidden memory, a taste for some card looks, and a tolerance for how often cards appear. Output: [`engine/results/simulation.txt`](engine/results/simulation.txt).
 
@@ -127,7 +127,7 @@ These are averages over four student types at 1 hour and 3.5 hours of reels a da
 Run them yourself:
 
 ```
-./gradlew :engine:engineChecks          # 103 passed, 0 failed
+./gradlew :engine:engineChecks          # 104 passed, 0 failed
 ./gradlew :engine:simulate              # about 2 minutes
 ```
 
