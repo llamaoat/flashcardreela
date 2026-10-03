@@ -9,6 +9,7 @@ import android.content.ComponentName;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.provider.Settings;
 import android.text.InputType;
@@ -116,7 +117,47 @@ public final class MainActivity extends Activity {
         col.setPadding(dp(20), dp(28), dp(20), dp(36));
         sv.addView(col, new ScrollView.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
         setContentView(sv);
+        if (Build.VERSION.SDK_INT >= 35) Api35.fitSystemBars(sv);
+        if (Build.VERSION.SDK_INT >= 33) Api33.syncBack(this);
         return col;
+    }
+
+    /** Android 15+ draws every app edge to edge: keep each page clear of the system bars and the keyboard. */
+    private static final class Api35 {
+        static void fitSystemBars(View root) {
+            root.setOnApplyWindowInsetsListener(new View.OnApplyWindowInsetsListener() {
+                @Override public android.view.WindowInsets onApplyWindowInsets(View v, android.view.WindowInsets in) {
+                    android.graphics.Insets i = in.getInsets(android.view.WindowInsets.Type.systemBars()
+                            | android.view.WindowInsets.Type.displayCutout() | android.view.WindowInsets.Type.ime());
+                    v.setPadding(i.left, i.top, i.right, i.bottom);
+                    return in;
+                }
+            });
+            root.requestApplyInsets();
+        }
+    }
+
+    private Object backCallback; // Android 13+: registered while the page has somewhere to go back to
+
+    /**
+     * Android 13+ handles back (and its predictive animation) through callbacks; from Android 16,
+     * onBackPressed isn't called at all. While a page has a back step, a callback takes it; on the
+     * first page there's none, so back leaves the app as usual.
+     */
+    private static final class Api33 {
+        static void syncBack(final MainActivity a) {
+            boolean want = a.back != null;
+            if (want && a.backCallback == null) {
+                android.window.OnBackInvokedCallback cb = new android.window.OnBackInvokedCallback() {
+                    @Override public void onBackInvoked() { if (a.back != null) a.back.run(); }
+                };
+                a.getOnBackInvokedDispatcher().registerOnBackInvokedCallback(android.window.OnBackInvokedDispatcher.PRIORITY_DEFAULT, cb);
+                a.backCallback = cb;
+            } else if (!want && a.backCallback != null) {
+                a.getOnBackInvokedDispatcher().unregisterOnBackInvokedCallback((android.window.OnBackInvokedCallback) a.backCallback);
+                a.backCallback = null;
+            }
+        }
     }
 
     private void steps(LinearLayout col, int step) {
@@ -720,15 +761,25 @@ public final class MainActivity extends Activity {
         });
         if (!permissionFromDashboard) steps(col, 3);
         Ui.add(col, Ui.title(this, "Switch it on"), permissionFromDashboard ? 0 : 18);
-        Ui.add(col, Ui.body(this, "Reelcards needs to notice when you swipe to a new reel, and draw a card on top. Android calls this an accessibility permission. It's the only one we ask for."), 8);
+        Ui.add(col, Ui.body(this, "Reelcards needs to notice when you swipe to a new reel, and draw a card on top. Android calls this an accessibility service. It's the only permission we ask for."), 8);
 
+        // Google Play's prominent disclosure: what the accessibility service sees, and what's done with it,
+        // shown before Android's settings, with the student agreeing by tapping a button
         LinearLayout promise = Ui.panel(this);
-        promise.addView(Ui.text(this, "What it can and can't do", 15, Ui.TEXT, Ui.DISPLAY));
-        Ui.add(promise, Ui.text(this, "It only reacts to swipes in TikTok, Instagram, YouTube, Snapchat and Facebook. It never reads your messages, never saves what you watch, and nothing leaves your phone.", 14, Ui.MUTED, Ui.BODY), 6);
+        promise.addView(Ui.text(this, "What Reelcards sees, and what it does with it", 15, Ui.TEXT, Ui.DISPLAY));
+        for (String[] line : DISCLOSURE) {
+            LinearLayout r = Ui.column(this);
+            r.addView(Ui.text(this, line[0], 14, Ui.TEXT, Ui.MEDIUM));
+            r.addView(Ui.text(this, line[1], 14, Ui.MUTED, Ui.BODY));
+            Ui.add(promise, r, 10);
+        }
+        TextView policy = Ui.linkButton(this, "Read the privacy policy");
+        policy.setOnClickListener(go(new Runnable() { @Override public void run() { openPrivacyPolicy(); } }));
+        Ui.add(promise, policy, 6);
         Ui.add(col, promise, 16);
 
         Ui.add(col, Ui.label(this, "How"), 20);
-        String[] how = {"Tap “Open settings” below", "Find Reelcards (often under “Installed apps” or “Downloaded apps”)", "Turn it on, then tap Allow", "Come back here. We'll notice"};
+        String[] how = {"Read what it does above, then tap “Agree and open settings”", "Find Reelcards (often under “Installed apps” or “Downloaded apps”)", "Turn it on, then tap Allow", "Come back here. We'll notice"};
         for (int i = 0; i < how.length; i++) {
             LinearLayout r = Ui.row(this);
             TextView num = Ui.text(this, String.valueOf(i + 1), 14, Ui.ON_ACCENT, Ui.DISPLAY);
@@ -741,7 +792,16 @@ public final class MainActivity extends Activity {
             r.addView(t, tl);
             Ui.add(col, r, 10);
         }
-        primary(col, "Open settings", go(new Runnable() { @Override public void run() { openAccessibilitySettings(); } }), 18);
+        Ui.add(col, Ui.muted(this, "Tapping “Agree” means you're happy for Reelcards to use the accessibility service as described above. You can switch it off any time in Settings."), 18);
+        primary(col, "Agree and open settings", go(new Runnable() {
+            @Override public void run() {
+                Store.prefs(MainActivity.this).edit().putLong("disclosure_agreed", System.currentTimeMillis()).apply();
+                openAccessibilitySettings();
+            }
+        }), 10);
+        TextView no = Ui.linkButton(this, "No thanks");
+        no.setOnClickListener(go(new Runnable() { @Override public void run() { if (back != null) back.run(); } }));
+        Ui.add(col, no, 4);
 
         LinearLayout help = Ui.panel(this);
         help.addView(Ui.text(this, "Switch greyed out?", 15, Ui.TEXT, Ui.DISPLAY));
@@ -763,6 +823,23 @@ public final class MainActivity extends Activity {
             later.setOnClickListener(go(new Runnable() { @Override public void run() { finishSetup(); } }));
             Ui.add(col, later, 0);
         }
+    }
+
+    /** The prominent disclosure for Google Play: what the accessibility service sees, uses, keeps and never does. */
+    static final String[][] DISCLOSURE = {
+        {"What it sees", "Which app is open, and when a list scrolls in TikTok, Instagram, YouTube, Snapchat or Facebook: the scrolling view's size, position and internal name (like “reel_viewer”)."},
+        {"What it does with it", "Notices when you swipe to a new reel, shows one of your flashcards on top, and takes it down when you leave the app."},
+        {"What it keeps", "Counts on your phone, like how many reels you swipe and the seconds between swipes, so it learns when to show a card. Reelcards has no internet access, so nothing is sent anywhere or shared."},
+        {"What it never does", "Read your messages, comments, captions or anything else on screen, or record what you watch or who posted it."},
+        {"Only if you turn it on", "“Match my feed's colours” takes one screenshot per reel, shrinks it to a single colour in memory and deletes it straight away."},
+    };
+
+    static final String PRIVACY_URL = "https://llamaoat.github.io/flashcardreela/privacy.html";
+
+    /** The hosted privacy policy, in the browser (Reelcards itself has no internet access). */
+    private void openPrivacyPolicy() {
+        try { startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(PRIVACY_URL))); }
+        catch (Exception e) { /* no browser: the disclosure above says the same */ }
     }
 
     private void openAccessibilitySettings() {
@@ -1090,6 +1167,7 @@ public final class MainActivity extends Activity {
         }), 8);
         secondary(col, "Practice feed", go(new Runnable() { @Override public void run() { startActivity(new Intent(MainActivity.this, PracticeFeedActivity.class)); } }), 8);
         secondary(col, "Reel detection log", go(new Runnable() { @Override public void run() { showLog(); } }), 8);
+        secondary(col, "Privacy policy", go(new Runnable() { @Override public void run() { openPrivacyPolicy(); } }), 8);
         final Button reset = Ui.button(this, confirmReset ? "Tap again to erase everything" : "Reset everything", false);
         if (confirmReset) reset.setTextColor(Ui.BAD);
         reset.setOnClickListener(go(new Runnable() {

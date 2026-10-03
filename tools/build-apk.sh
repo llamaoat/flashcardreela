@@ -4,7 +4,7 @@
 #  APK in the release was made, in an environment where Google's Maven servers weren't reachable.)
 #
 # Needs: JDK 17+, and these from the Android SDK (or equivalents):
-#   ANDROID_JAR  platforms/android-34/android.jar
+#   ANDROID_JAR  platforms/android-36/android.jar
 #   AAPT2        build-tools/<ver>/aapt2
 #   DX_JAR       a dexer jar: d8 (build-tools/<ver>/lib/d8.jar, main class com.android.tools.r8.D8)
 #                or the old dx.jar (main class com.android.dx.command.Main)
@@ -26,7 +26,7 @@ echo "1/6 resources"
 sed 's|<manifest xmlns:android="http://schemas.android.com/apk/res/android">|<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.reelcards.app">|' \
   app/src/main/AndroidManifest.xml > "$OUT/AndroidManifest.xml"
 "$AAPT2" link -o "$OUT/base.apk" -I "$ANDROID_JAR" --manifest "$OUT/AndroidManifest.xml" \
-  --min-sdk-version 26 --target-sdk-version 34 --version-code "$VERSION_CODE" --version-name "$VERSION_NAME" \
+  --min-sdk-version 26 --target-sdk-version 36 --version-code "$VERSION_CODE" --version-name "$VERSION_NAME" \
   -A app/src/main/assets --java "$OUT/gen" "$OUT/res/compiled.zip"
 
 echo "2/6 compile Java"

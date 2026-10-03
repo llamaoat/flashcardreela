@@ -4,12 +4,12 @@ plugins {
 
 android {
     namespace "com.reelcards.app"
-    compileSdk 34
+    compileSdk 36
 
     defaultConfig {
         applicationId "com.reelcards.app"
         minSdk 26          // Android 8.0+
-        targetSdk 34
+        targetSdk 36       // Google Play: new apps and updates target API 36 from 31 August 2026
         versionCode 4
         versionName "1.2.0"
     }
@@ -22,13 +22,25 @@ android {
             keyAlias "reelcards"
             keyPassword "reelcards"
         }
+        // Your private upload key for Google Play (tools/make-upload-key.sh). Never commit it: point
+        // these environment variables (CI secrets) at it, or the same names in ~/.gradle/gradle.properties.
+        if (secret("REELCARDS_KEYSTORE")) {
+            upload {
+                storeFile file(secret("REELCARDS_KEYSTORE"))
+                storePassword secret("REELCARDS_KEYSTORE_PASSWORD")
+                keyAlias secret("REELCARDS_KEY_ALIAS") ?: "upload"
+                keyPassword secret("REELCARDS_KEY_PASSWORD") ?: secret("REELCARDS_KEYSTORE_PASSWORD")
+            }
+        }
     }
 
     buildTypes {
         debug { signingConfig signingConfigs.demo }
         release {
             minifyEnabled false
-            signingConfig signingConfigs.demo
+            // the upload key when it's set up; otherwise the demo key, for trying a release build
+            // locally (never upload one of those: tools/check-play-bundle.sh refuses it)
+            signingConfig secret("REELCARDS_KEYSTORE") ? signingConfigs.upload : signingConfigs.demo
         }
     }
 
@@ -36,6 +48,12 @@ android {
         sourceCompatibility JavaVersion.VERSION_1_8
         targetCompatibility JavaVersion.VERSION_1_8
     }
+}
+
+/** An environment variable, or a Gradle property of the same name, or null. */
+def secret(String name) {
+    def v = System.getenv(name) ?: (project.hasProperty(name) ? project.property(name) : null)
+    return v ? v.toString() : null
 }
 
 dependencies {

@@ -60,7 +60,9 @@ final class Ui {
         if (hit != null) { done.loaded(hit); return; }
         PICTURES.execute(new Runnable() {
             @Override public void run() {
-                final Bitmap b = picture(path, minW);
+                Bitmap got = null;
+                try { got = picture(path, minW); } catch (Throwable t) { /* still answer: the card shows without it */ }
+                final Bitmap b = got;
                 if (b != null) DECODED.put(key, b);
                 MAIN.post(new Runnable() { @Override public void run() { done.loaded(b); } });
             }

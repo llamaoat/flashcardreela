@@ -1,12 +1,13 @@
 name: Web demo
 
-# Publishes web-demo/ to GitHub Pages so anyone can try Reelcards in a browser.
+# Publishes web-demo/ to GitHub Pages so anyone can try Reelcards in a browser, and the privacy policy
+# (PRIVACY.md as privacy.html), which Google Play needs at a public address and the app links to.
 # One-time setup: Settings → Pages → Build and deployment → Source: "GitHub Actions".
 # Until then this workflow skips the deploy instead of failing.
 on:
   push:
     branches: [main, master]
-    paths: ["web-demo/**", "tools/build-web-demo.py", ".github/workflows/pages.yml"]
+    paths: ["web-demo/**", "tools/build-web-demo.py", "PRIVACY.md", "tools/build-privacy-page.py", ".github/workflows/pages.yml"]
   workflow_dispatch:
 
 permissions:
@@ -45,6 +46,7 @@ jobs:
           python3 tools/build-web-demo.py
           mkdir -p _site
           cp web-demo/index.html _site/index.html
+          python3 tools/build-privacy-page.py _site/privacy.html
 
       - if: steps.pages.outputs.on == 'true'
         uses: actions/configure-pages@v5
