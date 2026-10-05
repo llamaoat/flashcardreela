@@ -2,6 +2,27 @@
 
 ## Unreleased
 
+**Dense decks** (tried with a USMLE Step 1-style deck made by Anki itself: `tools/usmle-deck.py`)
+- Tables in Anki cards are read row by row, each value labelled with its column ("Ferritin: Iron
+  deficiency ↓, Chronic disease ↑"). They ran together before.
+- A long cloze note keeps its gap in the big question; the set-up box never takes the sentence with
+  the gap.
+- Clinical vignettes aren't drawn as one long comment, so the question stays big and the answer
+  readable.
+- Quiz buttons: the wrong option is never one the question already shows (another gap of the same
+  note), and is picked to look like the right answer (a species for a species).
+- Na+, Ca2+, pH, NaCl and mEq/L keep their capitals in the bold looks. Hints skip "0:", "1." numbering.
+  Extra fields no longer run together ("GOLDMARK; Glycols; Oxoproline…").
+- Long deck names no longer push the Instagram and YouTube deck chip into the buttons: it shows the
+  deck's last part ("Renal") and is cut short with "…" if needed.
+- Web: a folded set-up box no longer shows half of its next line.
+
+**Web demo**
+- Add to Home Screen: a full-screen app view that works offline (iPhone and Android).
+- Keeps progress in the browser once setup is done, Anki pictures included. *Reset everything* clears it.
+- The design lab opens any Anki file, 8 cards a page in layouts their shape allows
+  (`tools/lab-shots.py --deck`).
+
 **Anki**
 - AnkiDroid cards now follow the same rules as an Anki file: Reelcards reads each card's note and note
   type, so a cloze gap is a blank and the answer is just the deletion. Line breaks and lists in

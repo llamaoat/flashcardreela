@@ -33,15 +33,17 @@ looks*. Audience: UK GCSE students, 14–16. Android first, open source (GPLv3).
 ## Commands
 
 ```
-./gradlew :engine:engineChecks     # 116 checks, must all pass (no Gradle: see README "Run them yourself")
+./gradlew :engine:engineChecks     # 124 checks, must all pass (no Gradle: see README "Run them yourself")
 ./gradlew :engine:simulate         # 30-day simulated students, ~2 min → compare with engine/results/simulation.txt
 tools/crosscheck/run.sh            # Java engine vs JS port: answer splitting, notes, every card from the test decks
 python3 tools/build-web-demo.py    # rebuild web-demo/index.html after editing web-demo/src/
 python3 tools/lab-shots.py --cards long|short|anki --states q a hint   # PNGs of the design lab in build/shots/
+python3 tools/lab-shots.py --deck any.apkg --pages 5   # any Anki file in the lab, 8 cards a page (CHROMIUM=… if Playwright's own is missing)
 ./gradlew assembleDebug            # the APK (needs the Android SDK); CI builds it on every push
 python3 tools/store-assets.py      # Play listing graphics in docs/play-store/ (needs Playwright + Pillow)
 python3 tools/make-test-decks.py   # regenerate engine/src/test/resources/anki/*.apkg
 <venv with `pip install anki pillow`>/bin/python tools/real-anki-decks.py   # regenerate anki/real/ with Anki's own code
+<same venv>/bin/python tools/usmle-deck.py        # anki/real/usmle.apkg: a dense USMLE Step 1-style deck, the stress test
 ```
 
 `tools/build-apk.sh` builds the APK with no Gradle, from `aapt2`, `javac`, a dexer and `apksigner`
@@ -139,6 +141,14 @@ python3 tools/make-test-decks.py   # regenerate engine/src/test/resources/anki/*
   times of day (a test checks this). `docs/PILOT.md` and PRIVACY.md describe it.
 - "Make cards with AI" copies `NotesParser.AI_PROMPT` (mirrored in `web-demo/src/notes.js`); the
   reply is Q:/A: lines. Change the prompt and the parser together.
+- Dense cards (`usmle.apkg`, as medical students use) set several rules, all in both engines:
+  - A table becomes one point per row, labelled from its header (`tableLines`, also used by both importers).
+  - A cloze card's big question starts at or before the sentence with its gap (`splitQuestion(q, cloze)`).
+  - Questions over `COMMENT_MAX` (180) characters aren't drawn as a comment; a vignette uses the set-up box.
+  - A quiz's wrong answer is never text the question already shows, and looks like the right one (`likeness`).
+  - Text whose capitals carry meaning (Na+, pH, mEq/L) isn't upper-cased by the bold looks (`caseMatters`).
+  - Extras from separate fields are kept on separate lines; `inline()` joins them for one-line display.
+  The deck chip shows the deck's last part (`deckLabel`: "Renal", not "USMLE Step 1 · Renal").
 - `Store` keeps the previous save as `engine.json.bak`; a save that won't load is renamed
   `engine.json.damaged` (never overwritten) and the backup is used.
 - Paper look: the rules are drawn under each line of Caveat text (`CardView.drawRules`, and `lh`-based

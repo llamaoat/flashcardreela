@@ -66,6 +66,7 @@ public class EngineChecks {
         formats();
         copy();
         longAnswers();
+        denseCards();
         ankiFiles();
         realAnkiExports();
         ankiDroidNotes();
@@ -521,6 +522,60 @@ public class EngineChecks {
         return b.toString();
     }
 
+    /** A dense deck, as medical students use (USMLE Step 1 style, made by tools/usmle-deck.py with Anki's own code). */
+    static void denseCards() {
+        AnswerShape t = AnswerShape.splitPoints("<table><tr><th></th><th>Iron deficiency</th><th>Chronic disease</th></tr>"
+                + "<tr><td>Serum iron</td><td>↓</td><td>↓</td></tr><tr><td>Ferritin</td><td>↓</td><td>↑</td></tr></table>");
+        check("a table is one point per row, labelled by its header (\"" + (t.points.isEmpty() ? "" : t.points.get(0)) + "\")",
+                t.points.equals(Arrays.asList("Serum iron: Iron deficiency ↓, Chronic disease ↓", "Ferritin: Iron deficiency ↓, Chronic disease ↑")));
+
+        Card lesch = new Card("l", "Genetics", "Lesch–Nyhan syndrome: X-linked recessive deficiency of […] → defective purine salvage → excess uric acid → gout, "
+                + "self-mutilation, intellectual disability and dystonia. Treat hyperuricemia with allopurinol or febuxostat.", "HGPRT", "");
+        lesch.cloze = true;
+        AnswerShape l = AnswerShape.of(lesch);
+        check("a long cloze note keeps its gap in the big question, not in the small set-up", l.questionMain.contains("[…]") && !l.context.contains("[…]"));
+
+        Card vignette = new Card("v", "Vignettes", "A 58-year-old man with a 40-pack-year smoking history has had 3 weeks of confusion and fatigue. "
+                + "Serum Na+ 121 mEq/L, serum osmolality 255 mOsm/kg, urine osmolality 520 mOsm/kg. Chest x-ray shows a central hilar mass. "
+                + "What is the most likely cause of his hyponatremia?", "SIADH from ectopic ADH secretion by small cell lung cancer", "");
+        Card shortQ = new Card("s", "Pharmacology", "Antidote for heparin?", "Protamine sulfate", "");
+        AnswerShape va = AnswerShape.of(vignette);
+        check("a clinical vignette keeps its question big and isn't drawn as one long comment (a short question still can be)",
+                va.questionMain.startsWith("What is") && !AnswerShape.layoutsFor(va, vignette.back, true).contains("comment")
+                && AnswerShape.layoutsFor(AnswerShape.of(shortQ), shortQ.back, true).contains("comment"));
+
+        check("hints skip numbering (\"0: rapid depolarization\" starts \"Rapid\")",
+                AnswerShape.starts(Arrays.asList("0: rapid depolarization", "1. initial repolarization")).equals(Arrays.asList("Rapid", "Initial")));
+
+        Card cap = new Card("c", "Micro", "Most common cause of community-acquired pneumonia in adults?", "<i>Streptococcus pneumoniae</i>", "");
+        List<Card> pool = Arrays.asList(cap, new Card("d", "Micro", "q", "positive inotropy", ""), new Card("e", "Micro", "q", "Staphylococcus aureus", ""));
+        boolean alike = true;
+        for (int i = 0; i < 50; i++) if (!"Staphylococcus aureus".equals(CopyWriter.distractor(cap, pool, new Random(i)))) alike = false;
+        check("a quiz's wrong answer looks like the right one (a species for a species, not \"positive inotropy\")", alike);
+
+        AnswerShape g = AnswerShape.of("Causes of anion gap metabolic acidosis: […]", "GOLDMARK", "Causes of anion gap metabolic acidosis: GOLDMARK\nGlycols\nOxoproline\nL-lactate");
+        check("an extra's lines stay apart when shown on one line (\"GOLDMARK; Glycols; Oxoproline…\")", (g.inlineExplanation + g.more).contains("GOLDMARK; Glycols; Oxoproline; L-lactate"));
+
+        try {
+            com.reelcards.engine.anki.AnkiPackage.Result d = readDeck("real/usmle.apkg");
+            Card iron = null;
+            boolean gapsBig = true;
+            for (Card c : d.cards) {
+                if (c.front.startsWith("Iron studies")) iron = c;
+                if (c.cloze && c.occlusion == null && !AnswerShape.of(c).questionMain.matches("(?s).*\\[[^\\]]*\\].*")) gapsBig = false;
+            }
+            check("the USMLE deck: 39 cards, its table read row by row, and every cloze gap in the big question",
+                    d.cards.size() == 39 && iron != null && iron.back.startsWith("Serum iron: Iron deficiency ↓, Chronic disease ↓") && gapsBig);
+            boolean hidden = true;
+            for (Card c : d.cards) {
+                if (!c.cloze || c.occlusion != null) continue;
+                String q = AnswerShape.plainText(c.front).toLowerCase();
+                for (int i = 0; i < 20; i++) { String w = CopyWriter.distractor(c, d.cards, new Random(i)); if (w != null && q.contains(w.trim().toLowerCase())) hidden = false; }
+            }
+            check("a quiz never offers a wrong answer the question already shows (another gap's answer from the same note)", hidden);
+        } catch (Exception ex) { check("the USMLE deck reads: " + ex, false); }
+    }
+
     static void ankiFiles() {
         System.out.println("Anki files (.apkg)");
         try {
@@ -542,7 +597,7 @@ public class EngineChecks {
                     CardScript.spokenGaps(c1 == null ? "" : c1.front).equals("blank are the site of aerobic respiration.")
                     && CardScript.spokenGaps("Mitochondria are the site of [type of respiration].").equals("Mitochondria are the site of blank (type of respiration)."));
             check("one cloze number used three times = one card with 3 points", c3 != null && c3.back.equals("solid; liquid; gas") && AnswerShape.of(c3).points.size() == 3);
-            check("cloze extra: the full sentence and Back Extra", c1 != null && c1.extra.equals("Mitochondria are the site of aerobic respiration. They have a folded inner membrane."));
+            check("cloze extra: the full sentence and Back Extra, on separate lines", c1 != null && c1.extra.equals("Mitochondria are the site of aerobic respiration.\nThey have a folded inner membrane."));
             List<Object> nested = com.reelcards.engine.anki.AnkiPackage.clozeParse("A {{c1::folded {{c2::inner}} membrane}}");
             List<String> got = new java.util.ArrayList<>();
             String q2 = com.reelcards.engine.anki.AnkiPackage.clozeText(nested, 2, "q", got);
@@ -639,7 +694,7 @@ public class EngineChecks {
                     if (qSound != (c.audio != null) || aSound != (c.answerAudio != null)) ok = false;
                     if (!a.contains("[[type:")) { // a typed answer is filled in by Anki's reviewer, not the template
                         for (String part : c.back.split(c.cloze ? "; " : "\n")) if (!a.contains(part)) ok = false;
-                        if (!c.extra.isEmpty() && !a.replace(" ", "").contains(c.extra.replace(" ", ""))) ok = false;
+                        if (!c.extra.isEmpty() && !a.replace(" ", "").contains(c.extra.replace(" ", "").replace("\n", ""))) ok = false; // fields are on separate lines
                     }
                 }
                 if (r[6].equals("2")) {
@@ -683,7 +738,7 @@ public class EngineChecks {
                 "Stages of mitosis?\u001fProphase<br>Metaphase<br>Anaphase<br>Telophase", "", "Biology", "Biology", 0);
         check("cloze from AnkiDroid: the gap is a blank and the answer is just the deletion (\"" + (cz.card == null ? "" : cz.card.front) + "\")",
                 cz.card != null && cz.card.cloze && cz.card.front.equals("Mitochondria are the site of [type of respiration].") && cz.card.back.equals("aerobic respiration")
-                && cz.card.extra.equals("Mitochondria are the site of aerobic respiration. They have a folded inner membrane."));
+                && cz.card.extra.equals("Mitochondria are the site of aerobic respiration.\nThey have a folded inner membrane."));
         check("line breaks from AnkiDroid stay separate points (4 stages, not one run-on line)", br.card != null && AnswerShape.of(br.card).points.size() == 4);
         com.reelcards.engine.anki.AnkiPackage.NoteCard pic = com.reelcards.engine.anki.AnkiPackage.noteCard("Basic", false, list("Front", "Back"), basicT,
                 "Which organelle is this?<br><img src=\"organelle.png\">\u001fA mitochondrion", "", "Biology", "Biology", 0);

@@ -65,7 +65,7 @@ function marksHTML(it){ return it.s.marks && !compact(it) ? '<div class="marks">
 /* a cloze gap ("[…]" or "[hint]") drawn as a blank to fill; no key-word highlight competes with it */
 function gapify(html){ return html.replace(/\[([^\]]{0,40})\]/g, '<span class="gap">$1</span>'); }
 function questionText(it, q){
-  const look = it.f.look, up = look==="caption"||look==="neon";
+  const look = it.f.look, up = (look==="caption"||look==="neon") && !RC.caseMatters(it.s.q);
   if (it.s.cloze) { const t = esc(up ? q.toUpperCase() : q); return gapify(t); }
   return withEm(q, up);
 }
@@ -96,7 +96,7 @@ function questionHTML(it, scale){
   const inner = look === "subtitle" ? '<span>'+questionText(it, q)+'</span>' : questionText(it, q);
   // a long question's set-up sits in a small quoted box; the actual question stays big
   return (s.ctx ? '<div class="ctx">'+esc(s.ctx)+'</div>' : '') +
-    '<h2 class="q" style="font-size:calc('+px+'px * var(--fit,1))">'+inner+'</h2>' + (it.f.layout==="list" ? '' : marksHTML(it));
+    '<h2 class="q'+(RC.caseMatters(s.q)?' keepcase':'')+'" style="font-size:calc('+px+'px * var(--fit,1))">'+inner+'</h2>' + (it.f.layout==="list" ? '' : marksHTML(it));
 }
 
 /* the answer as points, dropping in one after another; tap the ones you got */
@@ -169,10 +169,10 @@ function bodyHTML(it){
     const n = it.beat == null ? 0 : it.beat;
     if (n < s.beats.length && !it.revealed) {
       const words = s.beats[n].split(" "), hi = s.hl[n];
-      const upper = it.f.look !== "paper" && it.f.look !== "clean";
+      const upper = it.f.look !== "paper" && it.f.look !== "clean" && !RC.caseMatters(s.q);
       const inner = s.cloze ? gapify(esc(upper?s.beats[n].toUpperCase():s.beats[n])) : words.map((w,k)=> k===hi ? "<em>"+esc(upper?w.toUpperCase():w)+"</em>" : esc(upper?w.toUpperCase():w)).join(" ");
       const bl = Math.max(...words.map(w=>w.length)), bpx = Math.round(Math.min(40, 250 / (bl * (upper ? .66 : .5))));
-      return '<div class="hook">'+esc(s.hook)+'</div><div class="beat" style="font-size:calc('+bpx+'px * var(--fit,1))">'+(it.f.look==="subtitle"?'<span>'+inner+'</span>':inner)+'</div>'+
+      return '<div class="hook">'+esc(s.hook)+'</div><div class="beat'+(upper?'':' keepcase')+'" style="font-size:calc('+bpx+'px * var(--fit,1))">'+(it.f.look==="subtitle"?'<span>'+inner+'</span>':inner)+'</div>'+
         '<div class="beatcount">'+s.beats.map((_,k)=>'<i class="'+(k<=n?"on":"")+'"></i>').join("")+'</div>';
     }
     return '<div class="hook">'+esc(s.hook)+'</div>'+questionHTML(it,.8)+revealOrAnswer(it);
@@ -222,8 +222,8 @@ function bandHTML(it, host){
   const s = it.s, deck = it.card.deck || "Study";
   const tags = "#" + deck.toLowerCase().replace(/[^a-z0-9 ]/g,"").trim().split(/\s+/).slice(0,2).join(" #");
   const ini = esc(deck.replace(/^(GCSE|A-level)\s+/i,"")[0]||"R");
-  if (host === "youtube") return '<div class="band"><div class="title">'+capLine(it, tags)+'</div><div class="who"><span class="dot">'+ini+'</span>'+esc(s.account)+' <span class="pill">'+esc(deck.replace(/^GCSE\s+/,"").split(":")[0])+'</span></div><div class="sound">'+I.note+'<span>'+esc(s.sound)+'</span></div></div>';
-  if (host === "instagram") return '<div class="band"><div class="who"><span class="dot">'+ini+'</span>'+esc(s.account.slice(1))+' <span class="pill">'+esc(deck.replace(/^GCSE\s+/,"").split(":")[0])+'</span></div><div class="capline">'+capLine(it, tags)+'</div><div class="sound">'+I.note+'<span>'+esc(s.sound.replace("original sound","Original audio"))+'</span></div></div>';
+  if (host === "youtube") return '<div class="band"><div class="title">'+capLine(it, tags)+'</div><div class="who"><span class="dot">'+ini+'</span>'+esc(s.account)+' <span class="pill">'+esc(RC.deckLabel(deck))+'</span></div><div class="sound">'+I.note+'<span>'+esc(s.sound)+'</span></div></div>';
+  if (host === "instagram") return '<div class="band"><div class="who"><span class="dot">'+ini+'</span>'+esc(s.account.slice(1))+' <span class="pill">'+esc(RC.deckLabel(deck))+'</span></div><div class="capline">'+capLine(it, tags)+'</div><div class="sound">'+I.note+'<span>'+esc(s.sound.replace("original sound","Original audio"))+'</span></div></div>';
   return '<div class="band"><div class="who">'+esc(s.account)+'</div><div class="capline">'+capLine(it, tags)+'</div><div class="sound">'+I.note+'<span>'+esc(s.sound)+'</span></div></div>';
 }
 

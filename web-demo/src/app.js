@@ -541,7 +541,7 @@ $("auto").onclick = () => runAuto(80, 0);
 $("autoWeek").onclick = () => runAuto(7, 60);
 
 /* ---------------- design lab ---------------- */
-let labSeed = 1, labAnki = null;
+let labSeed = 1, labAnki = null, labFile = null, labPage = 0;
 function renderLab(){
   const host = $("labHost").value, vibe = $("labVibe").value, state = $("labState").value, night = $("labNight").checked, long = $("labCards").value==="long";
   const sci = deckCards("GCSE Science: longer answers"), pool = deckCards("GCSE Biology").concat(deckCards("GCSE Chemistry"), sci);
@@ -552,21 +552,26 @@ function renderLab(){
   const anki = $("labCards").value === "anki";
   if (anki && !labAnki) { $("lab").innerHTML = '<p class="muted">Reading the sample Anki deck…</p>'; sampleDeck().then(r => { labAnki = r.cards; renderLab(); }); return; }
   const byId = id => (labAnki || []).find(c => c.id === "apkg:" + id);
-  const cards = anki ? [3010, 3012, 3101, 3006, 3008, 3007, 3003, 3002].map(byId) : long ? [5,3,4,0,12,2,8,11].map(i=>sci[i]) : [3,14,0,9,20,1,5,16].map(i=>pool[i%pool.length]);
-  const layouts = anki ? ["bigtext","bigtext","bigtext","bigtext","list","quiz","bigtext","chat"] : long ? ["list","bigtext","chat","captions","comment","list","bigtext","chat"] : ["bigtext","captions","chat","comment","split","quiz","bigtext","captions"];
+  // your own file: 8 cards at a time, each in a layout its shape allows (Shuffle looks cycles them)
+  const file = $("labCards").value === "file" && labFile, from = file ? labPage*8 % labFile.cards.length : 0;
+  $("labMore").hidden = !file || labFile.cards.length <= 8;
+  const cards = file ? labFile.cards.slice(from, from+8) : anki ? [3010, 3012, 3101, 3006, 3008, 3007, 3003, 3002].map(byId) : long ? [5,3,4,0,12,2,8,11].map(i=>sci[i]) : [3,14,0,9,20,1,5,16].map(i=>pool[i%pool.length]);
+  const layouts = file ? cards.map((c,i) => { const ok = RC.layoutsFor(RC.analyse(c), true); return ok[(i+labSeed) % ok.length]; })
+    : anki ? ["bigtext","bigtext","bigtext","bigtext","list","quiz","bigtext","chat"] : long ? ["list","bigtext","chat","captions","comment","list","bigtext","chat"] : ["bigtext","captions","chat","comment","split","quiz","bigtext","captions"];
   if (anki) pool.push(...labAnki);
+  if (file) pool.push(...labFile.cards);
   let html = "";
   layouts.forEach((lay,i)=>{
     const f = {hook:hooks[(i+labSeed)%hooks.length], layout:lay, look:looks[(i+labSeed)%looks.length], bg:vibeBg||PIECES.bg[(i*3+labSeed)%PIECES.bg.length]};
     const c = cards[i];
-    const sc = RC.write(c, f, pool, rnd, "due today", vibe?[vibe]:[]);
+    let sc = RC.write(c, f, pool, rnd, "due today", vibe?[vibe]:[]);
+    if (lay==="quiz" && sc.correct<0) { if (!file) return; f.layout = lay = "bigtext"; sc = RC.write(c, f, pool, rnd, "due today", vibe?[vibe]:[]); } // no wrong answer to offer
     if (vibe && !sc.vibe) sc.vibe = vibe;
-    if (lay==="quiz" && sc.correct<0) return;
     const shown = state!=="q" && state!=="hint", n = sc.points.length;
     const got = state==="part" && n>=2 ? sc.points.map((_,k)=>k<n-1) : [];
     const it = {kind:"card", card:c, f, s:sc, host, revealed:shown, liked:state==="liked", likedBefore:false, pick:(lay==="quiz"&&shown)?(state==="part"?1-sc.correct:sc.correct):-1, saved:false,
       hinted:state==="hint", hintAt:state==="hint"?1:0, beat:lay==="captions"&&!shown?(state==="hint"?sc.beats.length:1):sc.beats.length, count:2, got, moreOpen:state==="more", settled:true};
-    html += '<figure><div class="mini"><div class="scaler">'+Render.card(it,{night})+'</div></div><figcaption><b>'+esc(LABEL[lay])+'</b> · '+esc(LABEL[f.look])+(sc.io?' · image occlusion':sc.cloze?' · cloze':sc.img?' · picture':'')+(n>=2?' · '+n+' points ('+esc(sc.shape)+')':'')+(sc.ctx?' · long question':'')+'<br>'+esc(LABEL[f.bg])+' · hook “'+esc(LABEL[f.hook])+'”</figcaption></figure>';
+    html += '<figure><div class="mini"><div class="scaler">'+Render.card(it,{night})+'</div></div><figcaption><b>'+esc(LABEL[lay])+'</b> · '+esc(LABEL[f.look])+(sc.io?' · image occlusion':sc.cloze?' · cloze':sc.img?' · picture':'')+(n>=2?' · '+n+' points ('+esc(sc.shape)+')':'')+(sc.ctx?' · long question':'')+'<br>'+esc(LABEL[f.bg])+' · hook “'+esc(LABEL[f.hook])+'”'+(file?'<br>Card '+(from+i+1)+' of '+labFile.cards.length:'')+'</figcaption></figure>';
   });
   $("lab").innerHTML = html;
   fitLab(); fitCards($("lab"));
@@ -575,6 +580,16 @@ function fitLab(){ document.querySelectorAll(".lab .mini").forEach(m => { const 
 VIBES.forEach(v => { const o = document.createElement("option"); o.value = v; o.textContent = LABEL[v]; $("labVibe").appendChild(o); });
 ["labCards","labHost","labVibe","labState","labNight"].forEach(id => $(id).addEventListener("change", renderLab));
 $("labShuffle").onclick = () => { labSeed = labSeed % 30 + 1; renderLab(); };
+$("labOpen").onclick = () => { $("labFile").value = ""; $("labFile").click(); };
+$("labMore").onclick = () => { labPage++; renderLab(); };
+$("labFile").addEventListener("change", e => {
+  const f = e.target.files && e.target.files[0]; if (!f) return;
+  $("lab").innerHTML = '<p class="muted">Reading '+esc(f.name)+'…</p>';
+  f.arrayBuffer().then(b => importApkg(new Uint8Array(b), f.name)).then(r => {
+    if (!r.cards.length) throw new Error("no cards Reelcards can show");
+    labFile = r; labPage = 0; $("labFileOpt").disabled = false; $("labFileOpt").textContent = f.name; $("labCards").value = "file"; renderLab();
+  }).catch(err => { $("lab").innerHTML = '<p class="err">Couldn\'t read '+esc(f.name)+': '+esc(err.message)+'</p>'; });
+});
 window.addEventListener("resize", fitLab);
 
 if (!restore()) fresh(); render(true); if (!APP) renderLab(); installOffer();

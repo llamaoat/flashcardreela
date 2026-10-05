@@ -30,5 +30,21 @@
 ["Q", "1. Heat it to 10. Then wait 2. Filter the mixture", ""],
 ["Q", "Sodium chloride is formed; it is an ionic compound", ""],
 ["Q", "+1; −1", ""],
-["Q", "The pH is about 7, i.e. Neutral. The solution is safe to drink after that", ""]
+["Q", "The pH is about 7, i.e. Neutral. The solution is safe to drink after that", ""],
+["Iron studies: iron deficiency vs anemia of chronic disease?", "<table><tr><th></th><th>Iron deficiency</th><th>Chronic disease</th></tr><tr><td>Serum iron</td><td>↓</td><td>↓</td></tr><tr><td>TIBC (transferrin)</td><td>↑</td><td>↓</td></tr><tr><td>Ferritin</td><td>↓</td><td>↑</td></tr><tr><td>% saturation</td><td>↓↓</td><td>↓ or normal</td></tr></table>", ""],
+["Q", "<table><thead><tr><th>Drug</th><th>Target</th></tr></thead><tbody><tr><td>Warfarin</td><td>VKOR&nbsp;</td></tr><tr><td><b>Heparin</b></td><td>antithrombin <i>III</i></td></tr><tr><td></td><td></td></tr></tbody></table>", ""],
+["Q", "Before<table><tr><td>Na<sup>+</sup></td><td>135–145</td></tr><tr><td>K<sup>+</sup></td><td>3.5–5.0</td></tr></table>after", "<table><tr><td>only one cell</td></tr></table>"],
+["Causes of anion gap metabolic acidosis: […]", "GOLDMARK", "<b>G</b>lycols (ethylene, propylene)<br><b>O</b>xoproline (chronic acetaminophen)<br>L-lactate<br>D-lactate<br>Methanol<br>Aspirin<br>Renal failure<br>Ketoacidosis. More text follows here, as a sentence."],
+["Lesch–Nyhan syndrome: X-linked recessive deficiency of […] → defective purine salvage → excess uric acid → gout, self-mutilation, intellectual disability and dystonia. Treat hyperuricemia with allopurinol or febuxostat.", "HGPRT", "", "cloze"],
+["Lesch–Nyhan syndrome: X-linked recessive deficiency of HGPRT → defective purine salvage → excess uric acid → gout, self-mutilation, intellectual disability and dystonia. Treat hyperuricemia with […].", "allopurinol or febuxostat", "", "cloze"],
+["Background sentence about the topic goes here first. The enzyme [cause] is missing in this disease, as everyone knows. It is X-linked.", "HGPRT", "", "cloze"],
+["A 58-year-old man with a 40-pack-year smoking history has had 3 weeks of confusion and fatigue. Serum Na<sup>+</sup> 121 mEq/L, serum osmolality 255 mOsm/kg, urine osmolality 520 mOsm/kg. Chest x-ray shows a central hilar mass. What is the most likely cause of his hyponatremia?", "SIADH from ectopic ADH secretion by small cell lung cancer", ""],
+["Phases of the ventricular myocyte action potential?", "0: rapid depolarization<br>1: initial repolarization<br>2: plateau<br>(3) rapid repolarization<br>4. resting potential", ""],
+["Streptococcus pneumoniae", "<i>Staphylococcus aureus</i>", ""],
+["Protamine sulfate 2", "N-acetylcysteine", ""],
+["Anion gap = Na<sup>+</sup> − (Cl<sup>−</sup> + HCO<sub>3</sub><sup>−</sup>)?", "8–12 mEq/L", "USMLE Step 1 · Renal"],
+["What is the pH of arterial blood?", "7.35–7.45", "GCSE Biology::Cells"],
+["What is the formula of sodium chloride?", "NaCl", "GCSE Chemistry"],
+["Is it up-to-date? X-linked? Cl- ions and K+ ions", "Yes", "A-level Physics · Waves · Part 2"],
+["Why Up-to-date matters", "Because", ""]
 ]

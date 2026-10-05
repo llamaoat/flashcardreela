@@ -207,29 +207,85 @@ public class CopyWriter {
         return t;
     }
 
-    /** A believable wrong answer: another card's answer from the same deck, similar length. */
+    /** A believable wrong answer: another card's answer from the same deck, similar length, and as alike in look as any (likeness). */
     public static String distractor(Card c, List<Card> pool, Random rnd) {
         List<String> same = new ArrayList<>(), any = new ArrayList<>();
-        String mine = norm(c.back);
+        String mine = norm(c.back), q = AnswerShape.plainText(c.front).toLowerCase(Locale.UK);
         for (Card o : pool) {
             if (o == c || o.back == null || o.back.isEmpty()) continue;
             String ob = norm(o.back);
-            if (ob.equals(mine) || !AnswerShape.isShort(o.back)) continue;
+            if (ob.equals(mine) || q.contains(ob) || !AnswerShape.isShort(o.back)) continue; // not one the question already shows (a sibling cloze's answer)
             double ratio = (o.back.length() + 4.0) / (c.back.length() + 4.0);
             if (ratio < 0.4 || ratio > 2.5) continue;
             if (c.deck != null && c.deck.equals(o.deck)) same.add(o.back); else any.add(o.back);
         }
         List<String> src = same.isEmpty() ? any : same;
         if (src.isEmpty()) return null;
-        return src.get(rnd.nextInt(src.size()));
+        String me = AnswerShape.plainText(c.back);
+        int[] sc = new int[src.size()];
+        int top = Integer.MIN_VALUE;
+        for (int i = 0; i < sc.length; i++) {
+            String b = src.get(i);
+            sc[i] = likeness(me, b.indexOf('<') >= 0 || b.indexOf('&') >= 0 ? AnswerShape.plainText(b) : b);
+            top = Math.max(top, sc[i]);
+        }
+        List<String> best = new ArrayList<>();
+        for (int i = 0; i < sc.length; i++) if (sc[i] == top) best.add(src.get(i));
+        return best.get(rnd.nextInt(best.size()));
+    }
+
+    /**
+     * How alike two answers look, 0-5: the same pattern of capitals ("Streptococcus pneumoniae" and
+     * "Staphylococcus aureus" are both Aa), word count, digits or none, and ending ("-ase", "-ine").
+     */
+    public static int likeness(String a, String b) {
+        String wa = wordShape(a), wb = wordShape(b), ea = ending(a);
+        return (wa.equals(wb) ? 2 : 0) + (wa.length() == wb.length() ? 1 : 0) + (hasDigit(a) == hasDigit(b) ? 1 : 0)
+                + (!ea.isEmpty() && ea.equals(ending(b)) ? 1 : 0);
+    }
+
+    /** Each word's first letter or digit: A (capital), a, or 9. */
+    static String wordShape(String t) {
+        StringBuilder b = new StringBuilder();
+        for (String w : t.trim().split("\\s+")) {
+            for (int i = 0; i < w.length(); ) {
+                int cp = w.codePointAt(i);
+                int type = Character.getType(cp);
+                if (Character.isLetter(cp) || type == Character.DECIMAL_DIGIT_NUMBER) {
+                    b.append(type == Character.UPPERCASE_LETTER ? 'A' : type == Character.DECIMAL_DIGIT_NUMBER ? '9' : 'a');
+                    break;
+                }
+                i += Character.charCount(cp);
+            }
+        }
+        return b.toString();
+    }
+
+    static boolean hasDigit(String t) {
+        for (int i = 0; i < t.length(); ) {
+            int cp = t.codePointAt(i);
+            if (Character.getType(cp) == Character.DECIMAL_DIGIT_NUMBER) return true;
+            i += Character.charCount(cp);
+        }
+        return false;
+    }
+
+    /** The last three letters of the last word ("" if it's shorter). */
+    static String ending(String t) {
+        String last = "";
+        for (String w : t.toLowerCase(Locale.UK).trim().split("\\s+")) {
+            String l = w.replaceAll("[^\\p{L}]", "");
+            if (!l.isEmpty()) last = l;
+        }
+        return last.length() >= 3 ? last.substring(last.length() - 3) : "";
     }
 
     public static boolean hasDistractor(Card c, List<Card> pool) {
-        String mine = norm(c.back);
+        String mine = norm(c.back), q = AnswerShape.plainText(c.front).toLowerCase(Locale.UK);
         for (Card o : pool) {
             if (o == c || o.back == null) continue;
             String ob = norm(o.back);
-            if (ob.isEmpty() || ob.equals(mine) || !AnswerShape.isShort(o.back)) continue;
+            if (ob.isEmpty() || ob.equals(mine) || q.contains(ob) || !AnswerShape.isShort(o.back)) continue;
             double ratio = (o.back.length() + 4.0) / (c.back.length() + 4.0);
             if (ratio >= 0.4 && ratio <= 2.5) return true;
         }
@@ -238,9 +294,20 @@ public class CopyWriter {
 
     static String norm(String s) { return s == null ? "" : s.trim().toLowerCase(Locale.UK); }
 
+    /** A deck path's parts: "USMLE Step 1::Renal", or "USMLE Step 1 · Renal" as imported. */
+    static final String DECKSEP = "::| · |:";
+
+    /** The deck chip: its most specific part ("Renal"), without "GCSE". */
+    public static String deckLabel(String deck) {
+        if (deck == null || deck.isEmpty()) return "Study";
+        String[] p = deck.split(DECKSEP, -1);
+        String l = p[p.length - 1].trim().replaceFirst("(?i)^(gcse|a-level|a level|ks3)\\s+", "");
+        return l.isEmpty() ? "Study" : l;
+    }
+
     static String slug(String deck) {
         if (deck == null || deck.isEmpty()) return "study";
-        String s = deck.split(":")[0].toLowerCase(Locale.UK).replaceAll("^(gcse|a-level|a level|ks3)\\s+", "");
+        String s = deck.split(DECKSEP)[0].toLowerCase(Locale.UK).replaceAll("^(gcse|a-level|a level|ks3)\\s+", "");
         s = s.replaceAll("[^a-z0-9]+", "");
         return s.isEmpty() ? "study" : (s.length() > 14 ? s.substring(0, 14) : s);
     }

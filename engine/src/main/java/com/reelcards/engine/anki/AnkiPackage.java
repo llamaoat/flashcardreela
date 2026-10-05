@@ -1,5 +1,6 @@
 package com.reelcards.engine.anki;
 
+import com.reelcards.engine.AnswerShape;
 import com.reelcards.engine.Card;
 import com.reelcards.engine.Occlusion;
 
@@ -385,7 +386,7 @@ public final class AnkiPackage {
                     List<String> extra = new ArrayList<>();
                     for (String k : new String[]{"Footer", "Remarks", "Extra 1", "Extra 2"}) { String x = clean(orEmpty(F.get(k))); if (!x.isEmpty()) extra.add(x); }
                     String header = clean(orEmpty(F.get("Header")));
-                    card = new Card(null, deck, header.isEmpty() ? "Name the highlighted part" : header, "", join(extra, " "));
+                    card = new Card(null, deck, header.isEmpty() ? "Name the highlighted part" : header, "", join(extra, "\n"));
                     setPic(card, pic);
                     card.occlusion = Occlusion.format(shapes);
                     card.occlusionTarget = 1;
@@ -422,7 +423,7 @@ public final class AnkiPackage {
                     List<String> xs = new ArrayList<>();
                     if (!full.isEmpty()) xs.add(full);
                     xs.addAll(extra);
-                    card = new Card(null, deck, clean(qHtml), join(answers, "; "), join(xs, " "));
+                    card = new Card(null, deck, clean(qHtml), join(answers, "; "), join(xs, "\n"));
                     if (pic != null) setPic(card, pic);
                     List<String> qs = sounds(qHtml);
                     card.audio = sound(qs.isEmpty() ? null : qs.get(0));
@@ -446,7 +447,7 @@ public final class AnkiPackage {
                     bHtml = F.get(aFields.get(0));
                     List<String> xs = new ArrayList<>();
                     for (int i = 1; i < aFields.size(); i++) { String x = clean(F.get(aFields.get(i))); if (!x.isEmpty()) xs.add(x); }
-                    xText = join(xs, " ");
+                    xText = join(xs, "\n");
                 } else {
                     Ctx ac = ctx.copy(); ac.side = "a"; ac.front = "";
                     String a = renderTpl(t[2], F, ac);
@@ -532,7 +533,7 @@ public final class AnkiPackage {
 
     /** Card text: HTML to plain lines, without images, sounds or scripts. */
     public static String clean(String html) {
-        String t = (html == null ? "" : html).replaceAll("(?is)<(script|style)[\\s\\S]*?</\\1>", " ").replaceAll("\\[sound:[^\\]]*\\]", " ").replaceAll("(?i)<img[^>]*>", " ")
+        String t = AnswerShape.tableLines((html == null ? "" : html).replaceAll("(?is)<(script|style)[\\s\\S]*?</\\1>", " ").replaceAll("\\[sound:[^\\]]*\\]", " ").replaceAll("(?i)<img[^>]*>", " "))
                 .replaceAll("(?i)<\\s*br\\s*/?>", "\n").replaceAll("(?i)<hr[^>]*>", "\n").replaceAll("(?i)</(?:li|p|div|h\\d|tr)>", "\n").replaceAll("(?i)<li[^>]*>", "\n").replaceAll("<[^>]+>", "");
         t = entities(t).replaceAll("[\\u00a0\\u2000-\\u200a\\u202f\\u205f\\u3000]", " ").replaceAll("[ \\t]+", " ");
         StringBuilder b = new StringBuilder();
