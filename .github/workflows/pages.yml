@@ -45,7 +45,7 @@ jobs:
         run: |
           python3 tools/build-web-demo.py
           mkdir -p _site
-          cp web-demo/index.html _site/index.html
+          cp -r web-demo/index.html web-demo/manifest.webmanifest web-demo/sw.js web-demo/icons _site/
           python3 tools/build-privacy-page.py _site/privacy.html
 
       - if: steps.pages.outputs.on == 'true'

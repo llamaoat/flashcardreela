@@ -52,7 +52,9 @@ hasn't run on a real phone yet.
 7. **iPhone.** iOS doesn't let apps detect individual reels.
    - **Options:** cards timed with Screen Time (every few minutes of TikTok), home-screen and
      lock-screen widgets, and a Shortcuts automation that opens a card when TikTok opens.
-   - **Today:** the web demo's feed works on iPhone.
+   - **Today:** the web demo can be added to an iPhone's home screen, where it opens full screen and
+     works offline (`manifest.webmanifest`, `sw.js`, the `appmode` view). It doesn't keep progress
+     after it's closed yet: saving the engine's state in the browser would be the next step.
    - **Needs:** a Mac with Xcode (none in this project's cloud sessions), and Apple's Family Controls
      entitlement for the Screen Time APIs, which Apple has to approve.
 8. **Audio, the rest.** Anki's sound files now come across from `.apkg` files and play (a question

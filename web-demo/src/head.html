@@ -4,6 +4,14 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Reelcards Engine</title>
+<meta name="theme-color" content="#0f1014">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Reelcards">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Bricolage+Grotesque:wght@400;600;800&family=Caveat:wght@600;700&family=Fraunces:opsz,wght@9..144,500;9..144,700&family=JetBrains+Mono:wght@400;600&family=Roboto:wght@400;500;700;900&family=TikTok+Sans:wght@400;600;800;900&display=swap">
 <style>
@@ -441,6 +449,19 @@ input[type=text]{width:100%;min-height:42px;border-radius:12px;border:1px solid 
 @keyframes drift{to{background-position:0 90px,0 -70px,0 0}}
 @keyframes pan{to{background-position:80px 0}}
 @media (prefers-reduced-motion:reduce){.screen.enter,.card *,.card .bgl,.card .bgl::after{animation:none!important;transition:none!important}}
+/* Add to Home Screen: the offer on the page, and the app itself (opened from the home screen, or ?app=1):
+   just the phone, filling the screen, with nothing of the demo around it */
+.install{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;margin-top:10px;padding:10px 12px;background:var(--panel);border:1px solid var(--line);border-radius:12px;max-width:68ch}
+.install p{margin:0;flex:1 1 220px;font-size:13px}
+.install b{color:var(--accent)}
+.install .btn{min-height:40px;padding:8px 14px}
+html.appmode,html.appmode body{height:100%;overflow:hidden;overscroll-behavior:none}
+html.appmode body{margin:0;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
+html.appmode .wrap{max-width:none;height:100%;gap:0}
+html.appmode header,html.appmode .panels,html.appmode #h-lab,html.appmode .wrap>section,html.appmode .phonecol>:not(.phone):not(input){display:none}
+html.appmode .main{display:block;height:100%}
+html.appmode .phonecol{position:static;height:100%;gap:0}
+html.appmode .phone{width:100%;max-width:none;height:100%;aspect-ratio:auto;border:0;border-radius:0;box-shadow:none}
 </style>
 </head>
 <body>

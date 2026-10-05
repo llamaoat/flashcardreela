@@ -14,7 +14,10 @@ looks*. Audience: UK GCSE students, 14–16. Android first, open source (GPLv3).
   dashboard screens and the card renderer (`CardView.java`). All UI is built in code, with no layout XML.
 - `web-demo/src/`: a JavaScript port of the engine (`engine.js`, `apkg.js`), the card renderer
   (`render.js` + CSS in `head.html`) and the whole app journey (`app.js`). It's built into one file,
-  `web-demo/index.html`, which is generated, so never edit it by hand.
+  `web-demo/index.html`, which is generated, so never edit it by hand. `manifest.webmanifest`, `sw.js`
+  and `icons/` sit beside it so it can be added to a phone's home screen; opened from there (or with
+  `?app=1`) it shows only the phone (`html.appmode`) and skips the accessibility step. Bump `CACHE` in
+  `sw.js` if you add files it should keep offline.
 - `docs/`: `ENGINE.md` (how and why the engine works), `DESIGN.md` (card design), `ROADMAP.md`.
 - `tools/`:
   - the APK and web-demo builds;

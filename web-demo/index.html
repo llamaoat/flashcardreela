@@ -4,6 +4,14 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Reelcards Engine</title>
+<meta name="theme-color" content="#0f1014">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Reelcards">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Bricolage+Grotesque:wght@400;600;800&family=Caveat:wght@600;700&family=Fraunces:opsz,wght@9..144,500;9..144,700&family=JetBrains+Mono:wght@400;600&family=Roboto:wght@400;500;700;900&family=TikTok+Sans:wght@400;600;800;900&display=swap">
 <style>
@@ -441,6 +449,19 @@ input[type=text]{width:100%;min-height:42px;border-radius:12px;border:1px solid 
 @keyframes drift{to{background-position:0 90px,0 -70px,0 0}}
 @keyframes pan{to{background-position:80px 0}}
 @media (prefers-reduced-motion:reduce){.screen.enter,.card *,.card .bgl,.card .bgl::after{animation:none!important;transition:none!important}}
+/* Add to Home Screen: the offer on the page, and the app itself (opened from the home screen, or ?app=1):
+   just the phone, filling the screen, with nothing of the demo around it */
+.install{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;margin-top:10px;padding:10px 12px;background:var(--panel);border:1px solid var(--line);border-radius:12px;max-width:68ch}
+.install p{margin:0;flex:1 1 220px;font-size:13px}
+.install b{color:var(--accent)}
+.install .btn{min-height:40px;padding:8px 14px}
+html.appmode,html.appmode body{height:100%;overflow:hidden;overscroll-behavior:none}
+html.appmode body{margin:0;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
+html.appmode .wrap{max-width:none;height:100%;gap:0}
+html.appmode header,html.appmode .panels,html.appmode #h-lab,html.appmode .wrap>section,html.appmode .phonecol>:not(.phone):not(input){display:none}
+html.appmode .main{display:block;height:100%}
+html.appmode .phonecol{position:static;height:100%;gap:0}
+html.appmode .phone{width:100%;max-width:none;height:100%;aspect-ratio:auto;border:0;border-radius:0;box-shadow:none}
 </style>
 </head>
 <body>
@@ -449,6 +470,7 @@ input[type=text]{width:100%;min-height:42px;border-radius:12px;border:1px solid 
     <div>
       <h1>Reelcards <span>demo</span></h1>
       <p class="sub">The whole student journey in a browser, running the same engine as the Android app. Set up on the phone, then scroll: flashcard reels slip in between normal reels, styled for the app you're in (TikTok, Instagram or YouTube) and the things you watch. The panels explain every decision. The design lab at the bottom shows every card style side by side.</p>
+      <div class="install" id="install" hidden></div>
     </div>
     <div class="stats" id="stats"></div>
   </header>
@@ -1867,6 +1889,12 @@ function revealOrAnswer(it){
 /* an Anki card's sound ([sound:…]): "Listen" with the question, "Hear it" with the answer (mirrors CardView.addSound) */
 const soundButton = (it, answer) => (answer ? it.s.asnd : it.s.snd) ? '<button class="snd" data-act="sound" data-v="'+(answer?"a":"q")+'" aria-label="Play the '+(answer?"answer":"question")+'\'s sound">▶&nbsp; '+(answer?"Hear it":"Listen")+'</button>' : '';
 const answerPic = it => it.s.aimg ? '<div class="pic apic" style="'+picSize(it.s.aimgW, it.s.aimgH)+'"><img src="'+esc(it.s.aimg)+'" alt=""></div>' : '';
+/* the first-cards tip, in words that fit the card: a quiz is answered by picking (mirrors CardView.coachText) */
+function coachText(it){
+  if (it.f.layout === "quiz" && it.s.correct >= 0) return "Tap the answer you think is right";
+  if (it.s.io) return "Tap to uncover it · Double-tap if you knew it";
+  return "Tap to see the answer · Double-tap if you knew it";
+}
 function revealButton(it){ return '<button class="reveal" data-act="reveal"><span class="ring">'+(it.count==null?thinkSecs(it.s):it.count)+'</span><span>'+esc(it.s.prompt)+'</span></button>'; }
 
 function bodyHTML(it){
@@ -1984,7 +2012,7 @@ function card(it, opts){
     k ? (k>=n ? "All "+n : k+"/"+n)+" · "+(it.hinted && partGrade==="Good" ? "Hard" : partGrade) : "");
   // the progress line runs for as long as the card takes to read
   const dur = Math.max(10, Math.min(30, (readMs(it.s.q) + readMs(it.s.points ? it.s.points.join(" ") : it.s.a) + 3000) / 1000));
-  const coach = opts.coach ? '<div class="coach" aria-hidden="true">Tap to see the answer · Double-tap if you knew it</div>' : '';
+  const coach = opts.coach ? '<div class="coach" aria-hidden="true">'+coachText(it)+'</div>' : '';
   return '<div class="'+cls+'" data-card style="'+vars+'">'+back+'<div class="scrim"></div>'+vibeHTML(it)+coach+
     '<div class="body">'+bodyHTML(it)+'</div>'+
     (badge?'<span class="badge">'+badge+'</span>':'')+
@@ -2187,10 +2215,35 @@ function apkgSummary(r){
     + (s.sounds ? " " + s.sounds + (s.sounds === 1 ? " plays" : " play") + " a sound." : "") + (left.length ? " Left out: " + left.join(", ") + "." : "");
 }
 
+/* ---------------- Add to Home Screen ---------------- */
+// Opened from the home screen (or with ?app=1): just the phone, full screen. There's no accessibility
+// switch on the web, so that setup step is skipped.
+const APP = /[?&]app=1\b/.test(location.search) || matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
+if (APP) document.documentElement.classList.add("appmode");
+function installOffer(){
+  const box = $("install");
+  if (APP || !/^https?:$/.test(location.protocol)) return; // needs a real web address, not a file
+  if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
+  const ios = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  if (ios) {
+    box.innerHTML = '<p><b>Put it on your home screen:</b> tap Share <span aria-hidden="true">(the square with an arrow)</span>, then <b>Add to Home Screen</b>. It opens full screen, like an app, and works without signal.</p>';
+    box.hidden = false;
+    return;
+  }
+  let ask = null;
+  window.addEventListener("beforeinstallprompt", e => {
+    e.preventDefault(); ask = e;
+    box.innerHTML = '<p><b>Put it on your home screen:</b> it opens full screen, like an app, and works without signal.</p><button class="btn primary" id="installBtn">Add to home screen</button>';
+    box.hidden = false;
+    $("installBtn").onclick = () => { if (!ask) return; ask.prompt(); ask.userChoice.then(() => { ask = null; box.hidden = true; }); };
+  });
+  window.addEventListener("appinstalled", () => { box.hidden = true; });
+}
+
 let E, UI, offset = 0;
 const now = () => Date.now() + offset;
 function freshUI(){ return {screen:"welcome", onboarded:false, addMode:false, decks:new Set(), notes:[], notesDeck:"My notes", notesText:"", notesResult:null,
-  exam:14, intensity:"normal", vibes:new Set(), permission:false, settingsOpen:false, err:"", current:null, reelN:0, why:null, toast:"", confirmReset:false,
+  exam:14, intensity:"normal", vibes:new Set(), permission:APP, settingsOpen:false, err:"", current:null, reelN:0, why:null, toast:"", confirmReset:false,
   host:"tiktok", lastHue:null, firstDay:null, coachLeft:2, apkg:null, apkgCards:[]}; }
 function resetAll(){ offset = 0; E = new RC.Engine(); E.settings.minutesPerDay = +$("mins").value; const h = UI ? UI.host : "tiktok"; UI = freshUI(); UI.host = h; }
 
@@ -2604,7 +2657,7 @@ VIBES.forEach(v => { const o = document.createElement("option"); o.value = v; o.
 $("labShuffle").onclick = () => { labSeed = labSeed % 30 + 1; renderLab(); };
 window.addEventListener("resize", fitLab);
 
-resetAll(); render(true); renderLab();
+resetAll(); render(true); if (!APP) renderLab(); installOffer();
 })();
 
 </script>

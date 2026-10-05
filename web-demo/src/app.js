@@ -46,10 +46,35 @@ function apkgSummary(r){
     + (s.sounds ? " " + s.sounds + (s.sounds === 1 ? " plays" : " play") + " a sound." : "") + (left.length ? " Left out: " + left.join(", ") + "." : "");
 }
 
+/* ---------------- Add to Home Screen ---------------- */
+// Opened from the home screen (or with ?app=1): just the phone, full screen. There's no accessibility
+// switch on the web, so that setup step is skipped.
+const APP = /[?&]app=1\b/.test(location.search) || matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
+if (APP) document.documentElement.classList.add("appmode");
+function installOffer(){
+  const box = $("install");
+  if (APP || !/^https?:$/.test(location.protocol)) return; // needs a real web address, not a file
+  if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
+  const ios = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  if (ios) {
+    box.innerHTML = '<p><b>Put it on your home screen:</b> tap Share <span aria-hidden="true">(the square with an arrow)</span>, then <b>Add to Home Screen</b>. It opens full screen, like an app, and works without signal.</p>';
+    box.hidden = false;
+    return;
+  }
+  let ask = null;
+  window.addEventListener("beforeinstallprompt", e => {
+    e.preventDefault(); ask = e;
+    box.innerHTML = '<p><b>Put it on your home screen:</b> it opens full screen, like an app, and works without signal.</p><button class="btn primary" id="installBtn">Add to home screen</button>';
+    box.hidden = false;
+    $("installBtn").onclick = () => { if (!ask) return; ask.prompt(); ask.userChoice.then(() => { ask = null; box.hidden = true; }); };
+  });
+  window.addEventListener("appinstalled", () => { box.hidden = true; });
+}
+
 let E, UI, offset = 0;
 const now = () => Date.now() + offset;
 function freshUI(){ return {screen:"welcome", onboarded:false, addMode:false, decks:new Set(), notes:[], notesDeck:"My notes", notesText:"", notesResult:null,
-  exam:14, intensity:"normal", vibes:new Set(), permission:false, settingsOpen:false, err:"", current:null, reelN:0, why:null, toast:"", confirmReset:false,
+  exam:14, intensity:"normal", vibes:new Set(), permission:APP, settingsOpen:false, err:"", current:null, reelN:0, why:null, toast:"", confirmReset:false,
   host:"tiktok", lastHue:null, firstDay:null, coachLeft:2, apkg:null, apkgCards:[]}; }
 function resetAll(){ offset = 0; E = new RC.Engine(); E.settings.minutesPerDay = +$("mins").value; const h = UI ? UI.host : "tiktok"; UI = freshUI(); UI.host = h; }
 
@@ -463,5 +488,5 @@ VIBES.forEach(v => { const o = document.createElement("option"); o.value = v; o.
 $("labShuffle").onclick = () => { labSeed = labSeed % 30 + 1; renderLab(); };
 window.addEventListener("resize", fitLab);
 
-resetAll(); render(true); renderLab();
+resetAll(); render(true); if (!APP) renderLab(); installOffer();
 })();
