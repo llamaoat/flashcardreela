@@ -18,6 +18,10 @@ looks*. Audience: UK GCSE students, 14–16. Android first, open source (GPLv3).
   and `icons/` sit beside it so it can be added to a phone's home screen; opened from there (or with
   `?app=1`) it shows only the phone (`html.appmode`) and skips the accessibility step. Bump `CACHE` in
   `sw.js` if you add files it should keep offline.
+- The web demo saves like `Store` does: once setup is done, `save()` in `app.js` keeps the engine's state
+  in localStorage (`reelcards-demo`) and Anki files with pictures or sounds in IndexedDB, and `restore()`
+  reads them back on load. New engine state that should survive a reload goes in `ENGINE_FIELDS` (or the
+  `engine` object in `save()`); new per-card fields are saved automatically.
 - `docs/`: `ENGINE.md` (how and why the engine works), `DESIGN.md` (card design), `ROADMAP.md`.
 - `tools/`:
   - the APK and web-demo builds;
