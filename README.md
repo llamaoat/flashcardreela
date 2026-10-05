@@ -63,7 +63,7 @@
 | 0:45 | On a card tap **Why?** | "The engine decided *when* (a rhythm it learns from you, waiting for natural breaks), *which* (lowest predicted recall, using FSRS, the algorithm in Anki) and *how it looks* (it learns your favourite formats, per app)." |
 | 1:05 | Swipe a card away without looking; it comes back 3 reels later in a different look. | "Skipping never punishes you. It just tries a different format later." |
 | 1:20 | Open real TikTok or Instagram and scroll (the switch must be on). | "This is running over the real app." |
-| 1:40 | Dashboard: cards today, recall, forecast, what the engine learned, saved cards, Anki sync. | "In our 30-day simulation, adaptive formats and rhythm cut skipped cards from 67% to 51% and raised modelled exam-day recall from 17% to 27%." |
+| 1:40 | Dashboard: cards today, recall, forecast, what the engine learned, saved cards, Anki sync. | "In our 30-day simulation, adaptive formats and rhythm cut skipped cards from 66% to 51% and raised modelled exam-day recall from 17% to 27%." |
 
 Tip: set **How often** back to **Normal** afterwards.
 
@@ -120,7 +120,7 @@ More, including screenshots for each app: **[docs/DESIGN.md](docs/DESIGN.md)**.
 
 | Engine version | Cards skipped | Cards engaged with per day | Modelled exam-day recall |
 |---|---|---|---|
-| Baseline: random looks, fixed rhythm | 67% | 24 | 17% |
+| Baseline: random looks, fixed rhythm | 66% | 24 | 17% |
 | + adaptive looks | 57% | 35 | 25% |
 | Full: + learned rhythm and natural breaks | **51%** | **38** | **27%** |
 

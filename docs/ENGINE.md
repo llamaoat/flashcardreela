@@ -192,7 +192,7 @@ probability, and answer faster when they know it well. Three engine versions fac
 
 | Engine version | Skipped | Engaged cards / day | Modelled exam-day recall |
 |---|---|---|---|
-| Baseline: random looks, fixed rhythm | 67% | 24 | 17% |
+| Baseline: random looks, fixed rhythm | 66% | 24 | 17% |
 | + adaptive looks | 57% | 35 | 25% |
 | Full: + learned rhythm, natural breaks | 51% | 38 | 27% |
 
