@@ -1,6 +1,6 @@
 # Privacy
 
-*Last updated: 3 October 2026. Applies to the Reelcards Android app and the web demo.*
+*Last updated: 5 October 2026. Applies to the Reelcards Android app and the web demo.*
 
 Reelcards is built for school students, so it's built to know as little as possible.
 
@@ -46,6 +46,20 @@ other apps.
 If you open an Anki file, the pictures from its cards are saved in the app's private storage too, so the
 cards can show them. They're left out of system backups (to keep backups small), and *Reset everything*
 or uninstalling deletes them. The Anki file itself is read from the copy you picked and isn't kept.
+
+## The web demo
+
+The web demo runs in your browser, with the same rules: no account, no analytics, and your cards and
+answers aren't sent anywhere. Once you finish setup, it keeps your cards, their schedule, your settings
+and the same daily counts in your browser's own storage on that device, so it carries on where you left
+off (including when it's added to your home screen). If you open an Anki file with pictures or sounds,
+that file is kept there too, so the pictures can show next time. *Reset everything* deletes all of it,
+and so does clearing the site's data in your browser.
+
+Loading the page itself does go over the internet: the site is hosted by GitHub Pages, and the page asks
+Google Fonts for its fonts, so like any website, they see your device's IP address when it loads. Neither
+sees your cards. After the first visit, the page can also open from a copy kept on your device, with no
+signal.
 
 ## Other apps
 

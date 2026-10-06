@@ -89,6 +89,14 @@ Part marks for long answers
   PASS  all points but with a hint = Hard
   PASS  knowing 3 points takes longer: a like at reading time + 4.5 s is still Easy
   PASS  the engine grades by points ticked: "Graded Again (1 of 3 points) → next in 1 min"
+  PASS  a table is one point per row, labelled by its header ("Serum iron: Iron deficiency ↓, Chronic disease ↓")
+  PASS  a long cloze note keeps its gap in the big question, not in the small set-up
+  PASS  a clinical vignette keeps its question big and isn't drawn as one long comment (a short question still can be)
+  PASS  hints skip numbering ("0: rapid depolarization" starts "Rapid")
+  PASS  a quiz's wrong answer looks like the right one (a species for a species, not "positive inotropy")
+  PASS  an extra's lines stay apart when shown on one line ("GOLDMARK; Glycols; Oxoproline…")
+  PASS  the USMLE deck: 39 cards, its table read row by row, and every cloze gap in the big question
+  PASS  a quiz never offers a wrong answer the question already shows (another gap's answer from the same note)
 Anki files (.apkg)
   PASS  reads all three Anki file formats (2.0, 2.1, and 2.1.50+ with zstd) to the same 18 cards
   PASS  leaves out suspended and audio-only cards: "8 image occlusion, 3 cloze, 7 more. 2 keep their Anki progress. Left out: 1 suspended, 1 audio-only."
@@ -101,7 +109,7 @@ Anki files (.apkg)
   PASS  cloze hint shows in the gap
   PASS  a gap is read aloud as "blank" (voiceover and screen readers)
   PASS  one cloze number used three times = one card with 3 points
-  PASS  cloze extra: the full sentence and Back Extra
+  PASS  cloze extra: the full sentence and Back Extra, on separate lines
   PASS  nested cloze deletions
   PASS  image occlusion: 8 cards (Anki's built-in kind and the old add-on), each with its picture and masks in 0..1
   PASS  occlusion shapes: rectangles, polygons and ellipses
@@ -139,4 +147,4 @@ Forecast
         210 min/day -> 150 cards/day, 25 new/day, deck in 2 days
   PASS  3.5 h of reels ~ 150 cards a day at the default rhythm (the Normal cap)
 
-116 passed, 0 failed
+124 passed, 0 failed

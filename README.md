@@ -30,6 +30,8 @@
 
 **No Android phone?** Open [`web-demo/index.html`](web-demo/index.html) in any browser (or turn on GitHub Pages; the workflow is included). It runs the same engine, ported to JavaScript, through the whole setup → feed → dashboard journey, with the engine's reasoning shown alongside and a design lab of every card style.
 
+**On an iPhone (or any phone):** open the web demo from GitHub Pages and add it to the home screen (Safari: Share → *Add to Home Screen*; Chrome on Android offers an *Add to home screen* button on the page). It then opens full screen as just the phone part, with no demo panels, and works without signal. It can't put cards between real TikTok reels (only the Android app can), and it keeps your cards and progress in the browser on that device (nothing is sent anywhere; *Reset everything* clears it).
+
 **No permission? No problem.** The **Practice feed** inside the app is a pretend reel feed that uses the exact same engine, cards and designs. Good for demos with no Wi-Fi and no TikTok.
 
 ---
@@ -61,7 +63,7 @@
 | 0:45 | On a card tap **Why?** | "The engine decided *when* (a rhythm it learns from you, waiting for natural breaks), *which* (lowest predicted recall, using FSRS, the algorithm in Anki) and *how it looks* (it learns your favourite formats, per app)." |
 | 1:05 | Swipe a card away without looking; it comes back 3 reels later in a different look. | "Skipping never punishes you. It just tries a different format later." |
 | 1:20 | Open real TikTok or Instagram and scroll (the switch must be on). | "This is running over the real app." |
-| 1:40 | Dashboard: cards today, recall, forecast, what the engine learned, saved cards, Anki sync. | "In our 30-day simulation, adaptive formats and rhythm cut skipped cards from 67% to 51% and raised modelled exam-day recall from 17% to 27%." |
+| 1:40 | Dashboard: cards today, recall, forecast, what the engine learned, saved cards, Anki sync. | "In our 30-day simulation, adaptive formats and rhythm cut skipped cards from 66% to 51% and raised modelled exam-day recall from 17% to 27%." |
 
 Tip: set **How often** back to **Normal** afterwards.
 
@@ -112,13 +114,13 @@ More, including screenshots for each app: **[docs/DESIGN.md](docs/DESIGN.md)**.
 
 ## Proof it works
 
-**Engine checks:** 116 plain-Java checks, including FSRS-6 against `py-fsrs`, gesture and response-time grading, rhythm learning, skipping, quiet mode, format learning, calibration, notes parsing (and chatbot replies), long answers and part marks, reading all three Anki file formats (cloze, image occlusion, pictures, kept progress), decks exported by Anki itself compared card by card with how Anki shows them, AnkiDroid notes, forecasting, and the hint, save and share buttons. Output: [`engine/results/checks.txt`](engine/results/checks.txt).
+**Engine checks:** 124 plain-Java checks, including FSRS-6 against `py-fsrs`, gesture and response-time grading, rhythm learning, skipping, quiet mode, format learning, calibration, notes parsing (and chatbot replies), long answers and part marks, reading all three Anki file formats (cloze, image occlusion, pictures, kept progress), decks exported by Anki itself compared card by card with how Anki shows them, a dense USMLE Step 1-style deck (vignettes, tables, long cloze notes), AnkiDroid notes, forecasting, and the hint, save and share buttons. Output: [`engine/results/checks.txt`](engine/results/checks.txt).
 
 **30-day simulation:** 30 simulated students per row, a 600-card deck (70 real GCSE cards and 530 synthetic ones), with the exam on day 30. This is a *model*, not user data. Each simulated student has a hidden memory, a taste for some card looks, and a tolerance for how often cards appear. Output: [`engine/results/simulation.txt`](engine/results/simulation.txt).
 
 | Engine version | Cards skipped | Cards engaged with per day | Modelled exam-day recall |
 |---|---|---|---|
-| Baseline: random looks, fixed rhythm | 67% | 24 | 17% |
+| Baseline: random looks, fixed rhythm | 66% | 24 | 17% |
 | + adaptive looks | 57% | 35 | 25% |
 | Full: + learned rhythm and natural breaks | **51%** | **38** | **27%** |
 
@@ -127,7 +129,7 @@ These are averages over four student types at 1 hour and 3.5 hours of reels a da
 Run them yourself:
 
 ```
-./gradlew :engine:engineChecks          # 116 passed, 0 failed
+./gradlew :engine:engineChecks          # 124 passed, 0 failed
 ./gradlew :engine:simulate              # about 2 minutes
 ```
 

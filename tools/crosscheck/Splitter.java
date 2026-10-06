@@ -8,7 +8,7 @@ import java.util.List;
 
 /**
  * Prints how the Java engine reads the shape of each card in corpus.json (one line per card), for
- * comparing with splitter.js. Usage: java -cp <engine classes>:<this> Splitter tools/crosscheck/corpus.json
+ * comparing with splitter.js. A row's optional fourth field "cloze" marks a cloze card. Usage: java -cp <engine classes>:<this> Splitter tools/crosscheck/corpus.json
  */
 public class Splitter {
     public static void main(String[] args) throws Exception {
@@ -16,11 +16,22 @@ public class Splitter {
         StringBuilder out = new StringBuilder();
         for (List<String> r : rows(s)) {
             AnswerShape x = AnswerShape.of(r.get(0), r.get(1), r.get(2));
+            if (r.size() > 3 && "cloze".equals(r.get(3))) { // as AnswerShape.of(Card) does for a cloze card
+                String[] q = AnswerShape.splitQuestion(r.get(0), true);
+                x.context = q[0];
+                x.questionMain = q[1];
+                x.cloze = true;
+            }
+            List<String> lay = new ArrayList<>(AnswerShape.layoutsFor(x, r.get(1), true));
+            java.util.Collections.sort(lay);
             out.append(x.kind).append(" | ").append(String.join(" ¦ ", x.points))
                .append(" | over=").append(String.join(" ¦ ", x.over))
                .append(" | ctx=").append(x.context).append(" | main=").append(x.questionMain)
                .append(" | a2=").append(x.inlineExplanation).append(" | more=").append(x.more)
-               .append(" | starts=").append(x.multi() ? String.join(",", AnswerShape.starts(x.points)) : "").append('\n');
+               .append(" | starts=").append(x.multi() ? String.join(",", AnswerShape.starts(x.points)) : "")
+               .append(" | layouts=").append(String.join(",", lay))
+               .append(" | like=").append(com.reelcards.engine.CopyWriter.likeness(AnswerShape.plainText(r.get(0)), AnswerShape.plainText(r.get(1))))
+               .append(" | case=").append(AnswerShape.caseMatters(AnswerShape.plainText(r.get(0)))).append(" | deck=").append(com.reelcards.engine.CopyWriter.deckLabel(r.get(2))).append('\n');
         }
         new java.io.PrintStream(System.out, true, "UTF-8").print(out); // UTF-8 whatever the console's encoding
     }

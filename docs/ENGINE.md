@@ -180,7 +180,7 @@ itself shows it: question, answer, cloze gaps, image occlusion targets and the F
 
 ## Evaluation
 
-[`EngineChecks`](../engine/src/test/java/EngineChecks.java) runs 116 checks:
+[`EngineChecks`](../engine/src/test/java/EngineChecks.java) runs 124 checks:
 [`results/checks.txt`](../engine/results/checks.txt).
 
 [`Simulate`](../engine/src/test/java/Simulate.java) runs simulated students on the real engine for 30
@@ -192,7 +192,7 @@ probability, and answer faster when they know it well. Three engine versions fac
 
 | Engine version | Skipped | Engaged cards / day | Modelled exam-day recall |
 |---|---|---|---|
-| Baseline: random looks, fixed rhythm | 67% | 24 | 17% |
+| Baseline: random looks, fixed rhythm | 66% | 24 | 17% |
 | + adaptive looks | 57% | 35 | 25% |
 | Full: + learned rhythm, natural breaks | 51% | 38 | 27% |
 

@@ -149,14 +149,29 @@ Bandit.prototype={
    short (a word or phrase), medium (one long sentence), list, steps, or prose (a few sentences).
    Lists, steps and prose are split into 2-6 points, revealed one after another and self-marked
    point by point, like a mark scheme. Long questions are split into the set-up and the question. */
-const SHORT_MAX=48, MAX_POINTS=6, LONG_Q=90, INLINE_X=90;
+const SHORT_MAX=48, MAX_POINTS=6, LONG_Q=90, INLINE_X=90, COMMENT_MAX=180;
 const BULLET=/^(?:[-•*·▪●–]|\d{1,2}[.)]|\(?[a-z]\))\s+/;
 const COMMAND=/^(explain|describe|suggest|compare|contrast|name|state|give|calculate|evaluate|define|outline|identify|predict|use|write|complete)\b/i;
 function plainText(t){
-  return String(t==null?"":t).replace(/<\s*br\s*\/?>/gi,"\n").replace(/<\/(?:li|p|div|h\d)>/gi,"\n").replace(/<li[^>]*>/gi,"\n").replace(/<[^>]+>/g,"")
+  return tableLines(String(t==null?"":t)).replace(/<\s*br\s*\/?>/gi,"\n").replace(/<\/(?:li|p|div|h\d)>/gi,"\n").replace(/<li[^>]*>/gi,"\n").replace(/<[^>]+>/g,"")
     .replace(/&nbsp;/g," ").replace(/&lt;/g,"<").replace(/&gt;/g,">").replace(/&quot;/g,"\"").replace(/&#39;/g,"'").replace(/&amp;/g,"&")
     .replace(/[\u00a0\u2000-\u200a\u202f\u205f\u3000]/g," ").replace(/[ \t]+/g," ").split("\n").map(x=>x.trim()).filter(x=>x).join("\n");
 }
+/* A table becomes one line per row, each value labelled with its column's header when there is one
+   ("Ferritin: Iron deficiency ↓, Chronic disease ↑"; with one value column just "Warfarin: VKOR"), so a row can be a point to mark. */
+const CELLSPACE=/[ \t\r\n  -   　]+/g;
+function tableLines(t){return t.replace(/<table[^>]*>([\s\S]*?)<\/table>/gi,(m,body)=>{
+  const rows=body.split(/<tr[^>]*>/i).slice(1).map(row=>{const cells=[],re=/<t([dh])(?:\s[^>]*)?>([\s\S]*?)<\/t[dh]>/gi;let c;
+    while((c=re.exec(row)))cells.push({h:c[1].toLowerCase()==="h",v:c[2].replace(/<\s*br\s*\/?>/gi," ").replace(/<[^>]+>/g,"").replace(/&nbsp;/g," ").replace(CELLSPACE," ").trim()});return cells;}).filter(r=>r.some(c=>c.v));
+  if(!rows.length)return"";
+  const head=rows.length>1&&rows[0].length>1&&(rows[0].every(c=>c.h)||!rows[0][0].v)?rows.shift().map(c=>c.v):null;
+  return"\n"+rows.map(r=>{const vals=r.slice(1).map((c,j)=>!c.v?"":head&&head.length>2&&head[j+1]?head[j+1]+" "+c.v:c.v).filter(v=>v);
+    return r[0].v&&vals.length?r[0].v+": "+vals.join(", "):r[0].v||vals.join(", ");}).join("\n")+"\n";});}
+/* text whose capitals carry meaning (Na+, Ca2+, Cl−, NaCl, pH, mEq/L, IgG) isn't put in capitals by the bold looks */
+const CASE_MATTERS=/[a-z][A-Z]|\b[A-Z][a-z]\d*[+\u2212-](?![a-z])|\b[A-Z]\d*[+\u2212]/;
+function caseMatters(t){return CASE_MATTERS.test(t||"");}
+/* lines on one line: "Glycols; Oxoproline; L-lactate", but sentences just follow each other */
+function inline(t){return t.split("\n").reduce((o,l)=>!o?l:o+(/[.!?;:,]$/.test(o)?" ":"; ")+l,"");}
 const cap1=x=>x?x.charAt(0).toUpperCase()+x.slice(1):x;
 const words=x=>x.trim().split(/\s+/).length;
 function tidy(p){return cap1(p.replace(BULLET,"").replace(/[\s;,.]+$/,"").trim());}
@@ -187,18 +202,21 @@ function splitPoints(b){
 }
 const shortCache=new Map();
 function isShort(b){let v=shortCache.get(b);if(v===undefined){v=splitPoints(b).kind==="short";if(shortCache.size>4000)shortCache.clear();shortCache.set(b,v);}return v;}
-function splitQuestion(q){
+/* a cloze card's question starts at or before the sentence with the gap, so the gap stays big */
+const GAP=/\[[^\]]*\]/;
+function splitQuestion(q,cloze){
   const t=plainText(q).replace(/\n/g," ");
   if(t.length<=LONG_Q)return{ctx:"",main:t};
   const s=t.split(QSENTENCE);if(s.length<2)return{ctx:"",main:t};
   let i=s.length-1;for(let k=s.length-1;k>=1;k--){if(/\?$/.test(s[k])||COMMAND.test(s[k])){i=k;}else if(k<s.length-1)break;}
+  if(cloze){const g=s.findIndex(x=>GAP.test(x));if(g>=0&&g<i)i=g;}
   const ctx=s.slice(0,i).join(" "),main=s.slice(i).join(" ");
   if(ctx.length<24||main.length<10)return{ctx:"",main:t};
   return{ctx,main};
 }
 /* Everything the layouts need to know about a card's length and shape. */
 function analyse(c){
-  const sp=splitPoints(c.b),sq=splitQuestion(c.f),x=plainText(c.x).replace(/\n/g," ");
+  const sp=splitPoints(c.b),sq=splitQuestion(c.f,!!c.cloze),x=inline(plainText(c.x));
   const multi=sp.points.length>=2,pic=!!(c.img||c.io||c.snd),io=!!c.io;
   // image occlusion has no written answer: the picture is the answer, the extra goes behind "more"
   const more=(sp.over.length?"Also: "+sp.over.join(". ")+". ":"")+(multi||io||x.length>INLINE_X?x:"");
@@ -218,22 +236,34 @@ function themed(v,h,gen){if(!v)return gen;const t={
   "food/pov":["POV: revising while dinner cooks"],"food/waitforit":["Let it cook… answer in 3"]}[v+"/"+h];return t||gen;}
 const STOP=new Set("the a an it its they their them this these that those so and or but of to in on is are was were be by with for as at from because which then there".split(" "));
 /* how each point starts ("Active…", "Aerobic makes…"): one word, or more when two points would start alike */
-function starts(points){const used=new Set();return points.map(p=>{const ws=p.split(/\s+/);let i=ws.findIndex(w=>{const b=w.replace(/[^\p{L}\p{N}]/gu,"");return b&&!STOP.has(b.toLowerCase());});if(i<0)i=0;
+const NUMTOK=/^\(?\d{1,2}[:.)]$/;
+function starts(points){const used=new Set();return points.map(p=>{const ws=p.split(/\s+/);let i=ws.findIndex(w=>{const b=w.replace(/[^\p{L}\p{N}]/gu,"");return b&&!STOP.has(b.toLowerCase())&&!NUMTOK.test(w);});if(i<0)i=0;
   let k=i+1,st=ws.slice(i,k).join(" ");while(used.has(st.toLowerCase())&&k<ws.length){k++;st=ws.slice(i,k).join(" ");}used.add(st.toLowerCase());
   const clean=st.replace(/^[^\p{L}\p{N}]+/u,"").replace(/[^\p{L}\p{N}]+$/u,"");return cap1(clean||ws[i]);});}
 function hint(ans,points){if(points&&points.length>=2)return points.length+" points: "+starts(points).slice(0,3).map(p=>"“"+p+"…”").join(" ")+(points.length>3?" …":"");
   const a=String(ans||"").trim();if(!a)return"No hint for this one";const w=a.split(/\s+/);let first=w[0].replace(/^[^\p{L}\p{N}]+/u,"")||w[0];
   if(w.length===1){const n=first.replace(/[^\p{L}\p{N}]/gu,"").length;return"Starts with “"+first[0].toUpperCase()+"” · "+n+(n===1?" letter":" letters");}
   return"Starts with “"+first+"…” · "+w.length+" words";}
-function slug(deck){if(!deck)return"study";let s=deck.split(":")[0].toLowerCase().replace(/^(gcse|a-level|a level|ks3)\s+/,"").replace(/[^a-z0-9]+/g,"");return s?s.slice(0,14):"study";}
+/* a deck path's parts: "USMLE Step 1::Renal", or "USMLE Step 1 · Renal" as imported */
+const DECKSEP=/::| · |:/;
+/* the deck chip: its most specific part ("Renal"), without "GCSE" */
+function deckLabel(deck){if(!deck)return"Study";const p=deck.split(DECKSEP);return p[p.length-1].trim().replace(/^(gcse|a-level|a level|ks3)\s+/i,"")||"Study";}
+function slug(deck){if(!deck)return"study";let s=deck.split(DECKSEP)[0].toLowerCase().replace(/^(gcse|a-level|a level|ks3)\s+/,"").replace(/[^a-z0-9]+/g,"");return s?s.slice(0,14):"study";}
 function casual(q){let t=q.trim().replace(/[?.!]+$/,"");if(t.length>1&&t[1]!==t[1].toUpperCase())t=t[0].toLowerCase()+t.slice(1);return t;}
 function beats(q){const raw=q.trim().split(/\s+/),words=[],out=[],hl=[];let cur=[];
   for(let i=0;i<raw.length;i++){let w=raw[i];if(w.indexOf("[")>=0&&w.indexOf("]")<0)while(i+1<raw.length&&w.indexOf("]")<0)w+=" "+raw[++i];words.push(w);} // a cloze [gap] stays in one beat
   words.forEach((w,i)=>{cur.push(w);if(cur.length>=3||/[,?]$/.test(w)||i===words.length-1){let hi=-1,len=0;cur.forEach((x,k)=>{const b=x.replace(/[^\p{L}\p{N}]/gu,"");if(b.length>len&&b.length>=5){len=b.length;hi=k;}});out.push(cur.join(" "));hl.push(hi);cur=[];}});return{beats:out,hl};}
-function distractor(c,pool,rnd){const mine=c.b.trim().toLowerCase(),same=[],any=[];for(const o of pool){if(o===c||!o.b)continue;const ob=o.b.trim().toLowerCase();if(!ob||ob===mine||!isShort(o.b))continue;const r=(o.b.length+4)/(c.b.length+4);if(r<.4||r>2.5)continue;(o.deck===c.deck?same:any).push(o.b);}const src=same.length?same:any;return src.length?pickOf(rnd,src):null;}
+/* not an answer the question already shows (a sibling cloze's answer is in the sentence) */
+function distractor(c,pool,rnd){const mine=c.b.trim().toLowerCase(),qt=plainText(c.f).toLowerCase(),same=[],any=[];for(const o of pool){if(o===c||!o.b)continue;const ob=o.b.trim().toLowerCase();if(!ob||ob===mine||qt.includes(ob)||!isShort(o.b))continue;const r=(o.b.length+4)/(c.b.length+4);if(r<.4||r>2.5)continue;(o.deck===c.deck?same:any).push(o.b);}const src=same.length?same:any;if(!src.length)return null;const me=plainText(c.b),sc=src.map(b=>likeness(me,/[<&]/.test(b)?plainText(b):b)),top=Math.max(...sc);return pickOf(rnd,src.filter((_,i)=>sc[i]===top));}
+/* how alike two answers look, 0-5: the same pattern of capitals ("Streptococcus pneumoniae" and
+   "Staphylococcus aureus" are both Aa), word count, digits or none, and ending ("-ase", "-ine") */
+function wordsOf(t){return t.split(/\s+/).map(w=>w.match(/[\p{L}\p{Nd}]/u)).filter(m=>m).map(m=>/\p{Lu}/u.test(m[0])?"A":/\p{Nd}/u.test(m[0])?"9":"a");}
+function ending(t){const ws=t.toLowerCase().split(/\s+/).map(w=>w.replace(/[^\p{L}]/gu,"")).filter(w=>w);const w=ws.length?ws[ws.length-1]:"";return w.length>=3?w.slice(-3):"";}
+function likeness(a,b){const wa=wordsOf(a),wb=wordsOf(b),ea=ending(a);
+  return(wa.join("")===wb.join("")?2:0)+(wa.length===wb.length?1:0)+(/\p{Nd}/u.test(a)===/\p{Nd}/u.test(b)?1:0)+(ea&&ea===ending(b)?1:0);}
 function textish(p){return p.length>1&&p[1]===p[1].toLowerCase()?p[0].toLowerCase()+p.slice(1):p;}
 /* the layouts a card's shape can use: pictures stay in big text; a cloze gap doesn't read as a comment */
-function layoutsFor(a,hasDistractor){if(a.pic)return["bigtext"];return PIECES.layout.filter(l=>l==="quiz"?a.quizable&&hasDistractor:l==="captions"?a.captionable:l==="list"?a.multi:l==="split"?a.splittable:l==="comment"?!a.cloze:true);}
+function layoutsFor(a,hasDistractor){if(a.pic)return["bigtext"];return PIECES.layout.filter(l=>l==="quiz"?a.quizable&&hasDistractor:l==="captions"?a.captionable:l==="list"?a.multi:l==="split"?a.splittable:l==="comment"?!a.cloze&&a.ctx.length+a.qMain.length<=COMMENT_MAX:true);}
 function write(c,f,pool,rnd,reason,vibes){
   const a=analyse(c),q=plainText(c.f).replace(/\n/g," ");
   const s={q,a:a.multi?a.points.join("; "):(a.points[0]||""),x:a.a2,options:[],correct:-1,beats:[],hl:[],
@@ -430,5 +460,5 @@ function spokenGaps(q){ return q.replace(/\[([^\]]{0,40})\]/g, (m, h) => { h = h
 function makeCard(id,deck,f,b,x){return{id,deck,f,b,x:x||"",img:null,aimg:null,io:null,cloze:false,snd:null,asnd:null,state:NEW,step:0,s:0,d:0,due:0,last:0,reps:0,lapses:0,skips:0,bounces:0,buriedUntil:-1,grade:null,layout:null,saved:false};}
 
 return{MIN,DAY,NEW,LEARNING,REVIEW,RELEARNING,STATE,DIMS,PIECES,VIBES,LABEL,DIMLABEL,INT,MULT,Engine,Fsrs,makeCard,human,write,hint,gradeOf,fastSkip,engaged,reward,beta,fkey,
-  analyse,splitPoints,splitQuestion,plainText,layoutsFor,readingMs,starts};
+  analyse,splitPoints,splitQuestion,plainText,layoutsFor,readingMs,starts,distractor,likeness,inline,caseMatters,deckLabel};
 })();

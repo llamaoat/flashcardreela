@@ -24,7 +24,7 @@ import java.util.regex.Pattern;
  * reviewed as its parts. Mirrors analyse() in web-demo/src/engine.js.
  */
 public final class AnswerShape {
-    public static final int SHORT_MAX = 48, MAX_POINTS = 6, LONG_Q = 90, INLINE_X = 90;
+    public static final int SHORT_MAX = 48, MAX_POINTS = 6, LONG_Q = 90, INLINE_X = 90, COMMENT_MAX = 180;
 
     public String kind = "short";                  // short | medium | list | steps | prose
     public List<String> points = new ArrayList<>(); // 1 for short/medium, 2-6 otherwise
@@ -54,8 +54,13 @@ public final class AnswerShape {
         a.pic = c.image != null || c.occlusion != null || c.audio != null; // big text, with room for the picture or the play button
         a.io = c.occlusion != null;
         a.cloze = c.cloze;
+        if (c.cloze) { // the question has to include its gap
+            String[] q = splitQuestion(c.front, true);
+            a.context = q[0];
+            a.questionMain = q[1];
+        }
         if (a.io) { // image occlusion has no written answer: the picture is the answer, the extra goes behind "more"
-            String x = plainText(c.extra).replace('\n', ' ');
+            String x = inline(plainText(c.extra));
             String more = (a.over.isEmpty() ? "" : "Also: " + join(a.over, ". ") + ". ") + x;
             a.kind = "image";
             a.points.clear();
@@ -71,7 +76,7 @@ public final class AnswerShape {
         String[] q = splitQuestion(front);
         a.context = q[0];
         a.questionMain = q[1];
-        String x = plainText(extra).replace('\n', ' ');
+        String x = inline(plainText(extra));
         boolean multi = a.multi();
         String more = (a.over.isEmpty() ? "" : "Also: " + join(a.over, ". ") + ". ") + (multi || x.length() > INLINE_X ? x : "");
         a.more = more.trim();
@@ -89,6 +94,7 @@ public final class AnswerShape {
             if ("list".equals(l) && !a.multi()) continue;
             if ("split".equals(l) && !a.splittable(back)) continue;
             if ("comment".equals(l) && a.cloze) continue; // a cloze gap doesn't read as a comment
+            if ("comment".equals(l) && a.context.length() + a.questionMain.length() > COMMENT_MAX) continue; // comments are short: not a clinical vignette
             out.add(l);
         }
         return out;
@@ -102,10 +108,83 @@ public final class AnswerShape {
     static final Pattern STEP_NUMBER = Pattern.compile("(^|\\s)(\\d{1,2})[.)]\\s+");
     static final Pattern COMMAND = Pattern.compile("^(explain|describe|suggest|compare|contrast|name|state|give|calculate|evaluate|define|outline|identify|predict|use|write|complete)\\b", Pattern.CASE_INSENSITIVE);
 
+    static final Pattern TABLE = Pattern.compile("<table[^>]*>(.*?)</table>", Pattern.CASE_INSENSITIVE | Pattern.DOTALL);
+    static final Pattern ROW = Pattern.compile("<tr[^>]*>", Pattern.CASE_INSENSITIVE);
+    static final Pattern CELL = Pattern.compile("<t([dh])(?:\\s[^>]*)?>(.*?)</t[dh]>", Pattern.CASE_INSENSITIVE | Pattern.DOTALL);
+    static final String CELLSPACE = "[ \\t\\r\\n\\u00a0\\u2000-\\u200a\\u202f\\u205f\\u3000]+";
+
+    /**
+     * A table becomes one line per row, each value labelled with its column's header when there is one
+     * ("Ferritin: Iron deficiency ↓, Chronic disease ↑"; with one value column just "Warfarin: VKOR"), so a row can be a point to mark.
+     */
+    public static String tableLines(String t) {
+        java.util.regex.Matcher m = TABLE.matcher(t);
+        StringBuffer out = new StringBuffer();
+        while (m.find()) {
+            List<List<String[]>> rows = new ArrayList<>(); // cells as {"h" or "d", text}
+            String[] parts = ROW.split(m.group(1), -1);
+            for (int i = 1; i < parts.length; i++) {
+                List<String[]> cells = new ArrayList<>();
+                java.util.regex.Matcher c = CELL.matcher(parts[i]);
+                boolean any = false;
+                while (c.find()) {
+                    String v = c.group(2).replaceAll("(?i)<\\s*br\\s*/?>", " ").replaceAll("<[^>]+>", "").replace("&nbsp;", " ").replaceAll(CELLSPACE, " ").trim();
+                    cells.add(new String[]{c.group(1).toLowerCase(Locale.UK), v});
+                    if (!v.isEmpty()) any = true;
+                }
+                if (any) rows.add(cells);
+            }
+            StringBuilder b = new StringBuilder();
+            if (!rows.isEmpty()) {
+                List<String> head = null;
+                List<String[]> first = rows.get(0);
+                boolean allTh = true;
+                for (String[] c : first) if (!"h".equals(c[0])) allTh = false;
+                if (rows.size() > 1 && first.size() > 1 && (allTh || first.get(0)[1].isEmpty())) {
+                    head = new ArrayList<>();
+                    for (String[] c : rows.remove(0)) head.add(c[1]);
+                }
+                b.append('\n');
+                for (int i = 0; i < rows.size(); i++) {
+                    List<String[]> row = rows.get(i);
+                    List<String> vals = new ArrayList<>();
+                    for (int j = 1; j < row.size(); j++) {
+                        String v = row.get(j)[1];
+                        if (v.isEmpty()) continue;
+                        vals.add(head != null && head.size() > 2 && j < head.size() && !head.get(j).isEmpty() ? head.get(j) + " " + v : v);
+                    }
+                    String label = row.get(0)[1];
+                    if (i > 0) b.append('\n');
+                    b.append(!label.isEmpty() && !vals.isEmpty() ? label + ": " + join(vals, ", ") : !label.isEmpty() ? label : join(vals, ", "));
+                }
+                b.append('\n');
+            }
+            m.appendReplacement(out, java.util.regex.Matcher.quoteReplacement(b.toString()));
+        }
+        m.appendTail(out);
+        return out.toString();
+    }
+
+    static final Pattern CASE_MATTERS = Pattern.compile("[a-z][A-Z]|\\b[A-Z][a-z]\\d*[+\\u2212-](?![a-z])|\\b[A-Z]\\d*[+\\u2212]");
+
+    /** Text whose capitals carry meaning (Na+, Ca2+, Cl−, NaCl, pH, mEq/L, IgG) isn't put in capitals by the bold looks. */
+    public static boolean caseMatters(String t) { return t != null && CASE_MATTERS.matcher(t).find(); }
+
+    /** Lines on one line: "Glycols; Oxoproline; L-lactate", but sentences just follow each other. */
+    public static String inline(String t) {
+        StringBuilder b = new StringBuilder();
+        for (String l : t.split("\n", -1)) {
+            if (b.length() == 0) { b.append(l); continue; }
+            char last = b.charAt(b.length() - 1);
+            b.append(".!?;:,".indexOf(last) >= 0 ? " " : "; ").append(l);
+        }
+        return b.toString();
+    }
+
     /** Anki/HTML card text -> plain lines. */
     public static String plainText(String t) {
         if (t == null) return "";
-        String s = t.replaceAll("(?i)<\\s*br\\s*/?>", "\n").replaceAll("(?i)</(?:li|p|div|h\\d)>", "\n").replaceAll("(?i)<li[^>]*>", "\n").replaceAll("<[^>]+>", "")
+        String s = tableLines(t).replaceAll("(?i)<\\s*br\\s*/?>", "\n").replaceAll("(?i)</(?:li|p|div|h\\d)>", "\n").replaceAll("(?i)<li[^>]*>", "\n").replaceAll("<[^>]+>", "")
                 .replace("&nbsp;", " ").replace("&lt;", "<").replace("&gt;", ">").replace("&quot;", "\"").replace("&#39;", "'").replace("&amp;", "&")
                 .replaceAll("[\\u00a0\\u2000-\\u200a\\u202f\\u205f\\u3000]", " ").replaceAll("[ \\t]+", " ");
         StringBuilder b = new StringBuilder();
@@ -176,7 +255,12 @@ public final class AnswerShape {
     }
 
     /** {context, question}: a long question split before its last question or command sentence(s). */
-    public static String[] splitQuestion(String q) {
+    public static String[] splitQuestion(String q) { return splitQuestion(q, false); }
+
+    static final Pattern GAP = Pattern.compile("\\[[^\\]]*\\]");
+
+    /** As above; a cloze card's question starts at or before the sentence with the gap, so the gap stays big. */
+    public static String[] splitQuestion(String q, boolean cloze) {
         String t = plainText(q).replace('\n', ' ');
         if (t.length() <= LONG_Q) return new String[]{"", t};
         String[] s = t.split(QSENTENCE, -1);
@@ -185,6 +269,9 @@ public final class AnswerShape {
         for (int k = s.length - 1; k >= 1; k--) {
             if (s[k].endsWith("?") || COMMAND.matcher(s[k]).find()) i = k;
             else if (k < s.length - 1) break;
+        }
+        if (cloze) {
+            for (int g = 0; g < i; g++) if (GAP.matcher(s[g]).find()) { i = g; break; }
         }
         String ctx = join(Arrays.asList(s).subList(0, i), " "), main = join(Arrays.asList(s).subList(i, s.length), " ");
         if (ctx.length() < 24 || main.length() < 10) return new String[]{"", t};
@@ -203,7 +290,7 @@ public final class AnswerShape {
             int i = -1;
             for (int k = 0; k < ws.length; k++) {
                 String bare = ws[k].replaceAll("[^\\p{L}\\p{N}]", "");
-                if (!bare.isEmpty() && !STOP.contains(bare.toLowerCase(Locale.UK))) { i = k; break; }
+                if (!bare.isEmpty() && !STOP.contains(bare.toLowerCase(Locale.UK)) && !ws[k].matches("\\(?\\d{1,2}[:.)]")) { i = k; break; }
             }
             if (i < 0) i = 0;
             int k = i + 1;

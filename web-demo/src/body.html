@@ -3,6 +3,7 @@
     <div>
       <h1>Reelcards <span>demo</span></h1>
       <p class="sub">The whole student journey in a browser, running the same engine as the Android app. Set up on the phone, then scroll: flashcard reels slip in between normal reels, styled for the app you're in (TikTok, Instagram or YouTube) and the things you watch. The panels explain every decision. The design lab at the bottom shows every card style side by side.</p>
+      <div class="install" id="install" hidden></div>
     </div>
     <div class="stats" id="stats"></div>
   </header>
@@ -94,12 +95,14 @@
   <section class="panel wide" aria-labelledby="h-lab">
     <h2 id="h-lab">Design lab <span class="note">· every layout, in the app and vibe you pick. These are the real card components the feed uses.</span></h2>
     <div class="labbar">
-      <label for="labCards" style="flex-direction:row;align-items:center;gap:6px">Cards <select id="labCards"><option value="short">Short answers</option><option value="long" selected>Long answers &amp; questions</option><option value="anki">Anki: cloze &amp; image occlusion</option></select></label>
+      <label for="labCards" style="flex-direction:row;align-items:center;gap:6px">Cards <select id="labCards"><option value="short">Short answers</option><option value="long" selected>Long answers &amp; questions</option><option value="anki">Anki: cloze &amp; image occlusion</option><option value="file" disabled id="labFileOpt">Your Anki file</option></select></label>
       <label for="labHost" style="flex-direction:row;align-items:center;gap:6px">App <select id="labHost"><option value="tiktok">TikTok</option><option value="instagram">Instagram Reels</option><option value="youtube">YouTube Shorts</option></select></label>
       <label for="labVibe" style="flex-direction:row;align-items:center;gap:6px">Vibe <select id="labVibe"><option value="">None</option></select></label>
       <label for="labState" style="flex-direction:row;align-items:center;gap:6px">State <select id="labState"><option value="q">Question</option><option value="a">Answer revealed</option><option value="part">Part marks</option><option value="liked">Knew it</option><option value="more">Caption opened (…more)</option><option value="hint">Hint</option></select></label>
       <label class="toggle" for="labNight"><input type="checkbox" id="labNight"> Night</label>
       <button class="btn" id="labShuffle">Shuffle looks</button>
+      <button class="btn" id="labOpen">Open an Anki file</button><input type="file" id="labFile" accept=".apkg,.colpkg" hidden>
+      <button class="btn" id="labMore" hidden>Next 8 cards</button>
     </div>
     <div class="lab" id="lab"></div>
   </section>

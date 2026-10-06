@@ -46,7 +46,9 @@ import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
+import com.reelcards.engine.AnswerShape;
 import com.reelcards.engine.CardScript;
+import com.reelcards.engine.CopyWriter;
 import com.reelcards.engine.Grade;
 import com.reelcards.engine.Occlusion;
 import com.reelcards.engine.Outcome;
@@ -590,7 +592,8 @@ final class CardView extends FrameLayout {
         return best;
     }
 
-    private boolean upper() { return "caption".equals(look) || "neon".equals(look); }
+    /** Bold looks shout in capitals, unless the capitals carry meaning (Na+, pH, mEq/L). Mirrors render.js. */
+    private boolean upper() { return ("caption".equals(look) || "neon".equals(look)) && !AnswerShape.caseMatters(s.question); }
 
     private Typeface questionFace() {
         switch (look) {
@@ -1131,7 +1134,7 @@ final class CardView extends FrameLayout {
         if (!compact()) addToBody(hook(s.hookLine));
         if (beat < s.beats.size() && !outcome.revealed && !hinted) {
             String raw = s.beats.get(beat);
-            boolean up = !"paper".equals(look) && !"clean".equals(look);
+            boolean up = !"paper".equals(look) && !"clean".equals(look) && !AnswerShape.caseMatters(s.question);
             String[] words = raw.split(" ");
             int hi = beat < s.beatHighlight.size() ? s.beatHighlight.get(beat) : -1;
             SpannableStringBuilder b = s.cloze ? gapped(raw, up, false) : new SpannableStringBuilder();
@@ -1685,9 +1688,10 @@ final class CardView extends FrameLayout {
         n.setEllipsize(TextUtils.TruncateAt.END);
         row.addView(n, new LinearLayout.LayoutParams(-2, -2, 0));
         if (pill) {
-            String deck = show.card.deck == null ? "Study" : show.card.deck.replaceFirst("^GCSE\\s+", "").split(":")[0];
-            TextView p = tv(deck, 12, filledPill ? 0xFF0F0F0F : 0xFFFFFFFF, bold());
+            TextView p = tv(CopyWriter.deckLabel(show.card.deck), 12, filledPill ? 0xFF0F0F0F : 0xFFFFFFFF, bold());
             p.setSingleLine(true);
+            p.setEllipsize(TextUtils.TruncateAt.END); // long deck names never run into the rail
+            p.setMaxWidth(u(120));
             p.setBackground(filledPill ? round(0xFFFFFFFF, u(99)) : Ui.outline(0x00000000, 0xFFFFFFFF, Math.max(1, Math.round(u(1.5f))), u(8)));
             p.setPadding(u(10), u(3), u(10), u(3));
             LinearLayout.LayoutParams pl = new LinearLayout.LayoutParams(-2, -2);

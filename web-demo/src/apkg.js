@@ -444,9 +444,19 @@ function entities(t){ // the few Anki's editor writes, and numeric ones (&#x27; 
   return t.replace(/&#(?:[xX]([0-9a-fA-F]{1,6})|([0-9]{1,7}));/g, (m, h, d) => { const cp = h ? parseInt(h, 16) : +d; return cp > 0 && cp <= 0x10FFFF && !(cp >= 0xD800 && cp <= 0xDFFF) ? String.fromCodePoint(cp) : m; })
     .replace(/&nbsp;/g, " ").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&amp;/g, "&"); }
 function images(html){ const out = []; let m; IMG_RE.lastIndex = 0; while ((m = IMG_RE.exec(html || ""))) { let n = entities(m[1]).trim(); try { n = decodeURIComponent(n); } catch (e) {} out.push(n); } return out; }
+/* A table becomes one line per row, values labelled with their column's header (the same as tableLines in
+   engine.js and AnswerShape.tableLines in Java; the cross-check compares them) */
+const CELLSPACE=/[ \t\r\n  -   　]+/g;
+function tableLines(t){return t.replace(/<table[^>]*>([\s\S]*?)<\/table>/gi,(m,body)=>{
+  const rows=body.split(/<tr[^>]*>/i).slice(1).map(row=>{const cells=[],re=/<t([dh])(?:\s[^>]*)?>([\s\S]*?)<\/t[dh]>/gi;let c;
+    while((c=re.exec(row)))cells.push({h:c[1].toLowerCase()==="h",v:c[2].replace(/<\s*br\s*\/?>/gi," ").replace(/<[^>]+>/g,"").replace(/&nbsp;/g," ").replace(CELLSPACE," ").trim()});return cells;}).filter(r=>r.some(c=>c.v));
+  if(!rows.length)return"";
+  const head=rows.length>1&&rows[0].length>1&&(rows[0].every(c=>c.h)||!rows[0][0].v)?rows.shift().map(c=>c.v):null;
+  return"\n"+rows.map(r=>{const vals=r.slice(1).map((c,j)=>!c.v?"":head&&head.length>2&&head[j+1]?head[j+1]+" "+c.v:c.v).filter(v=>v);
+    return r[0].v&&vals.length?r[0].v+": "+vals.join(", "):r[0].v||vals.join(", ");}).join("\n")+"\n";});}
 /* card text: HTML to plain lines, without images, sounds or scripts */
 function clean(html){
-  let t = String(html || "").replace(/<(script|style)[\s\S]*?<\/\1>/gi, " ").replace(/\[sound:[^\]]*\]/g, " ").replace(/<img[^>]*>/gi, " ")
+  let t = tableLines(String(html || "").replace(/<(script|style)[\s\S]*?<\/\1>/gi, " ").replace(/\[sound:[^\]]*\]/g, " ").replace(/<img[^>]*>/gi, " "))
     .replace(/<\s*br\s*\/?>/gi, "\n").replace(/<hr[^>]*>/gi, "\n").replace(/<\/(?:li|p|div|h\d|tr)>/gi, "\n").replace(/<li[^>]*>/gi, "\n").replace(/<[^>]+>/g, "");
   t = entities(t).replace(/[\u00a0\u2000-\u200a\u202f\u205f\u3000]/g, " ").replace(/[ \t]+/g, " ");
   return t.split("\n").map(x => x.trim()).filter(x => x).join("\n");
@@ -679,7 +689,7 @@ async function read(buf, opts){
       const pic = await picture(images(F.Image || "")[0]), svg = await media(images(ioeMask)[0]);
       const shapes = svg ? ioeShapes(new TextDecoder().decode(svg)) : [];
       if (pic && shapes.some(s => s.ord === 1 && s.kind !== "text")) {
-        const extra = ["Footer", "Remarks", "Extra 1", "Extra 2"].map(k => clean(F[k] || "")).filter(x => x).join(" ");
+        const extra = ["Footer", "Remarks", "Extra 1", "Extra 2"].map(k => clean(F[k] || "")).filter(x => x).join("\n");
         card = {f: clean(F.Header || "") || "Name the highlighted part", b: "", x: extra, img: pic.name, imgW: pic.w, imgH: pic.h, io: {target: 1, shapes}};
         stats.occlusion++;
       }
@@ -694,7 +704,7 @@ async function read(buf, opts){
       const answers = got.map(clean).filter(x => x);
       if (answers.length && hasText(qHtml)) {
         const pic = await picture(images(qHtml)[0]);
-        card = {f: clean(qHtml), b: answers.filter((v, i) => answers.indexOf(v) === i).join("; "), x: [full].concat(extra).filter(x => x).join(" "), img: pic ? pic.name : null, imgW: pic ? pic.w : 0, imgH: pic ? pic.h : 0, cloze: true,
+        card = {f: clean(qHtml), b: answers.filter((v, i) => answers.indexOf(v) === i).join("; "), x: [full].concat(extra).filter(x => x).join("\n"), img: pic ? pic.name : null, imgW: pic ? pic.w : 0, imgH: pic ? pic.h : 0, cloze: true,
           snd: await sound(sounds(qHtml)[0])};
         stats.cloze++;
       }
@@ -707,7 +717,7 @@ async function read(buf, opts){
         const aFields = [];
         fieldRefs(t.a).forEach(r => { if (r.field !== "FrontSide" && qRefs.indexOf(r.field) < 0 && aFields.indexOf(r.field) < 0 && F[r.field] != null && (hasText(F[r.field]) || /<img/i.test(F[r.field]))) aFields.push(r.field); });
         let bHtml, xText = "";
-        if (aFields.length) { bHtml = F[aFields[0]]; xText = aFields.slice(1).map(f => clean(F[f])).filter(x => x).join(" "); }
+        if (aFields.length) { bHtml = F[aFields[0]]; xText = aFields.slice(1).map(f => clean(F[f])).filter(x => x).join("\n"); }
         else {
           let a = renderTpl(t.a, F, Object.assign({side: "a", front: ""}, ctx));
           const i = a.search(/<hr[^>]*id\s*=\s*["']?answer/i);

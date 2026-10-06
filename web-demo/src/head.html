@@ -4,6 +4,14 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Reelcards Engine</title>
+<meta name="theme-color" content="#0f1014">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Reelcards">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Bricolage+Grotesque:wght@400;600;800&family=Caveat:wght@600;700&family=Fraunces:opsz,wght@9..144,500;9..144,700&family=JetBrains+Mono:wght@400;600&family=Roboto:wght@400;500;700;900&family=TikTok+Sans:wght@400;600;800;900&display=swap">
 <style>
@@ -234,6 +242,7 @@ input[type=text]{width:100%;min-height:42px;border-radius:12px;border:1px solid 
 .card .ans .a2{font-size:calc(14.5px * var(--fit,1));line-height:1.35;font-weight:500}
 
 /* captions: auto-caption beats, one at a time */
+.card .q.keepcase,.card .beat.keepcase{text-transform:none} /* Na+, pH, mEq/L keep their capitals (RC.caseMatters) */
 .card .beat{font-family:var(--hf);font-weight:900;font-size:40px;line-height:1.02;text-transform:uppercase;text-align:center;align-self:center;margin-top:14%;
   text-shadow:0 0 1px #000,3px 3px 0 #000,-3px 3px 0 #000,3px -3px 0 #000,-3px -3px 0 #000;animation:beat .18s ease-out}
 .card .beat em{font-style:normal;color:var(--acc)}
@@ -287,7 +296,8 @@ input[type=text]{width:100%;min-height:42px;border-radius:12px;border:1px solid 
    A long question's set-up sits in a quoted box. The fit pass (data-fit) shrinks everything a step
    at a time if the content would spill out of the safe zone. */
 .card[data-fit="1"]{--fit:.92}.card[data-fit="2"]{--fit:.84}.card[data-fit="3"]{--fit:.76}.card[data-fit="4"]{--fit:.68}.card[data-fit="5"]{--fit:.6}
-.card .ctx{font-size:calc(15px * var(--fit,1));line-height:1.32;font-weight:600;padding:8px 12px;border-left:3px solid var(--acc);background:var(--panel);border-radius:4px 12px 12px 4px;
+/* the clamp clips at the padding edge, so the vertical space is transparent border: no half line shows under the last one */
+.card .ctx{font-size:calc(15px * var(--fit,1));line-height:1.32;font-weight:600;padding:0 12px;border:8px solid transparent;border-left:3px solid var(--acc);border-right:0;background:var(--panel);border-radius:4px 12px 12px 4px;
   display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:6;overflow:hidden;flex-shrink:0}
 .card.rv.mp .ctx{-webkit-line-clamp:1;opacity:.8}
 .card.sheet .ctx{background:rgba(127,127,127,.12)}
@@ -381,7 +391,7 @@ input[type=text]{width:100%;min-height:42px;border-radius:12px;border:1px solid 
 .card .band .who{display:flex;align-items:center;gap:8px;font-weight:800;font-size:15px}
 .card .band .who .dot{width:28px;height:28px;border-radius:50%;background:var(--acc);color:var(--accfg);display:none;align-items:center;justify-content:center;font-size:12px;font-weight:900}
 .card.h-instagram .band .who .dot,.card.h-youtube .band .who .dot{display:flex}
-.card .band .pill{font-size:12px;font-weight:700;padding:3px 10px;border-radius:8px;border:1.5px solid currentColor;display:none}
+.card .band .pill{font-size:12px;font-weight:700;padding:3px 10px;border-radius:8px;border:1.5px solid currentColor;display:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:42%;vertical-align:middle}
 .card.h-instagram .band .pill{display:inline-block}
 .card.h-youtube .band .pill{display:inline-block;background:#fff;color:#0f0f0f;border-color:#fff;border-radius:999px;text-shadow:none}
 .card .band .sound{display:flex;align-items:center;gap:6px;font-size:12.5px;opacity:.95;white-space:nowrap;overflow:hidden}
@@ -441,6 +451,20 @@ input[type=text]{width:100%;min-height:42px;border-radius:12px;border:1px solid 
 @keyframes drift{to{background-position:0 90px,0 -70px,0 0}}
 @keyframes pan{to{background-position:80px 0}}
 @media (prefers-reduced-motion:reduce){.screen.enter,.card *,.card .bgl,.card .bgl::after{animation:none!important;transition:none!important}}
+/* Add to Home Screen: the offer on the page, and the app itself (opened from the home screen, or ?app=1):
+   just the phone, filling the screen, with nothing of the demo around it */
+.install{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;margin-top:10px;padding:10px 12px;background:var(--panel);border:1px solid var(--line);border-radius:12px;max-width:68ch}
+.install[hidden]{display:none}
+.install p{margin:0;flex:1 1 220px;font-size:13px}
+.install b{color:var(--accent)}
+.install .btn{min-height:40px;padding:8px 14px}
+html.appmode,html.appmode body{height:100%;overflow:hidden;overscroll-behavior:none}
+html.appmode body{margin:0;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
+html.appmode .wrap{max-width:none;height:100%;gap:0}
+html.appmode header,html.appmode .panels,html.appmode #h-lab,html.appmode .wrap>section,html.appmode .phonecol>:not(.phone):not(input){display:none}
+html.appmode .main{display:block;height:100%}
+html.appmode .phonecol{position:static;height:100%;gap:0}
+html.appmode .phone{width:100%;max-width:none;height:100%;aspect-ratio:auto;border:0;border-radius:0;box-shadow:none}
 </style>
 </head>
 <body>
