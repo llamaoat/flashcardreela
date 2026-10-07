@@ -1,6 +1,6 @@
 # Privacy
 
-*Last updated: 5 October 2026. Applies to the Reelcards Android app and the web demo.*
+*Last updated: 7 October 2026. Applies to the Reelcards Android app, the web demo and the browser extension.*
 
 Reelcards is built for school students, so it's built to know as little as possible.
 
@@ -60,6 +60,18 @@ Loading the page itself does go over the internet: the site is hosted by GitHub 
 Google Fonts for its fonts, so like any website, they see your device's IP address when it loads. Neither
 sees your cards. After the first visit, the page can also open from a copy kept on your device, with no
 signal.
+
+## The browser extension
+
+The extension runs on TikTok, Instagram, YouTube and X (twitter.com) in your browser. To tell one
+short video from the next, it looks at the size and position of the video players on the page and, on
+YouTube and Instagram, at the page address. It doesn't read text, comments or names on the page, and
+doesn't keep a record of the videos or addresses. It pauses the playing video while a card is up and
+plays it again afterwards.
+
+Your cards, their schedule, your settings and daily counts are kept in the browser's storage for
+extensions, on that computer. The extension doesn't send anything anywhere: it has no server and no
+analytics. *Reset everything* in its popup, or removing the extension, deletes it all.
 
 ## Other apps
 

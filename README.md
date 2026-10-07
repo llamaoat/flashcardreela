@@ -30,6 +30,8 @@
 
 **No Android phone?** Open [`web-demo/index.html`](web-demo/index.html) in any browser (or turn on GitHub Pages; the workflow is included). It runs the same engine, ported to JavaScript, through the whole setup → feed → dashboard journey, with the engine's reasoning shown alongside and a design lab of every card style.
 
+**On a computer:** the browser extension in [`extension/`](extension/) puts your cards between videos on TikTok, Instagram Reels, YouTube Shorts and X in Chrome or Edge ([how to install it](extension/README.md)).
+
 **On an iPhone (or any phone):** open the web demo from GitHub Pages and add it to the home screen (Safari: Share → *Add to Home Screen*; Chrome on Android offers an *Add to home screen* button on the page). It then opens full screen as just the phone part, with no demo panels, and works without signal. It can't put cards between real TikTok reels (only the Android app can), and it keeps your cards and progress in the browser on that device (nothing is sent anywhere; *Reset everything* clears it).
 
 **No permission? No problem.** The **Practice feed** inside the app is a pretend reel feed that uses the exact same engine, cards and designs. Good for demos with no Wi-Fi and no TikTok.
