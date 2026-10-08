@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<title>Reelcards</title>
+<style>
+:root{color-scheme:dark;--bg:#0f1014;--panel:#17181e;--line:#2a2c37;--text:#ecebe6;--muted:#9c9ca9;--acc:#ffe14d}
+body{margin:0;width:360px;background:var(--bg);color:var(--text);font:14px/1.4 system-ui,-apple-system,"Segoe UI",sans-serif}
+body.tab{width:auto;max-width:520px;margin:0 auto}
+main{padding:14px 16px 18px;display:flex;flex-direction:column;gap:12px}
+h1{margin:0;font-size:20px;letter-spacing:.2px}h1 span{color:var(--acc)}
+h2{margin:0 0 6px;font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+section{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px 12px}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;text-align:center}
+.stats b{display:block;font-size:18px}.stats small{color:var(--muted);font-size:11px}
+label.row{display:flex;gap:8px;align-items:center;padding:3px 0}
+select,textarea,input[type=text]{width:100%;box-sizing:border-box;background:#0f1014;color:var(--text);border:1px solid var(--line);border-radius:8px;padding:6px 8px;font:inherit}
+textarea{height:80px;resize:vertical}
+button{font:700 13px system-ui,sans-serif;border:0;border-radius:999px;padding:8px 14px;cursor:pointer;background:#2a2a30;color:var(--text)}
+button.primary{background:var(--acc);color:#141208}
+.btns{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chips label{border:1px solid var(--line);border-radius:999px;padding:4px 10px;font-size:12.5px;cursor:pointer}
+.chips input{display:none}.chips label:has(input:checked){background:var(--acc);color:#141208;border-color:var(--acc)}
+.muted{color:var(--muted);font-size:12.5px;margin:4px 0 0}
+.msg{font-size:12.5px;color:var(--acc);min-height:1em;margin:6px 0 0}
+a{color:var(--acc)}
+</style>
+</head>
+<body>
+<main>
+  <h1>Reel<span>cards</span></h1>
+  <p class="muted" style="margin:0">Your flashcards slip in between videos on TikTok, Instagram Reels, YouTube Shorts and X.</p>
+
+  <section>
+    <div class="stats" id="stats"></div>
+    <div class="btns"><button class="primary" id="test">Show a test card on this tab</button><button id="pause"></button></div>
+    <p class="msg" id="testMsg"></p>
+  </section>
+
+  <section>
+    <h2>Ready-made decks</h2>
+    <div id="decks"></div>
+  </section>
+
+  <section>
+    <h2>Your own cards</h2>
+    <textarea id="notes" placeholder="Paste notes, one fact a line: Osmosis - diffusion of water through a partially permeable membrane"></textarea>
+    <input type="text" id="notesDeck" placeholder="Deck name (optional)" style="margin-top:6px">
+    <div class="btns"><button id="makeCards">Make cards</button><button id="copyPrompt">Copy the AI prompt</button></div>
+    <p class="muted">Anki file (.apkg or .colpkg, pictures included): <input type="file" id="apkg" accept=".apkg,.colpkg"></p>
+    <p class="muted" id="tabTip">If the file picker closes this popup, <a href="#" id="openTab">open Reelcards in a tab</a>.</p>
+    <p class="msg" id="cardsMsg"></p>
+  </section>
+
+  <section>
+    <h2>Your exam and your feed</h2>
+    <label>Exam <select id="exam"><option value="7">In 1 week</option><option value="14">In 2 weeks</option><option value="30">In about a month</option><option value="90">In about 3 months</option><option value="0">No exam yet</option></select></label>
+    <label style="display:block;margin-top:8px">How often <select id="intensity"><option value="chill">Chill</option><option value="normal">Normal</option><option value="cram">Cram</option><option value="demo">Demo (a card every 2 videos)</option></select></label>
+    <h2 style="margin-top:10px">Things you watch</h2>
+    <div class="chips" id="vibes"></div>
+  </section>
+
+  <section>
+    <h2>Your cards</h2>
+    <div id="mine" class="muted">No cards yet.</div>
+    <div class="btns"><button id="reset">Reset everything</button></div>
+  </section>
+
+  <p class="muted">Nothing leaves your browser: no account, no tracking. <a href="https://llamaoat.github.io/flashcardreela/privacy.html" target="_blank" rel="noopener">Privacy</a></p>
+</main>
+<script src="lib/engine.js"></script>
+<script src="lib/apkg.js"></script>
+<script src="lib/decks.js"></script>
+<script src="lib/notes.js"></script>
+<script src="state.js"></script>
+<script src="popup.js"></script>
+</body>
+</html>

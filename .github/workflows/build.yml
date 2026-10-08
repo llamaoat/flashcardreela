@@ -32,6 +32,16 @@ jobs:
       - name: Java engine vs JavaScript port (web demo)
         run: tools/crosscheck/run.sh
 
+      - name: Browser extension is in step with the web demo
+        run: |
+          python3 tools/build-extension.py
+          git diff --exit-code -- extension/lib || { echo "::error::extension/lib is out of date: run python3 tools/build-extension.py"; exit 1; }
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Reelcards-extension
+          path: extension/
+
       - name: Build APK
         run: ./gradlew :app:assembleDebug --no-daemon
 

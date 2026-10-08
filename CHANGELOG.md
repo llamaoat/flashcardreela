@@ -1,6 +1,11 @@
 # Changelog
 
-## Unreleased
+## 1.3.0: browser extension, home-screen web app, dense decks
+
+**Browser extension** (`extension/`)
+- Cards between videos on TikTok, Instagram Reels, YouTube Shorts and X in Chrome and Edge: the same
+  engine and card designs, drawn like each site's reels. Click for the answer, double-click if you knew
+  it, scroll on to skip. A popup to pick decks, paste notes or open an Anki file, pictures, sounds and image occlusion included.
 
 **Dense decks** (tried with a USMLE Step 1-style deck made by Anki itself: `tools/usmle-deck.py`)
 - Tables in Anki cards are read row by row, each value labelled with its column ("Ferritin: Iron
