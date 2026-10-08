@@ -81,11 +81,17 @@ function unmount(){ removeEventListener("wheel", onWheel, {capture:true}); remov
 function scale(){ if (!root) return; const k = Math.min((innerHeight - 70) / 740, (innerWidth - 20) / 360, 1.25); root.querySelector(".frame").style.setProperty("--k", k.toFixed(3)); }
 
 function show(sh){
+  // an Anki card's pictures and sounds live in storage: look them up first
+  const keys = RCState.MEDIA.map(k => sh.s[k]).filter(Boolean);
+  if (keys.length && !sh.mediaReady) { RCState.media(keys).then(m => { RCState.MEDIA.forEach(k => { if (sh.s[k]) sh.s[k] = m[sh.s[k]] || null; }); sh.mediaReady = true; show(sh); }); return; }
   pauseVideos();
   cur = Object.assign({kind:"card", revealed:false, liked:false, likedBefore:false, pick:-1, saved:false, hinted:false, beat:0, count:null, got:[], moreOpen:false, settled:false, shownAt:performance.now()}, sh);
   if (meta.coachLeft > 0) { cur.coach = true; meta.coachLeft--; }
   mount(); draw();
+  if (cur.s.snd) play(cur.s.snd);
 }
+let sound = null;
+function play(url){ if (sound) sound.pause(); sound = null; if (!url) return; sound = new Audio(url); sound.play().catch(() => {}); }
 function draw(){
   if (!root || !cur) return;
   clearTimers();
@@ -100,6 +106,7 @@ function done(){
   E.onCardFinished(it, {revealed:it.revealed, liked:it.liked, likedBefore:it.likedBefore, pick:it.pick, likeAt:it.likeAt||0, pickAt:it.pickAt||0, hintAt:it.hintAt||0,
     saved:!!it.saved, shared:!!it.shared, got:(it.got||[]).filter(Boolean).length, dwell:performance.now()-it.shownAt}, now());
   clearTimeout(saveTimer); RCState.save(E, meta).then(() => { dirty = false; }); // straight away: the tab may close next
+  if (sound) { sound.pause(); sound = null; }
   unmount(); resumeVideos();
 }
 
@@ -121,6 +128,7 @@ function reveal(){
   if (it.revealed) { if (!it.settled) { it.settled = true; draw(); } return; }
   if (it.f.layout === "quiz" && it.s.correct >= 0) return;
   it.revealed = true; it.revealAt = el(); draw();
+  if (it.s.asnd) play(it.s.asnd);
   timers.push(setTimeout(() => { if (cur === it) it.settled = true; }, Render.ptDelays(it.s).pop() + 600));
 }
 function like(){
@@ -145,6 +153,7 @@ function onClick(e){
     switch (a) {
       case "like": like(); return;
       case "reveal": reveal(); return;
+      case "sound": play(v === "a" ? it.s.asnd : it.s.snd); return;
       case "tick": if (!it.settled && parseFloat(getComputedStyle(b).opacity) < .99) { it.settled = true; draw(); return; } tick(+v); return;
       case "more": it.moreOpen = !it.moreOpen; it.settled = true; draw(); return;
       case "pick": if (it.pick < 0) { it.pick = +v; it.pickAt = el(); it.revealed = true; draw(); } return;

@@ -44,8 +44,9 @@ The popup shows what you've done today and what's due, and *Reset everything* cl
 
 ## Limits
 
-- **Text cards only for now.** Anki cards whose question needs a picture or a sound (including image
-  occlusion) are left out, and the popup says how many.
+- **Pictures and sounds** from Anki files are kept in the extension's storage. A site with a strict
+  content policy could block them; it hasn't happened on the stand-in pages, but report it if a picture
+  shows blank.
 - **Sites change their pages.** Detection relies on how each site lays out its videos, which they can
   change at any time. It has been tested on stand-in pages that behave like each feed, not on the live
   sites (this project's test machines can't reach them), so try it and report what breaks.

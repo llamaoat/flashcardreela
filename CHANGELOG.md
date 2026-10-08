@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.3.0: browser extension, home-screen web app, dense decks
 
 **Browser extension** (`extension/`)
 - Cards between videos on TikTok, Instagram Reels, YouTube Shorts and X in Chrome and Edge: the same

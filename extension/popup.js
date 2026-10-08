@@ -9,7 +9,9 @@ const deckCards = name => DECKS[name].map((r,i) => makeCard(PRE[name]+"-"+(i+1),
 let E, meta;
 if (location.hash === "#tab") document.body.classList.add("tab"), $("tabTip").hidden = true;
 
-function save(){ meta.onboarded = E.cards.length > 0; return RCState.save(E, meta).then(draw); }
+function save(){ meta.onboarded = E.cards.length > 0; return RCState.save(E, meta).then(() => { RCState.cleanMedia(E); draw(); }); }
+const MIME = {png:"image/png", jpeg:"image/jpeg", gif:"image/gif", webp:"image/webp", bmp:"image/bmp", mp3:"audio/mpeg", ogg:"audio/ogg", m4a:"audio/mp4", wav:"audio/wav", flac:"audio/flac"};
+function dataUrl(bytes, type){ let s = ""; for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000)); return "data:" + type + ";base64," + btoa(s); }
 function draw(){
   const t = Date.now(), k = E.dk(t), d = E.day(k), due = E.cards.filter(c => c.state !== RC.NEW && c.due <= t).length;
   $("stats").innerHTML = [[d.reviews,"done today"],[due,"due now"],[E.cards.length,"cards"]].map(x => '<div><b>'+x[0]+'</b><small>'+x[1]+'</small></div>').join("");
@@ -52,13 +54,20 @@ $("apkg").onchange = e => {
   const f = e.target.files && e.target.files[0]; if (!f) return;
   $("cardsMsg").textContent = "Reading " + f.name + "…";
   f.arrayBuffer().then(b => Apkg.read(new Uint8Array(b), {name: f.name, now: Date.now()})).then(r => {
-    // text cards only for now: a card whose question needs a picture or a sound stays in Anki
-    const ok = r.cards.filter(c => !c.img && !c.io && !c.snd);
-    const cards = ok.map(c => { const m = makeCard(c.id, c.deck, c.f, c.b, c.x); m.cloze = !!c.cloze;
+    // pictures and sounds are stored once each, under a key for this file; cards point at the key
+    const store = {}, key = (n, bytes, type) => { if (!n || !bytes) return null; const k = "media:" + f.name + ":" + n; if (!store[k]) store[k] = dataUrl(bytes, type); return k; };
+    const pic = n => { const by = r.images[n]; const t = by && Apkg.imageSize(by); return key(n, by, MIME[t && t.type] || "image/png"); };
+    const snd = n => { const by = r.sounds[n]; return key(n, by, MIME[by && Apkg.audioType(by)] || "audio/mpeg"); };
+    const cards = r.cards.map(c => { const m = makeCard(c.id, c.deck, c.f, c.b, c.x); m.cloze = !!c.cloze; m.io = c.io || null;
+      Object.assign(m, {img: c.img ? pic(c.img) : null, aimg: c.aimg ? pic(c.aimg) : null, snd: c.snd ? snd(c.snd) : null, asnd: c.asnd ? snd(c.asnd) : null,
+        imgW: c.imgW || 0, imgH: c.imgH || 0, aimgW: c.aimgW || 0, aimgH: c.aimgH || 0});
       if (c.state === "review") Object.assign(m, {state: RC.REVIEW, s: c.s, d: c.d, due: c.due, last: c.last, reps: c.reps, lapses: c.lapses}); return m; });
-    const n = E.addCards(cards), left = r.cards.length - ok.length;
-    $("cardsMsg").textContent = n + " cards from " + f.name + "." + (left ? " " + left + " need a picture or sound, which the extension can't show yet." : "");
-    save();
+    const media = Object.keys(store).length;
+    return RCState.putMedia(store).then(() => {
+      const n = E.addCards(cards);
+      $("cardsMsg").textContent = n + " cards from " + f.name + "." + (media ? " " + media + " pictures and sounds kept." : "");
+      save();
+    });
   }).catch(err => { $("cardsMsg").textContent = "Couldn't read that file: " + err.message; });
 };
 $("test").onclick = () => {
