@@ -29,6 +29,16 @@ function fromJSON(st){
 }
 function load(){ return new Promise(ok => chrome.storage.local.get(KEY, r => ok(fromJSON(r && r[KEY])))); }
 function save(E, meta){ return new Promise(ok => chrome.storage.local.set({[KEY]: toJSON(E, meta)}, ok)); }
+/* Read the newest save, change it, save it straight away. Every tab and the popup changes progress this
+   way, so one tab never writes back an old copy over what another just recorded. Changes in this page
+   run one at a time; between tabs, only a change made in the same few milliseconds could still clash. */
+let queue = Promise.resolve();
+function update(fn){
+  const step = queue.then(() => new Promise(ok => chrome.storage.local.get(KEY, r => ok(fromJSON(r && r[KEY])))))
+    .then(st => { const out = fn(st.E, st.meta); return save(st.E, st.meta).then(() => ({E: st.E, meta: st.meta, out})); });
+  queue = step.catch(() => {});
+  return step;
+}
 function clear(){ return new Promise(ok => chrome.storage.local.clear(ok)); }
 const MEDIA = ["img","aimg","snd","asnd"];
 /* key -> data: URL for the given media keys */
@@ -41,5 +51,5 @@ function cleanMedia(E){
 }
 /* calls back when another page (the popup, another tab) saves */
 function onChange(fn){ chrome.storage.onChanged.addListener((ch, area) => { if (area === "local" && ch[KEY]) fn(); }); }
-return {load, save, clear, onChange, fromJSON, toJSON, KEY, MEDIA, media, putMedia, cleanMedia};
+return {load, save, update, clear, onChange, fromJSON, toJSON, KEY, MEDIA, media, putMedia, cleanMedia};
 })();

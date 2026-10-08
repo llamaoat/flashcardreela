@@ -28,6 +28,8 @@ function draw(){
 function setExam(){ meta.exam = +$("exam").value; E.settings.examDate = meta.exam ? Date.now() + meta.exam*DAY : 0; }
 
 RCState.load().then(r => { E = r.E; meta = r.meta; if (meta.firstDay == null) meta.firstDay = E.dk(Date.now()); draw(); });
+// a tab finished a card: show the new numbers, and change the newest copy next time
+RCState.onChange(() => RCState.load().then(r => { E = r.E; meta = r.meta; draw(); }));
 
 $("decks").addEventListener("change", e => {
   const n = e.target.dataset.deck; if (!n) return;
