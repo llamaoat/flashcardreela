@@ -193,7 +193,7 @@ probability, and answer faster when they know it well. Three engine versions fac
 | Engine version | Skipped | Engaged cards / day | Modelled exam-day recall |
 |---|---|---|---|
 | Baseline: random looks, fixed rhythm | 66% | 24 | 17% |
-| + adaptive looks | 57% | 35 | 25% |
+| + adaptive looks | 56% | 35 | 25% |
 | Full: + learned rhythm, natural breaks | 51% | 38 | 27% |
 
 Recall is averaged over the whole 600-card deck, including cards never reached at 1 hour a day.

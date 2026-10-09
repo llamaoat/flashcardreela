@@ -123,7 +123,7 @@ More, including screenshots for each app: **[docs/DESIGN.md](docs/DESIGN.md)**.
 | Engine version | Cards skipped | Cards engaged with per day | Modelled exam-day recall |
 |---|---|---|---|
 | Baseline: random looks, fixed rhythm | 66% | 24 | 17% |
-| + adaptive looks | 57% | 35 | 25% |
+| + adaptive looks | 56% | 35 | 25% |
 | Full: + learned rhythm and natural breaks | **51%** | **38** | **27%** |
 
 These are averages over four student types at 1 hour and 3.5 hours of reels a day. For a heavy scroller (3.5 h a day) with a taste in formats, the full engine gets 58–68 cards engaged with per day and 43–47% modelled exam-day recall on the whole 600-card deck. For a student with no format preference, adaptive looks make almost no difference, as expected.
