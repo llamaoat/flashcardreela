@@ -224,3 +224,10 @@ All bundled under the SIL Open Font License, with licence files in
 [`app/src/main/assets/fonts`](../app/src/main/assets/fonts): TikTok Sans
 ([announcement](https://developers.tiktok.com/blog/tiktok-sans-open-source)), Anton, Fraunces and Caveat.
 They're cut down to Latin characters and the weights the cards use (about 430 KB in total).
+
+The app's own screens (setup, dashboard, practice feed, the extension popup and the web demo's
+app) use **Schibsted Grotesk** for text and buttons and **Newsreader** for page titles, also OFL
+and cut to Latin (about 315 KB). They stand in for the Timeless type family, which was the feel
+we wanted but whose licence forbids putting the files in a public repository. Cards keep their
+host-matched faces so they still pass as reels. The widget uses the system font: launchers draw
+it, and custom fonts there need Android 12+.

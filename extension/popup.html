@@ -5,10 +5,14 @@
 <title>Reelcards</title>
 <style>
 :root{color-scheme:dark;--bg:#0f1014;--panel:#17181e;--line:#2a2c37;--text:#ecebe6;--muted:#9c9ca9;--acc:#ffe14d}
-body{margin:0;width:360px;background:var(--bg);color:var(--text);font:14px/1.4 system-ui,-apple-system,"Segoe UI",sans-serif}
+@font-face{font-family:"Schibsted Grotesk";font-weight:400;src:url(fonts/SchibstedGrotesk-Regular.ttf)}
+@font-face{font-family:"Schibsted Grotesk";font-weight:500;src:url(fonts/SchibstedGrotesk-Medium.ttf)}
+@font-face{font-family:"Schibsted Grotesk";font-weight:700 900;src:url(fonts/SchibstedGrotesk-Black.ttf)}
+@font-face{font-family:"Newsreader";font-weight:500;src:url(fonts/Newsreader-Medium.ttf)}
+body{margin:0;width:360px;background:var(--bg);color:var(--text);font:14px/1.4 "Schibsted Grotesk",system-ui,sans-serif}
 body.tab{width:auto;max-width:520px;margin:0 auto}
 main{padding:14px 16px 18px;display:flex;flex-direction:column;gap:12px}
-h1{margin:0;font-size:20px;letter-spacing:.2px}h1 span{color:var(--acc)}
+h1{margin:0;font:500 24px/1.1 "Newsreader",Georgia,serif;letter-spacing:-.2px}h1 span{color:var(--acc)}
 h2{margin:0 0 6px;font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
 section{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px 12px}
 .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;text-align:center}
@@ -16,7 +20,7 @@ section{background:var(--panel);border:1px solid var(--line);border-radius:12px;
 label.row{display:flex;gap:8px;align-items:center;padding:3px 0}
 select,textarea,input[type=text]{width:100%;box-sizing:border-box;background:#0f1014;color:var(--text);border:1px solid var(--line);border-radius:8px;padding:6px 8px;font:inherit}
 textarea{height:80px;resize:vertical}
-button{font:700 13px system-ui,sans-serif;border:0;border-radius:999px;padding:8px 14px;cursor:pointer;background:#2a2a30;color:var(--text)}
+button{font:800 13px "Schibsted Grotesk",system-ui,sans-serif;border:0;border-radius:999px;padding:8px 14px;cursor:pointer;background:#2a2a30;color:var(--text)}
 button.primary{background:var(--acc);color:#141208}
 .btns{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
 .chips{display:flex;flex-wrap:wrap;gap:6px}

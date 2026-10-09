@@ -31,7 +31,7 @@ final class Fonts {
 
     /** Heaviest weight of the host's caption face: questions, captions, key words. */
     static Typeface hostBlack(Context c, String host) {
-        if ("tiktok".equals(host)) return asset(c, "TikTokSans-Black.ttf", Ui.DISPLAY);
+        if ("tiktok".equals(host)) return asset(c, "TikTokSans-Black.ttf", Typeface.create("sans-serif-black", Typeface.NORMAL));
         return Typeface.create("sans-serif-black", Typeface.NORMAL);
     }
 

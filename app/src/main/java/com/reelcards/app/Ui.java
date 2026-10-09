@@ -36,10 +36,25 @@ final class Ui {
     static final int BAD = 0xFFFF5A76;
     static final int WARN = 0xFFFFB547;
 
-    static final Typeface DISPLAY = Typeface.create("sans-serif-black", Typeface.NORMAL);
-    static final Typeface BODY = Typeface.create("sans-serif", Typeface.NORMAL);
-    static final Typeface MEDIUM = Typeface.create("sans-serif-medium", Typeface.NORMAL);
+    // The app's own screens: Schibsted Grotesk, with Newsreader for page titles (both OFL, in
+    // assets/fonts). Cards keep their host-matched faces (Fonts). Set by fonts(); system faces until then.
+    static Typeface DISPLAY = Typeface.create("sans-serif-black", Typeface.NORMAL);
+    static Typeface BODY = Typeface.create("sans-serif", Typeface.NORMAL);
+    static Typeface MEDIUM = Typeface.create("sans-serif-medium", Typeface.NORMAL);
+    static Typeface SERIF = Typeface.create("serif", Typeface.NORMAL);
     static final Typeface MONO = Typeface.create("monospace", Typeface.NORMAL);
+
+    static void fonts(Context c) {
+        DISPLAY = face(c, "SchibstedGrotesk-Black.ttf", DISPLAY);
+        BODY = face(c, "SchibstedGrotesk-Regular.ttf", BODY);
+        MEDIUM = face(c, "SchibstedGrotesk-Medium.ttf", MEDIUM);
+        SERIF = face(c, "Newsreader-Medium.ttf", SERIF);
+    }
+
+    private static Typeface face(Context c, String file, Typeface fallback) {
+        try { return Typeface.createFromAsset(c.getAssets(), "fonts/" + file); }
+        catch (RuntimeException e) { return fallback; }
+    }
 
     interface PictureLoaded { void loaded(Bitmap b); }
 
@@ -107,9 +122,9 @@ final class Ui {
     }
 
     static TextView title(Context c, String s) {
-        TextView t = text(c, s.toUpperCase(java.util.Locale.UK), 30, TEXT, DISPLAY);
-        t.setLetterSpacing(0.01f);
-        t.setLineSpacing(0, 1.0f);
+        TextView t = text(c, s, 32, TEXT, SERIF);
+        t.setLetterSpacing(-0.01f);
+        t.setLineSpacing(0, 1.05f);
         return t;
     }
 

@@ -45,6 +45,7 @@ public final class PracticeFeedActivity extends Activity {
     @Override
     protected void onCreate(Bundle b) {
         super.onCreate(b);
+        Ui.fonts(this);
         engine = Store.engine(this);
         Speaker.init(this);
         root = new FrameLayout(this);

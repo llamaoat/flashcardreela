@@ -11,6 +11,10 @@
 - A quiz's wrong answer now comes from a card asking the same kind of question ("Antidote for…" gets
   another antidote), so it's no longer obviously wrong.
 
+**Look**
+- The app's screens, the extension popup and the web demo now use Schibsted Grotesk, with
+  Newsreader for page titles. Cards are unchanged.
+
 **Android**
 - A home-screen widget: one due card, *Show answer*, then *Knew it* or *Again*. Cards that need a
   picture or a sound stay out of it.
