@@ -9,7 +9,9 @@ const deckCards = name => DECKS[name].map((r,i) => makeCard(PRE[name]+"-"+(i+1),
 let E, meta;
 if (location.hash === "#tab") document.body.classList.add("tab"), $("tabTip").hidden = true;
 
-function save(){ meta.onboarded = E.cards.length > 0; return RCState.save(E, meta).then(() => { RCState.cleanMedia(E); draw(); }); }
+/* every change: the newest save, changed and saved under the shared lock (state.js), then shown */
+function change(fn){ return RCState.update((E2, m2) => { const out = fn(E2, m2); m2.onboarded = E2.cards.length > 0; return out; })
+  .then(r => { E = r.E; meta = r.meta; RCState.cleanMedia(E); draw(); return r.out; }); }
 const MIME = {png:"image/png", jpeg:"image/jpeg", gif:"image/gif", webp:"image/webp", bmp:"image/bmp", mp3:"audio/mpeg", ogg:"audio/ogg", m4a:"audio/mp4", wav:"audio/wav", flac:"audio/flac"};
 function dataUrl(bytes, type){ let s = ""; for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000)); return "data:" + type + ";base64," + btoa(s); }
 function draw(){
@@ -25,7 +27,7 @@ function draw(){
   const decks = [...have].map(n => { const cs = E.cards.filter(c => c.deck === n); return '<div>'+n+': '+cs.filter(c => c.state === RC.REVIEW).length+' learned, '+cs.filter(c => c.state === RC.NEW).length+' new</div>'; });
   $("mine").innerHTML = decks.length ? decks.join("") : "No cards yet. Pick a deck above, or add your own.";
 }
-function setExam(){ meta.exam = +$("exam").value; E.settings.examDate = meta.exam ? Date.now() + meta.exam*DAY : 0; }
+function setExam(E2, m2, days){ m2.exam = days; E2.settings.examDate = days ? Date.now() + days*DAY : 0; }
 
 RCState.load().then(r => { E = r.E; meta = r.meta; if (meta.firstDay == null) meta.firstDay = E.dk(Date.now()); draw(); });
 // a tab finished a card: show the new numbers, and change the newest copy next time
@@ -33,22 +35,23 @@ RCState.onChange(() => RCState.load().then(r => { E = r.E; meta = r.meta; draw()
 
 $("decks").addEventListener("change", e => {
   const n = e.target.dataset.deck; if (!n) return;
-  if (e.target.checked) { E.addCards(deckCards(n)); if (!E.settings.examDate && meta.exam) setExam(); }
-  else E.cards = E.cards.filter(c => c.deck !== n);
-  save();
+  const on = e.target.checked, days = +$("exam").value;
+  change((E2, m2) => { if (on) { E2.addCards(deckCards(n)); if (!E2.settings.examDate && days) setExam(E2, m2, days); } else E2.cards = E2.cards.filter(c => c.deck !== n); });
 });
 $("vibes").addEventListener("change", e => {
   const v = e.target.dataset.vibe; if (!v) return;
-  E.setVibes(e.target.checked ? E.settings.vibes.concat([v]) : E.settings.vibes.filter(x => x !== v)); save();
+  const on = e.target.checked;
+  change(E2 => E2.setVibes(on ? E2.settings.vibes.filter(x => x !== v).concat([v]) : E2.settings.vibes.filter(x => x !== v)));
 });
-$("exam").onchange = () => { setExam(); save(); };
-$("intensity").onchange = () => { E.settings.intensity = $("intensity").value; save(); };
-$("pause").onclick = () => { E.settings.pausedUntil = E.settings.pausedUntil > Date.now() ? 0 : Date.now() + 60*60000; save(); };
+$("exam").onchange = () => { const days = +$("exam").value; change((E2, m2) => setExam(E2, m2, days)); };
+$("intensity").onchange = () => { const v = $("intensity").value; change(E2 => { E2.settings.intensity = v; }); };
+$("pause").onclick = () => change(E2 => { E2.settings.pausedUntil = E2.settings.pausedUntil > Date.now() ? 0 : Date.now() + 60*60000; });
 $("makeCards").onclick = () => {
   const r = parseNotes($("notes").value, $("notesDeck").value.trim() || "My notes");
-  const n = E.addCards(r.cards);
-  $("cardsMsg").textContent = n ? "Made " + n + " cards." : "No cards found: write one fact a line, like “Term - meaning”.";
-  if (n) { $("notes").value = ""; save(); }
+  change(E2 => E2.addCards(r.cards)).then(n => {
+    $("cardsMsg").textContent = n ? "Made " + n + " cards." : "No cards found: write one fact a line, like “Term - meaning”.";
+    if (n) $("notes").value = "";
+  });
 };
 $("copyPrompt").onclick = () => navigator.clipboard.writeText(AI_PROMPT).then(() => { $("cardsMsg").textContent = "Copied. Paste it into a chatbot with your notes, then paste the reply above."; });
 $("openTab").onclick = e => { e.preventDefault(); chrome.tabs.create({url: chrome.runtime.getURL("popup.html#tab")}); };
@@ -66,9 +69,9 @@ $("apkg").onchange = e => {
       if (c.state === "review") Object.assign(m, {state: RC.REVIEW, s: c.s, d: c.d, due: c.due, last: c.last, reps: c.reps, lapses: c.lapses}); return m; });
     const media = Object.keys(store).length;
     return RCState.putMedia(store).then(() => {
-      const n = E.addCards(cards);
-      $("cardsMsg").textContent = n + " cards from " + f.name + "." + (media ? " " + media + " pictures and sounds kept." : "");
-      save();
+      return change(E2 => E2.addCards(cards)).then(n => {
+        $("cardsMsg").textContent = n + " cards from " + f.name + "." + (media ? " " + media + " pictures and sounds kept." : "");
+      });
     });
   }).catch(err => { $("cardsMsg").textContent = "Couldn't read that file: " + err.message; });
 };

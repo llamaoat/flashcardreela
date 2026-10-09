@@ -29,17 +29,20 @@ function fromJSON(st){
 }
 function load(){ return new Promise(ok => chrome.storage.local.get(KEY, r => ok(fromJSON(r && r[KEY])))); }
 function save(E, meta){ return new Promise(ok => chrome.storage.local.set({[KEY]: toJSON(E, meta)}, ok)); }
-/* Read the newest save, change it, save it straight away. Every tab and the popup changes progress this
-   way, so one tab never writes back an old copy over what another just recorded. Changes in this page
-   run one at a time; between tabs, only a change made in the same few milliseconds could still clash. */
+/* Read the newest save, change it, save it, while holding the background script's lock (background.js).
+   Every tab and the popup changes progress this way, so no change is ever lost to another tab's, however
+   close together they come. */
+const lock = () => new Promise(ok => { try { chrome.runtime.sendMessage({type: "lock"}, () => { void chrome.runtime.lastError; ok(); }); } catch (e) { ok(); } });
+const unlock = () => { try { chrome.runtime.sendMessage({type: "unlock"}, () => { void chrome.runtime.lastError; }); } catch (e) {} };
 let queue = Promise.resolve();
 function update(fn){
-  const step = queue.then(() => new Promise(ok => chrome.storage.local.get(KEY, r => ok(fromJSON(r && r[KEY])))))
-    .then(st => { const out = fn(st.E, st.meta); return save(st.E, st.meta).then(() => ({E: st.E, meta: st.meta, out})); });
+  const step = queue.then(lock).then(() => new Promise(ok => chrome.storage.local.get(KEY, r => ok(fromJSON(r && r[KEY])))))
+    .then(st => { const out = fn(st.E, st.meta); return save(st.E, st.meta).then(() => ({E: st.E, meta: st.meta, out})); })
+    .finally(unlock);
   queue = step.catch(() => {});
   return step;
 }
-function clear(){ return new Promise(ok => chrome.storage.local.clear(ok)); }
+function clear(){ return lock().then(() => new Promise(ok => chrome.storage.local.clear(ok))).finally(unlock); }
 const MEDIA = ["img","aimg","snd","asnd"];
 /* key -> data: URL for the given media keys */
 function media(keys){ keys = keys.filter(k => typeof k === "string" && k.startsWith("media:")); return keys.length ? new Promise(ok => chrome.storage.local.get(keys, ok)) : Promise.resolve({}); }
