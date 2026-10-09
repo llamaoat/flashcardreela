@@ -45,6 +45,8 @@ public final class Engine {
     public final Fsrs fsrs = new Fsrs();
     public final Calibration calibration = new Calibration();
     public final Rhythm rhythm = new Rhythm();
+    /** Cards held back for now, never shown (not saved): the app puts a card here when its picture or sound is missing. */
+    public final Set<String> hidden = new HashSet<>();
     public CopyWriter writer = new CopyWriter();
     /** false = fixed rhythm with no natural-break timing (the simulator's baseline). */
     public boolean adaptiveRhythm = true;
@@ -176,7 +178,7 @@ public final class Engine {
         return false;
     }
 
-    boolean buried(Card c) { return c.buriedUntilSession >= sessionId; }
+    boolean buried(Card c) { return c.buriedUntilSession >= sessionId || hidden.contains(c.id); }
 
     boolean inRequeue(Card c) {
         for (Requeue r : requeue) if (r.cardId.equals(c.id)) return true;

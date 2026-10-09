@@ -405,6 +405,13 @@ public final class MainActivity extends Activity {
             Ui.add(col, Ui.muted(this, "Reelcards reads .apkg and .colpkg files from any Anki version, with no account. Audio and suspended cards are left out."), 8);
         } else {
             LinearLayout p = Ui.panel(this);
+            // the same file again after a phone move: its pictures were just saved again, so cards waiting for them come back
+            Engine eng = Store.engine(this);
+            int waiting = eng.hidden.size(), back = waiting - Store.checkMedia(this, eng);
+            if (back > 0) {
+                TextView ok = Ui.text(this, "Pictures are back for " + back + (back == 1 ? " card" : " cards") + ". They'll show in your feed again.", 15, Ui.GOOD, Ui.MEDIUM);
+                Ui.add(col, ok, 10);
+            }
             p.addView(Ui.text(this, r.cards.size() + " cards from “" + name + "”", 18, Ui.TEXT, Ui.DISPLAY));
             Ui.add(p, Ui.muted(this, r.stats.summary()), 4);
             for (int i = 0; i < Math.min(6, r.cards.size()); i++) {
@@ -906,6 +913,21 @@ public final class MainActivity extends Activity {
             n.setBackground(Ui.outline(0xFF2A2410, Ui.WARN, dp(1), dp(14)));
             n.setPadding(dp(14), dp(12), dp(14), dp(12));
             Ui.add(col, n, 12);
+        }
+        // pictures missing (a new or restored phone: pictures aren't in Android's backup): say so, offer the fix
+        Engine eng = Store.engine(this);
+        if (Store.checkMedia(this, eng) > 0) {
+            java.util.Set<String> decks = new java.util.LinkedHashSet<>();
+            for (Card c : eng.cards) if (eng.hidden.contains(c.id)) decks.add(c.deck);
+            LinearLayout mp = Ui.panel(this);
+            mp.setBackground(Ui.outline(0xFF2A2410, Ui.WARN, dp(1), dp(14)));
+            mp.addView(Ui.text(this, "Pictures missing for " + eng.hidden.size() + (eng.hidden.size() == 1 ? " card" : " cards"), 15, Ui.TEXT, Ui.MEDIUM));
+            Ui.add(mp, Ui.muted(this, "From " + android.text.TextUtils.join(", ", decks) + ". This happens after moving to a new phone: Android doesn't back up "
+                    + "pictures. Open the same Anki file again to bring them back. Until then, those cards are kept out of your feed."), 4);
+            Button again = Ui.button(this, "Open the Anki file", true);
+            again.setOnClickListener(go(new Runnable() { @Override public void run() { pickApkg(); } }));
+            Ui.add(mp, again, 10);
+            Ui.add(col, mp, 12);
         }
 
         // status

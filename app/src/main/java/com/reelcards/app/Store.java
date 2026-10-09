@@ -57,6 +57,7 @@ final class Store {
                 prefs(ctx).edit().putString("restore_note", note).apply();
             }
             engine.ankiSink = new AnkiBridge(ctx.getApplicationContext());
+            checkMedia(ctx, engine);
         }
         return engine;
     }
@@ -123,6 +124,20 @@ final class Store {
     }
 
     /** Pictures and sounds from imported Anki decks. Kept out of Android's backup, which stops altogether once an app passes 25MB. */
+    /**
+     * Holds back cards whose picture or sound file is gone, and returns how many. Pictures are kept out of
+     * Android's backup (it stops at 25 MB), so on a restored or new phone the cards come back without them.
+     * Opening the same Anki file again saves the same files under the same names, which brings them back.
+     */
+    static int checkMedia(Context ctx, Engine e) {
+        e.hidden.clear();
+        for (Card c : e.cards)
+            if (missing(ctx, c.image) || missing(ctx, c.answerImage) || missing(ctx, c.audio) || missing(ctx, c.answerAudio)) e.hidden.add(c.id);
+        return e.hidden.size();
+    }
+
+    private static boolean missing(Context ctx, String ref) { return ref != null && !ref.isEmpty() && !mediaFile(ctx, ref).isFile(); }
+
     static File mediaDir(Context ctx) { return new File(ctx.getNoBackupFilesDir(), "anki-media"); }
 
     /** A card's picture file. Cards store its name in the media folder (older saves kept the whole path). */

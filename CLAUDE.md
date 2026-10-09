@@ -38,7 +38,7 @@ looks*. Audience: UK GCSE students, 14–16. Android first, open source (GPLv3).
 ## Commands
 
 ```
-./gradlew :engine:engineChecks     # 124 checks, must all pass (no Gradle: see README "Run them yourself")
+./gradlew :engine:engineChecks     # 125 checks, must all pass (no Gradle: see README "Run them yourself")
 ./gradlew :engine:simulate         # 30-day simulated students, ~2 min → compare with engine/results/simulation.txt
 tools/crosscheck/run.sh            # Java engine vs JS port: answer splitting, notes, every card from the test decks
 python3 tools/build-web-demo.py    # rebuild web-demo/index.html after editing web-demo/src/
@@ -134,6 +134,9 @@ python3 tools/make-test-decks.py   # regenerate engine/src/test/resources/anki/*
 - The overlay is drawn above every app, including the share sheet. While sharing, the card steps
   aside (invisible, `FLAG_NOT_TOUCHABLE`) rather than closing, and comes back when the app it was
   shown over returns (`ReelWatcherService.stepAside`/`comeBack`).
+- Pictures aren't in Android's backup, so after a phone move `Store.checkMedia` puts cards with a missing
+  picture or sound in `Engine.hidden` (never saved; `buried()` skips them, in both engines), and the
+  dashboard offers to reopen the Anki file. Files are named by their content, so reopening restores them.
 - Imported pictures: cards store a file name in `Store.mediaDir` (resolve with `Store.mediaFile`).
   `Store.cleanMedia` deletes pictures no card uses (a removed deck, an unused import), sparing files
   under 10 minutes old. Card pictures decode off the main thread (`Ui.picture` with a callback).

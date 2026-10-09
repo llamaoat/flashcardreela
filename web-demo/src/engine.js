@@ -324,7 +324,7 @@ function Engine(seed){
   this.bandit=new Bandit();this.fsrs=new Fsrs(rnd);this.calibration=new Calibration();this.rhythm=new Rhythm();this.adaptiveRhythm=true;
   this.stats={days:{},avgReel:12,avgCard:6,reelN:0,cardN:0,layout:{}};
   this.sessionId=0;this.sessionReels=0;this.reelsSinceCard=0;this.cardsToday=0;this.newToday=0;this.postponed=0;this.lastSwipeAt=0;this.snoozeUntil=0;this.dayKey=null;
-  this.rhythmArm=-1;this.lastHost=null;this.lastDeck=null;this.recentFast=[];this.recentReel=[];this.requeue=[];this.newShown=new Set();this.lastDecision=null;this.log=[];this.anki=[];this.tzOffsetMin=null;
+  this.rhythmArm=-1;this.lastHost=null;this.lastDeck=null;this.recentFast=[];this.recentReel=[];this.requeue=[];this.newShown=new Set();this.hidden=new Set();this.lastDecision=null;this.log=[];this.anki=[];this.tzOffsetMin=null;
 }
 Engine.prototype={
   I(){return INT[this.settings.intensity];}, isDemo(){return this.settings.intensity==="demo";},
@@ -334,7 +334,7 @@ Engine.prototype={
   addCards(list){const have=new Set(this.cards.map(c=>c.id));let n=0;for(const c of list){if(have.has(c.id))continue;this.cards.push(c);have.add(c.id);n++;}return n;},
   find(id){return this.cards.find(c=>c.id===id);},
   setVibes(vs){const added=vs.filter(v=>!this.settings.vibes.includes(v));this.settings.vibes=vs.slice();this.bandit.applyVibes(added);},
-  buried(c){return c.buriedUntil>=this.sessionId;}, inRequeue(c){return this.requeue.some(r=>r.id===c.id);},
+  buried(c){return c.buriedUntil>=this.sessionId||this.hidden.has(c.id);} /* hidden: held back, e.g. a missing picture (not saved) */, inRequeue(c){return this.requeue.some(r=>r.id===c.id);},
   dueCount(t){return this.cards.filter(c=>c.state!==NEW&&c.due<=t&&!this.buried(c)).length;},
   newRemaining(){return this.cards.filter(c=>c.state===NEW).length;}, learnedCount(){return this.cards.filter(c=>c.state===REVIEW).length;},
   rollDay(t){const k=this.dk(t);if(k!==this.dayKey){this.dayKey=k;this.cardsToday=0;this.newToday=0;this.newShown=new Set();}},

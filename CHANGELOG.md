@@ -2,6 +2,11 @@
 
 ## 1.3.0: browser extension, home-screen web app, dense decks
 
+**Android**
+- After moving to a new phone, Anki cards whose pictures or sounds didn't come across (Android doesn't back
+  them up) are held back instead of showing "Picture not found". The dashboard says which decks, and
+  opening the same Anki file again brings them back.
+
 **Browser extension** (`extension/`)
 - Cards between videos on TikTok, Instagram Reels, YouTube Shorts and X in Chrome and Edge: the same
   engine and card designs, drawn like each site's reels. Click for the answer, double-click if you knew

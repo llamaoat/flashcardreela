@@ -33,10 +33,10 @@ hasn't run on a real phone yet.
 
 ## Next
 
-4. **Pictures after moving phones.** Imported pictures are kept out of Android's backup (which stops
-   altogether past 25 MB), so a restored phone has the cards but not their pictures, and image
-   occlusion cards show "Picture not found". Decide whether to warn and offer to re-open the file, or
-   to back up small decks' pictures.
+4. **Pictures after moving phones: done.** Pictures are kept out of Android's backup (it stops at
+   25 MB). On a new or restored phone, cards whose pictures or sounds are missing are held back
+   (`Store.checkMedia`, `Engine.hidden`), and the dashboard says which decks and offers to open the Anki
+   file again, which brings them back. Not yet tried on a real phone restore.
 5. **On-device AI** for the copy (hooks, hints, captions) and for messy notes → cards. This would use
    Gemini Nano through ML Kit's GenAI APIs, on phones that have it, with today's templates as the
    fallback. `CopyWriter` is the plug-in point. **Needs a decision first:** ML Kit is a Google library

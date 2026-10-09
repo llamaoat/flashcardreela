@@ -25,6 +25,7 @@ Skipping
   PASS  skipped card comes back 3+ reels later (after 5)
   PASS  ...in a different layout (chat -> captions)
   PASS  skipped twice in a session -> saved for the next session
+  PASS  cards waiting for a missing picture are never shown (2 cards, all the one that's fine)
   PASS  5 fast skips in a row -> quiet mode
   PASS  no cards during quiet mode
 Which card: priority, mixing subjects, exam pacing
@@ -147,4 +148,4 @@ Forecast
         210 min/day -> 150 cards/day, 25 new/day, deck in 2 days
   PASS  3.5 h of reels ~ 150 cards a day at the default rhythm (the Normal cap)
 
-124 passed, 0 failed
+125 passed, 0 failed

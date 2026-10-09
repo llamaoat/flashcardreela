@@ -79,6 +79,7 @@ Needs AnkiDroid installed, with a deck that has a Basic card, a cloze card and a
 | Check | Expect |
 |---|---|
 | Skip a card, then force-stop the app (Settings → Apps → Reelcards → Force stop), then swipe on | The skipped card still comes back in about 3 reels |
+| Pictures after a phone move: `adb shell run-as com.reelcards.app rm -r no_backup/anki-media`, then reopen the app | The dashboard says pictures are missing for the sample deck's cards, and those cards don't appear in reels. *Open the Anki file*, pick `sample.apkg` again: "Pictures are back for … cards", and they appear again |
 | Remove the sample Anki deck on the dashboard | Its pictures are deleted (`adb shell run-as com.reelcards.app ls no_backup/anki-media`) |
 | *Reset everything* | Back to the welcome screen, pictures gone |
 | Dashboard → *Share my numbers (for a study)* | The whole report shows (counts only); *Share* opens the share sheet |

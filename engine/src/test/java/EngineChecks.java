@@ -239,6 +239,16 @@ public class EngineChecks {
             check("skipped twice in a session -> saved for the next session", e.find(id).buriedUntilSession == e.sessionId);
         }
         {
+            // a card whose picture is missing (a new phone: pictures aren't backed up) is held back until it's restored
+            Engine e = fresh(8);
+            long t = T0;
+            for (Card c : e.cards) if (!c.id.equals(e.cards.get(0).id)) e.hidden.add(c.id);
+            String only = e.cards.get(0).id;
+            boolean held = true; int shown = 0;
+            for (int i = 0; i < 300; i++) { t += 12_000; Show sh = e.onReelSwipe(t, "tiktok"); if (sh != null) { shown++; if (!sh.card.id.equals(only)) held = false; t += 2_000; e.onCardFinished(sh, skip(2_000), t); } }
+            check("cards waiting for a missing picture are never shown (" + shown + " cards, all the one that's fine)", held && shown > 0);
+        }
+        {
             Engine e = fresh(7);
             long t = T0; int fast = 0;
             while (fast < 5) { t += 12_000; Show s = e.onReelSwipe(t, "tiktok"); if (s != null) { t += 300; e.onCardFinished(s, skip(300), t); fast++; } }

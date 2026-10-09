@@ -6,7 +6,7 @@ in plain Java that runs anywhere.
 ## Getting set up
 
 - **App:** open the folder in Android Studio, or `./gradlew assembleDebug`.
-- **Engine:** `./gradlew :engine:engineChecks` (124 checks) and `./gradlew :engine:simulate`.
+- **Engine:** `./gradlew :engine:engineChecks` (125 checks) and `./gradlew :engine:simulate`.
 - **Web demo:** edit `web-demo/src/`, then `python3 tools/build-web-demo.py`; `python3 tools/lab-shots.py` screenshots the design lab.
 - **Both engines:** `tools/crosscheck/run.sh` checks the Java engine against the JavaScript port.
 - **Using Claude Code or another coding assistant?** [CLAUDE.md](CLAUDE.md) has the rules and commands, and [docs/ROADMAP.md](docs/ROADMAP.md) what's next.
