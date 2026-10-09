@@ -2,5 +2,10 @@
 <resources>
     <string name="app_name">Reelcards</string>
     <string name="service_label">Reelcards</string>
-    <string name="service_description">Reelcards notices when you swipe to a new reel in TikTok, Instagram, YouTube Shorts, Snapchat or Facebook, and every few reels shows one of your flashcards as a reel. It only watches for swipes. It never reads your messages, and it never saves or sends what you watch.</string>
+    <string name="service_description">Reelcards notices when you swipe to a new reel in TikTok, Instagram, YouTube Shorts, Snapchat, Facebook, X, Reddit or Pinterest, and every few reels shows one of your flashcards as a reel. It only watches for swipes. It never reads your messages, and it never saves or sends what you watch.</string>
+    <string name="widget_reveal">Show answer</string>
+    <string name="widget_knew">Knew it</string>
+    <string name="widget_again">Again</string>
+    <string name="widget_open">Open Reelcards</string>
+    <string name="widget_description">One of your cards on your home screen, ready to answer</string>
 </resources>

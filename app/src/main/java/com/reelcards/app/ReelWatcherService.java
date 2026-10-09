@@ -23,7 +23,7 @@ import com.reelcards.engine.Show;
 /**
  * The one permission students switch on.
  *
- * Watches for "swiped to the next reel" in TikTok, Instagram, YouTube Shorts, Snapchat and Facebook,
+ * Watches for "swiped to the next reel" in TikTok, Instagram, YouTube Shorts, Snapchat, Facebook, X, Reddit and Pinterest,
  * asks the engine whether it's time for a card, and if so draws a CardView on top of the app as an
  * accessibility overlay (TYPE_ACCESSIBILITY_OVERLAY, so no separate "draw over other apps" permission).
  * Swiping the card away drops the student straight back into their feed.

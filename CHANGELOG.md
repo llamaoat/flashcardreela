@@ -7,7 +7,15 @@
   voice in the app, the browser's in the web demo and the extension. They used to show as plain text.
   This works for AnkiDroid cards too.
 
+**Quizzes**
+- A quiz's wrong answer now comes from a card asking the same kind of question ("Antidote for…" gets
+  another antidote), so it's no longer obviously wrong.
+
 **Android**
+- A home-screen widget: one due card, *Show answer*, then *Knew it* or *Again*. Cards that need a
+  picture or a sound stay out of it.
+- Cards now also appear between videos in X, Reddit and Pinterest (as well as TikTok, Instagram,
+  YouTube Shorts, Snapchat and Facebook). Detection in the new apps still needs checking on a phone.
 - After moving to a new phone, Anki cards whose pictures or sounds didn't come across (Android doesn't back
   them up) are held back instead of showing "Picture not found". The dashboard says which decks, and
   opening the same Anki file again brings them back.

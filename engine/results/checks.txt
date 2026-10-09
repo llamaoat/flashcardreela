@@ -26,6 +26,7 @@ Skipping
   PASS  ...in a different layout (chat -> captions)
   PASS  skipped twice in a session -> saved for the next session
   PASS  cards waiting for a missing picture are never shown (2 cards, all the one that's fine)
+  PASS  widget: picks a card, and Knew it schedules it (Graded Good on the widget → next in 10 min) without counting a reel or a card shown
   PASS  5 fast skips in a row -> quiet mode
   PASS  no cards during quiet mode
 Which card: priority, mixing subjects, exam pacing
@@ -95,6 +96,7 @@ Part marks for long answers
   PASS  a clinical vignette keeps its question big and isn't drawn as one long comment (a short question still can be)
   PASS  hints skip numbering ("0: rapid depolarization" starts "Rapid")
   PASS  a quiz's wrong answer looks like the right one (a species for a species, not "positive inotropy")
+  PASS  a quiz's wrong answer answers the same kind of question (an antidote for an antidote)
   PASS  an extra's lines stay apart when shown on one line ("GOLDMARK; Glycols; Oxoproline…")
   PASS  the USMLE deck: 39 cards, its table read row by row, and every cloze gap in the big question
   PASS  a quiz never offers a wrong answer the question already shows (another gap's answer from the same note)
@@ -149,4 +151,4 @@ Forecast
         210 min/day -> 150 cards/day, 25 new/day, deck in 2 days
   PASS  3.5 h of reels ~ 150 cards a day at the default rhythm (the Normal cap)
 
-126 passed, 0 failed
+128 passed, 0 failed

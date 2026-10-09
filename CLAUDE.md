@@ -11,7 +11,9 @@ looks*. Audience: UK GCSE students, 14–16. Android first, open source (GPLv3).
   (FSRS-6), rhythm, the format bandit, grading, answer shapes, copy, notes parsing and reading Anki
   files (`anki/`).
 - `app/`: the Android app (minSdk 26). It holds the accessibility service and overlay, the setup and
-  dashboard screens and the card renderer (`CardView.java`). All UI is built in code, with no layout XML.
+  dashboard screens and the card renderer (`CardView.java`). All UI is built in code, with no layout XML, except the home-screen widget
+  (`CardWidget.java`, `res/layout/card_widget.xml`): RemoteViews need it. The widget grades through
+  `Engine.gradeOutside` and picks with `pickForWidget`, both mirrored in `engine.js`.
 - `web-demo/src/`: a JavaScript port of the engine (`engine.js`, `apkg.js`), the card renderer
   (`render.js` + CSS in `head.html`) and the whole app journey (`app.js`). It's built into one file,
   `web-demo/index.html`, which is generated, so never edit it by hand. `manifest.webmanifest`, `sw.js`
@@ -38,7 +40,7 @@ looks*. Audience: UK GCSE students, 14–16. Android first, open source (GPLv3).
 ## Commands
 
 ```
-./gradlew :engine:engineChecks     # 126 checks, must all pass (no Gradle: see README "Run them yourself")
+./gradlew :engine:engineChecks     # 128 checks, must all pass (no Gradle: see README "Run them yourself")
 ./gradlew :engine:simulate         # 30-day simulated students, ~2 min → compare with engine/results/simulation.txt
 tools/crosscheck/run.sh            # Java engine vs JS port: answer splitting, notes, every card from the test decks
 python3 tools/build-web-demo.py    # rebuild web-demo/index.html after editing web-demo/src/
@@ -155,7 +157,8 @@ python3 tools/make-test-decks.py   # regenerate engine/src/test/resources/anki/*
   - A table becomes one point per row, labelled from its header (`tableLines`, also used by both importers).
   - A cloze card's big question starts at or before the sentence with its gap (`splitQuestion(q, cloze)`).
   - Questions over `COMMENT_MAX` (180) characters aren't drawn as a comment; a vignette uses the set-up box.
-  - A quiz's wrong answer is never text the question already shows, and looks like the right one (`likeness`).
+  - A quiz's wrong answer is never text the question already shows, looks like the right one (`likeness`)
+    and comes from a question that starts the same way (`kin`).
   - Text whose capitals carry meaning (Na+, pH, mEq/L) isn't upper-cased by the bold looks (`caseMatters`).
   - Extras from separate fields are kept on separate lines; `inline()` joins them for one-line display.
   The deck chip shows the deck's last part (`deckLabel`: "Renal", not "USMLE Step 1 · Renal").

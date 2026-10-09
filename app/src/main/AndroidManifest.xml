@@ -13,6 +13,9 @@
         <package android:name="com.google.android.youtube" />
         <package android:name="com.snapchat.android" />
         <package android:name="com.facebook.katana" />
+        <package android:name="com.twitter.android" />
+        <package android:name="com.reddit.frontpage" />
+        <package android:name="com.pinterest" />
         <provider android:authorities="com.ichi2.anki.flashcards" />
     </queries>
 
@@ -57,5 +60,17 @@
                 android:name="android.accessibilityservice"
                 android:resource="@xml/reel_watcher" />
         </service>
+
+        <!-- Home-screen widget: one due card, answered without opening the app -->
+        <receiver
+            android:name="com.reelcards.app.CardWidget"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/card_widget_info" />
+        </receiver>
     </application>
 </manifest>

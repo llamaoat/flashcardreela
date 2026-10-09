@@ -427,6 +427,43 @@ public final class Engine {
 
     public Show forceShow(long now) { return forceShow(now, lastHost); }
 
+    /**
+     * The card for the home-screen widget: the one a reel would show now (a due review first, then a new
+     * card), or null. Looking doesn't count as a reel or a card shown, so the rhythm and looks don't learn
+     * from it. Mirrors pickForWidget() in engine.js.
+     */
+    public Card pickForWidget(long now) {
+        rollDay(now);
+        Pick p = pickCard(now, true);
+        return p == null ? null : p.card;
+    }
+
+    /** The widget's answer ("Knew it" is Good, "Again" is Again): scheduled like a reel card, without touching looks or rhythm. */
+    public Result gradeOutside(Card c, Grade g, long now) {
+        rollDay(now);
+        Result res = new Result();
+        res.grade = g;
+        Stats.Day day = stats.day(currentDayKey);
+        day.reviews++;
+        if (g == Grade.AGAIN) day.again++; else if (g == Grade.HARD) day.hard++; else if (g == Grade.EASY) day.easy++; else day.good++;
+        if (c.state == Card.NEW && newShownToday.add(c.id)) { newToday++; day.newSeen++; }
+        c.sessionBounces = 0;
+        if (c.isAnki()) {
+            if (ankiSink != null) ankiSink.onGrade(c, g, 0);
+            c.reps++; c.lastGrade = g.label(); c.lastReview = now;
+            c.due = now + 365 * DAY;
+            if (c.state == Card.NEW) c.state = Card.REVIEW;
+            res.summary = "Graded " + cap(g.label()) + " on the widget → sent to AnkiDroid";
+        } else {
+            if (c.state == Card.REVIEW && c.lastReview > 0) calibration.add((now - c.lastReview) / (double) DAY, c.stability, g != Grade.AGAIN);
+            res.intervalDays = fsrs.review(c, g, now, settings.examDate);
+            res.summary = "Graded " + cap(g.label()) + " on the widget → next in " + human(res.intervalDays);
+            calibration.maybeRefit(fsrs);
+        }
+        addLog(res.summary);
+        return res;
+    }
+
     Show makeShow(long now, Decision d, boolean force) {
         Pick p = pickCard(now, force);
         if (p == null) return null;

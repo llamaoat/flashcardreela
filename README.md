@@ -116,7 +116,7 @@ More, including screenshots for each app: **[docs/DESIGN.md](docs/DESIGN.md)**.
 
 ## Proof it works
 
-**Engine checks:** 126 plain-Java checks, including FSRS-6 against `py-fsrs`, gesture and response-time grading, rhythm learning, skipping, quiet mode, format learning, calibration, notes parsing (and chatbot replies), long answers and part marks, reading all three Anki file formats (cloze, image occlusion, pictures, kept progress), decks exported by Anki itself compared card by card with how Anki shows them, a dense USMLE Step 1-style deck (vignettes, tables, long cloze notes), AnkiDroid notes, forecasting, and the hint, save and share buttons. Output: [`engine/results/checks.txt`](engine/results/checks.txt).
+**Engine checks:** 128 plain-Java checks, including FSRS-6 against `py-fsrs`, gesture and response-time grading, rhythm learning, skipping, quiet mode, format learning, calibration, notes parsing (and chatbot replies), long answers and part marks, reading all three Anki file formats (cloze, image occlusion, pictures, kept progress), decks exported by Anki itself compared card by card with how Anki shows them, a dense USMLE Step 1-style deck (vignettes, tables, long cloze notes), AnkiDroid notes, forecasting, and the hint, save and share buttons. Output: [`engine/results/checks.txt`](engine/results/checks.txt).
 
 **30-day simulation:** 30 simulated students per row, a 600-card deck (70 real GCSE cards and 530 synthetic ones), with the exam on day 30. This is a *model*, not user data. Each simulated student has a hidden memory, a taste for some card looks, and a tolerance for how often cards appear. Output: [`engine/results/simulation.txt`](engine/results/simulation.txt).
 
@@ -131,7 +131,7 @@ These are averages over four student types at 1 hour and 3.5 hours of reels a da
 Run them yourself:
 
 ```
-./gradlew :engine:engineChecks          # 126 passed, 0 failed
+./gradlew :engine:engineChecks          # 128 passed, 0 failed
 ./gradlew :engine:simulate              # about 2 minutes
 ```
 
@@ -156,7 +156,7 @@ Debug builds are signed with the shared debug key in `tools/`, so any teammate's
 
 TikTok, Instagram and YouTube rename their internal views from time to time. Dashboard → **Reel detection log** shows every scroll the watcher saw, whether it counted as a reel swipe, and the view names. If an app stops being detected, add the new view name to `REEL_IDS` in [`ReelDetector.java`](app/src/main/java/com/reelcards/app/ReelDetector.java).
 
-Current rules: any full-screen vertical pager in TikTok. In Instagram, YouTube, Snapchat and Facebook, the known reel viewers (`clips_viewer…`, `reel_…`, `shorts`, `spotlight`) or any full-screen vertical feed whose top item changes.
+Current rules: any full-screen vertical pager in TikTok. In Instagram, YouTube, Snapchat, Facebook, X, Reddit and Pinterest, the known reel viewers (`clips_viewer…`, `reel_…`, `shorts`, `spotlight`) or any full-screen vertical feed whose top item changes.
 
 ---
 

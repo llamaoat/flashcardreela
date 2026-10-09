@@ -838,7 +838,7 @@ public final class MainActivity extends Activity {
 
     /** The prominent disclosure for Google Play: what the accessibility service sees, uses, keeps and never does. */
     static final String[][] DISCLOSURE = {
-        {"What it sees", "Which app is open, and when a list scrolls in TikTok, Instagram, YouTube, Snapchat or Facebook: the scrolling view's size, position and internal name (like “reel_viewer”)."},
+        {"What it sees", "Which app is open, and when a list scrolls in TikTok, Instagram, YouTube, Snapchat, Facebook, X, Reddit or Pinterest: the scrolling view's size, position and internal name (like “reel_viewer”)."},
         {"What it does with it", "Notices when you swipe to a new reel, shows one of your flashcards on top, and takes it down when you leave the app."},
         {"What it keeps", "Counts on your phone, like how many reels you swipe and the seconds between swipes, so it learns when to show a card. Reelcards has no internet access, so nothing is sent anywhere or shared."},
         {"What it never does", "Read your messages, comments, captions or anything else on screen, or record what you watch or who posted it."},
@@ -950,7 +950,7 @@ public final class MainActivity extends Activity {
             status.setBackground(Ui.outline(0xFF14261E, Ui.GOOD, dp(1), dp(16)));
             status.addView(Ui.text(this, "On", 17, Ui.GOOD, Ui.DISPLAY));
             String quiet = engine.snoozeUntil > now ? " Quiet mode for a few minutes after lots of fast skips." : "";
-            Ui.add(status, Ui.text(this, "Cards appear in TikTok, Instagram, YouTube Shorts, Snapchat and Facebook. " + Settings_label() + "." + quiet, 14, Ui.MUTED, Ui.BODY), 4);
+            Ui.add(status, Ui.text(this, "Cards appear in TikTok, Instagram, YouTube Shorts, Snapchat, Facebook, X, Reddit and Pinterest. " + Settings_label() + "." + quiet, 14, Ui.MUTED, Ui.BODY), 4);
         }
         Ui.add(col, status, 16);
 

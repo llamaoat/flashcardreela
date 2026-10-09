@@ -89,3 +89,9 @@ Needs AnkiDroid installed, with a deck that has a Basic card, a cloze card and a
 Add the phones and results to the README's "Honest limits" section, and fix what breaks. If TikTok,
 Instagram or YouTube aren't detected, the log shows the view name to add to `REEL_IDS` in
 `ReelDetector.java`.
+
+## Home-screen widget and the newer apps
+
+1. Long-press the home screen → Widgets → Reelcards. Add it. It shows a due card (or "Nothing due right now").
+2. Tap *Show answer*, then *Knew it*. A new card appears; the dashboard's count for today goes up by one.
+3. With the service on, scroll videos in X, Reddit and Pinterest. A card should appear every few videos, as in TikTok.

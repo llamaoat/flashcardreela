@@ -250,6 +250,17 @@ public class EngineChecks {
             check("cards waiting for a missing picture are never shown (" + shown + " cards, all the one that's fine)", held && shown > 0);
         }
         {
+            // the home-screen widget: shows the card a reel would, and grading it schedules it without counting a reel
+            Engine e = fresh(9);
+            long t = T0;
+            Card w = e.pickForWidget(t);
+            int reels = e.reelsSinceCard, before = e.stats.day(e.dayKey(t)).cards;
+            Engine.Result r = w == null ? null : e.gradeOutside(w, Grade.GOOD, t);
+            check("widget: picks a card, and Knew it schedules it (" + (r == null ? "-" : r.summary) + ") without counting a reel or a card shown",
+                    w != null && r != null && w.due > t && w.reps == 1 && e.stats.day(e.dayKey(t)).reviews == 1
+                    && e.reelsSinceCard == reels && e.stats.day(e.dayKey(t)).cards == before && e.pickForWidget(t) != w);
+        }
+        {
             Engine e = fresh(7);
             long t = T0; int fast = 0;
             while (fast < 5) { t += 12_000; Show s = e.onReelSwipe(t, "tiktok"); if (s != null) { t += 300; e.onCardFinished(s, skip(300), t); fast++; } }
@@ -563,6 +574,12 @@ public class EngineChecks {
         boolean alike = true;
         for (int i = 0; i < 50; i++) if (!"Staphylococcus aureus".equals(CopyWriter.distractor(cap, pool, new Random(i)))) alike = false;
         check("a quiz's wrong answer looks like the right one (a species for a species, not \"positive inotropy\")", alike);
+        Card hep = new Card("h", "Pharm", "Antidote for heparin?", "Protamine sulfate", "");
+        List<Card> drugs = Arrays.asList(hep, new Card("a", "Pharm", "Antidote for acetaminophen overdose?", "N-acetylcysteine", ""),
+                new Card("m", "Pharm", "Mechanism of metformin", "Gluconeogenesis down", ""), new Card("w", "Pharm", "Target of warfarin", "Vitamin K reductase", ""));
+        boolean kind = true;
+        for (int i = 0; i < 50; i++) if (!"N-acetylcysteine".equals(CopyWriter.distractor(hep, drugs, new Random(i)))) kind = false;
+        check("a quiz's wrong answer answers the same kind of question (an antidote for an antidote)", kind);
 
         AnswerShape g = AnswerShape.of("Causes of anion gap metabolic acidosis: […]", "GOLDMARK", "Causes of anion gap metabolic acidosis: GOLDMARK\nGlycols\nOxoproline\nL-lactate");
         check("an extra's lines stay apart when shown on one line (\"GOLDMARK; Glycols; Oxoproline…\")", (g.inlineExplanation + g.more).contains("GOLDMARK; Glycols; Oxoproline; L-lactate"));

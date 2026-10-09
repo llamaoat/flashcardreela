@@ -180,7 +180,7 @@ itself shows it: question, answer, cloze gaps, image occlusion targets and the F
 
 ## Evaluation
 
-[`EngineChecks`](../engine/src/test/java/EngineChecks.java) runs 126 checks:
+[`EngineChecks`](../engine/src/test/java/EngineChecks.java) runs 128 checks:
 [`results/checks.txt`](../engine/results/checks.txt).
 
 [`Simulate`](../engine/src/test/java/Simulate.java) runs simulated students on the real engine for 30
