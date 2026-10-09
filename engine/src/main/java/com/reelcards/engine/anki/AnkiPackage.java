@@ -202,6 +202,7 @@ public final class AnkiPackage {
         /** A sound file, saved once and shared by every card that plays it; null if it's missing, too big or not a type cards play. */
         String sound(String name) throws IOException {
             if (name == null) return null;
+            if (name.startsWith("tts:")) return name; // spoken, not a file
             if (soundRefs.containsKey(name)) return soundRefs.get(name);
             byte[] d = media(name);
             String type = audioType(d), ref = null;
@@ -459,6 +460,10 @@ public final class AnkiPackage {
                 questionPicture = !qi.isEmpty();
                 Pic qPic = picture(qi.isEmpty() ? null : qi.get(0)), aPic = picture(ai.isEmpty() ? null : ai.get(0));
                 List<String> qs = sounds(qHtml), as = sounds(bHtml);
+                if (as.isEmpty()) { // text-to-speech written in the answer template, not the field: {{tts en_GB:Back}}
+                    Ctx tc = ctx.copy(); tc.side = "a"; tc.front = "";
+                    for (String sn : sounds(renderTpl(t[2], F, tc))) if (sn.startsWith("tts:") && !qs.contains(sn)) { as.add(sn); break; }
+                }
                 String qSnd = sound(qs.isEmpty() ? null : qs.get(0)), aSnd = sound(as.isEmpty() ? null : as.get(0));
                 String f = clean(qHtml), b = clean(bHtml);
                 // something to ask (words, a picture or a sound) and an answer (words or a picture, or a
@@ -669,7 +674,12 @@ public final class AnkiPackage {
                         else if (f.equals("cloze-only")) { List<String> got = new ArrayList<>(); clozeText(clozeParse(v), ctx.cloze, "a", got); v = join(got, ", "); }
                         else if (f.equals("text")) v = clean(v);
                         else if (f.equals("type")) v = "q".equals(ctx.side) ? "" : v;
-                        else if (f.equals("tts") || f.equals("tts-voices")) v = "";
+                        else if (f.equals("tts") || f.startsWith("tts ")) { // Anki text-to-speech, {{tts en_US:Front}}: "tts:en_US:the text"
+                            String[] fw = f.split("\\s+");
+                            String say = clean(v).replaceAll("[\\[\\]\\n]+", " ").trim();
+                            v = say.isEmpty() ? "" : "[sound:tts:" + (fw.length > 1 ? fw[1] : "") + ":" + say + "]";
+                        }
+                        else if (f.equals("tts-voices")) v = "";
                         else if (f.equals("furigana") || f.equals("kanji")) v = v.replaceAll("\\[[^\\]]*\\]", "");
                         else if (f.equals("kana")) v = v.replaceAll("[^\\s\\[\\]]+\\[([^\\]]*)\\]", "$1");
                     }

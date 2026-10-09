@@ -62,7 +62,7 @@ $("apkg").onchange = e => {
     // pictures and sounds are stored once each, under a key for this file; cards point at the key
     const store = {}, key = (n, bytes, type) => { if (!n || !bytes) return null; const k = "media:" + f.name + ":" + n; if (!store[k]) store[k] = dataUrl(bytes, type); return k; };
     const pic = n => { const by = r.images[n]; const t = by && Apkg.imageSize(by); return key(n, by, MIME[t && t.type] || "image/png"); };
-    const snd = n => { const by = r.sounds[n]; return key(n, by, MIME[by && Apkg.audioType(by)] || "audio/mpeg"); };
+    const snd = n => { if (n.startsWith("tts:")) return n; const by = r.sounds[n]; return key(n, by, MIME[by && Apkg.audioType(by)] || "audio/mpeg"); };
     const cards = r.cards.map(c => { const m = makeCard(c.id, c.deck, c.f, c.b, c.x); m.cloze = !!c.cloze; m.io = c.io || null;
       Object.assign(m, {img: c.img ? pic(c.img) : null, aimg: c.aimg ? pic(c.aimg) : null, snd: c.snd ? snd(c.snd) : null, asnd: c.asnd ? snd(c.asnd) : null,
         imgW: c.imgW || 0, imgH: c.imgH || 0, aimgW: c.aimgW || 0, aimgH: c.aimgH || 0});

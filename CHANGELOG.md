@@ -2,6 +2,11 @@
 
 ## 1.3.0: browser extension, home-screen web app, dense decks
 
+**Anki**
+- Anki's text-to-speech fields (`{{tts es_ES:Front}}`) are spoken in their language: by the phone's own
+  voice in the app, the browser's in the web demo and the extension. They used to show as plain text.
+  This works for AnkiDroid cards too.
+
 **Android**
 - After moving to a new phone, Anki cards whose pictures or sounds didn't come across (Android doesn't back
   them up) are held back instead of showing "Picture not found". The dashboard says which decks, and

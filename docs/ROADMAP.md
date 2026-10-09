@@ -58,9 +58,11 @@ hasn't run on a real phone yet.
    - **Needs:** a Mac with Xcode (none in this project's cloud sessions), and Apple's Family Controls
      entitlement for the Screen Time APIs, which Apple has to approve.
 8. **Audio, the rest.** Anki's sound files now come across from `.apkg` files and play (a question
-   that's only a sound asks "Listen: what's this?"). Still missing: Anki's `{{tts:…}}` fields
-   (text-to-speech in the deck's language), and sounds on AnkiDroid cards (other apps can't read
-   AnkiDroid's media, as with pictures).
+   that's only a sound asks "Listen: what's this?"), and `{{tts …}}` fields are spoken in their
+   language, from `.apkg` files and AnkiDroid alike. Still missing: recorded sound files on AnkiDroid
+   cards. AnkiDroid keeps them in its own storage, which Android doesn't let other apps read (the same
+   reason its pictures can't come across), and its API has no way to fetch them. Until it does, an
+   `.apkg` export of the deck brings them.
 9. **Real footage** for the looping backgrounds, instead of the ones drawn in code. This has to stay
     small, offline and free to use.
 10. **A pilot with real students** to replace the simulation's modelled numbers with measured ones:

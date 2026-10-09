@@ -1,5 +1,6 @@
 import com.reelcards.engine.*;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
@@ -749,6 +750,12 @@ public class EngineChecks {
         check("cloze from AnkiDroid: the gap is a blank and the answer is just the deletion (\"" + (cz.card == null ? "" : cz.card.front) + "\")",
                 cz.card != null && cz.card.cloze && cz.card.front.equals("Mitochondria are the site of [type of respiration].") && cz.card.back.equals("aerobic respiration")
                 && cz.card.extra.equals("Mitochondria are the site of aerobic respiration.\nThey have a folded inner membrane."));
+        List<String[]> ttsT = new ArrayList<>();
+        ttsT.add(new String[]{"Card 1", "{{Front}}{{tts es_ES:Front}}", "{{FrontSide}}<hr id=answer>{{Back}}{{tts en_GB:Back}}"});
+        com.reelcards.engine.anki.AnkiPackage.NoteCard tc = com.reelcards.engine.anki.AnkiPackage.noteCard("Spanish TTS", false, list("Front", "Back"), ttsT,
+                "hola\u001fhello", "", "Spanish", "Spanish", 0);
+        check("Anki text-to-speech ({{tts es_ES:Front}}) is spoken in its language, not shown as text (\"" + (tc.card == null ? "" : tc.card.audio) + "\")",
+                tc.card != null && "tts:es_ES:hola".equals(tc.card.audio) && "tts:en_GB:hello".equals(tc.card.answerAudio) && tc.card.front.equals("hola") && tc.card.back.equals("hello"));
         check("line breaks from AnkiDroid stay separate points (4 stages, not one run-on line)", br.card != null && AnswerShape.of(br.card).points.size() == 4);
         com.reelcards.engine.anki.AnkiPackage.NoteCard pic = com.reelcards.engine.anki.AnkiPackage.noteCard("Basic", false, list("Front", "Back"), basicT,
                 "Which organelle is this?<br><img src=\"organelle.png\">\u001fA mitochondrion", "", "Biology", "Biology", 0);

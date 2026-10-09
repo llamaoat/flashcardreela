@@ -130,6 +130,7 @@ Anki's own exports (tools/real-anki-decks.py)
   PASS  image occlusion: 4 cards, each covering the shape Anki's card does; the text label is drawn but isn't a card
 AnkiDroid notes
   PASS  cloze from AnkiDroid: the gap is a blank and the answer is just the deletion ("Mitochondria are the site of [type of respiration].")
+  PASS  Anki text-to-speech ({{tts es_ES:Front}}) is spoken in its language, not shown as text ("tts:es_ES:hola")
   PASS  line breaks from AnkiDroid stay separate points (4 stages, not one run-on line)
   PASS  a question that needs a picture, and image occlusion, are flagged for the "export as .apkg" tip; a picture only on the answer side still shows
   PASS  numeric HTML entities are decoded (&#x27; &#8217; from decks made by scripts), escaped ones aren't
@@ -148,4 +149,4 @@ Forecast
         210 min/day -> 150 cards/day, 25 new/day, deck in 2 days
   PASS  3.5 h of reels ~ 150 cards a day at the default rhythm (the Normal cap)
 
-125 passed, 0 failed
+126 passed, 0 failed

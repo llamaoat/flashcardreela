@@ -791,7 +791,9 @@ final class CardView extends FrameLayout {
     /** Plays one of the card's sounds from its stored file, stopping any that's playing. Quietly does nothing if it's gone. */
     void play(boolean answer) {
         stopSound();
-        File f = Store.mediaFile(getContext(), answer ? s.answerAudio : s.audio);
+        String ref = answer ? s.answerAudio : s.audio;
+        if (ref != null && ref.startsWith("tts:")) { Speaker.say(ref); return; } // Anki text-to-speech: the phone's voice, in the card's language
+        File f = Store.mediaFile(getContext(), ref);
         if (f == null || !f.isFile()) return;
         final android.media.MediaPlayer p = new android.media.MediaPlayer();
         player = p;

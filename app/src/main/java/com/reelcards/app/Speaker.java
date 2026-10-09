@@ -35,7 +35,20 @@ final class Speaker {
     static void speak(String text) {
         if (text == null || text.isEmpty()) return;
         if (!ready) { pending = text; return; }
+        tts.setLanguage(Locale.UK); // an Anki card may have switched the voice to another language
         tts.speak(text, TextToSpeech.QUEUE_FLUSH, null, "card");
+    }
+
+    /** Anki text-to-speech, "tts:en_US:the text": says it in that language (the phone's default if it has no such voice). */
+    static void say(String ref) {
+        int i = ref.indexOf(':', 4);
+        if (i < 0 || !ready) return;
+        String lang = ref.substring(4, i).replace('_', '-');
+        if (!lang.isEmpty()) {
+            int r = tts.setLanguage(Locale.forLanguageTag(lang));
+            if (r == TextToSpeech.LANG_MISSING_DATA || r == TextToSpeech.LANG_NOT_SUPPORTED) tts.setLanguage(Locale.getDefault());
+        }
+        tts.speak(ref.substring(i + 1), TextToSpeech.QUEUE_FLUSH, null, "anki-tts");
     }
 
     static void stop() {

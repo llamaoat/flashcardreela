@@ -89,7 +89,8 @@ function show(sh){
   if (cur.s.snd) play(cur.s.snd);
 }
 let sound = null;
-function play(url){ if (sound) sound.pause(); sound = null; if (!url) return; sound = new Audio(url); sound.play().catch(() => {}); }
+function play(url){ if (sound) sound.pause(); sound = null; if (!url) return;
+  if (url.startsWith("tts:")) { try { const i = url.indexOf(":", 4), u = new SpeechSynthesisUtterance(url.slice(i + 1)); u.lang = url.slice(4, i).replace("_", "-"); speechSynthesis.cancel(); speechSynthesis.speak(u); } catch (e) {} return; } sound = new Audio(url); sound.play().catch(() => {}); }
 function draw(){
   if (!root || !cur) return;
   clearTimers();

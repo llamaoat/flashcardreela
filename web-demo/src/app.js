@@ -23,7 +23,7 @@ async function importApkg(bytes, name, src){
   const cards = r.cards.map(c => {
     const m = makeCard(c.id, c.deck, c.f, c.b, c.x);
     m.img = c.img ? urls[c.img] : null; m.aimg = c.aimg ? urls[c.aimg] : null; m.io = c.io || null; m.cloze = !!c.cloze;
-    m.snd = c.snd ? sounds[c.snd] : null; m.asnd = c.asnd ? sounds[c.asnd] : null; m.src = src;
+    const spoken = n => n && n.startsWith("tts:") ? n : null; m.snd = c.snd ? spoken(c.snd) || sounds[c.snd] : null; m.asnd = c.asnd ? spoken(c.asnd) || sounds[c.asnd] : null; m.src = src;
     Object.assign(m, {imgW: c.imgW || 0, imgH: c.imgH || 0, aimgW: c.aimgW || 0, aimgH: c.aimgH || 0});
     if (c.state === "review") Object.assign(m, {state: REVIEW, s: c.s, d: c.d, due: c.due, last: c.last, reps: c.reps, lapses: c.lapses});
     return m;
@@ -108,7 +108,7 @@ function save(){
     controls:{mins:$("mins").value, night:$("night").value, tint:$("tint").checked, voice:$("voice").checked, persona:$("persona").value},
     ui:{screen:UI.screen==="dash"?"dash":"feed", exam:UI.exam, intensity:UI.intensity, vibes:[...UI.vibes], host:UI.host, firstDay:UI.firstDay,
       coachLeft:UI.coachLeft, reelN:UI.reelN, lastHue:UI.lastHue},
-    engine:{cards:E.cards.map(c => { const o = Object.assign({}, c); MEDIA.forEach(k => { if (o[k]) o[k] = true; }); return o; }), // blob: links die with the page
+    engine:{cards:E.cards.map(c => { const o = Object.assign({}, c); MEDIA.forEach(k => { if (o[k] && !String(o[k]).startsWith("tts:")) o[k] = true; }); return o; }), // blob: links die with the page (spoken tts: sounds are kept as they are)
       settings:E.settings, stats:E.stats, bandit:E.bandit, calibration:E.calibration, rhythm:E.rhythm, personalScale:E.fsrs.personalScale, newShown:[...E.newShown]}};
   ENGINE_FIELDS.forEach(k => { st.engine[k] = E[k]; });
   try { localStorage.setItem(SAVE_KEY, JSON.stringify(st)); } catch (err) {}
@@ -404,6 +404,10 @@ let playing = null;
 function playSound(url){
   if (playing) { playing.pause(); playing = null; }
   if (!url) return;
+  if (url.startsWith("tts:")) { // Anki text-to-speech: the browser's own voice, in the card's language
+    try { const i = url.indexOf(":", 4), u = new SpeechSynthesisUtterance(url.slice(i + 1)); u.lang = url.slice(4, i).replace("_", "-"); speechSynthesis.cancel(); speechSynthesis.speak(u); } catch (e) {}
+    return;
+  }
   playing = new Audio(url);
   playing.play().catch(() => {}); // a browser may refuse until the page has been tapped
 }

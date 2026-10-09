@@ -136,7 +136,7 @@ final class Store {
         return e.hidden.size();
     }
 
-    private static boolean missing(Context ctx, String ref) { return ref != null && !ref.isEmpty() && !mediaFile(ctx, ref).isFile(); }
+    private static boolean missing(Context ctx, String ref) { return ref != null && !ref.isEmpty() && !ref.startsWith("tts:") && !mediaFile(ctx, ref).isFile(); }
 
     static File mediaDir(Context ctx) { return new File(ctx.getNoBackupFilesDir(), "anki-media"); }
 
