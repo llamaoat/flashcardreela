@@ -11,6 +11,11 @@
 - A quiz's wrong answer now comes from a card asking the same kind of question ("Antidote for…" gets
   another antidote), so it's no longer obviously wrong.
 
+**Getting it**
+- The web page opens with a "Get Reelcards" box: the download and quick steps for Android, iPhone and
+  computer, with your device's highlighted. The browser extension is now a plain download from the
+  page (`Reelcards-extension.zip`), no GitHub account needed.
+
 **iPhone**
 - On an iPhone, the web page now explains how to make a Shortcut that opens straight onto a card
   (`?app=1&card=1`), and an optional automation that does it after you open TikTok. iPhones don't let

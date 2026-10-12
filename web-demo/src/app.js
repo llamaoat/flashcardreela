@@ -57,16 +57,8 @@ function installOffer(){
   if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
   const ios = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
   if (ios) {
-    const link = location.origin + location.pathname + "?app=1&card=1";
-    box.innerHTML = '<p><b>Put it on your home screen:</b> tap Share <span aria-hidden="true">(the square with an arrow)</span>, then <b>Add to Home Screen</b>. It opens full screen, like an app, and works without signal.</p>'+
-      '<p><b>Cards while you scroll, on an iPhone:</b> iPhones don\'t let any app draw over TikTok or Instagram, so a card can\'t slip in by itself like it does on Android. A Shortcut can get you one in a tap:</p>'+
-      '<ol><li>Set up your decks here in Safari first. A home-screen copy keeps its own separate cards, so use one or the other.</li>'+
-      '<li>Open the <b>Shortcuts</b> app, tap <b>+</b>, then <b>Add Action</b> and choose <b>Open URLs</b>. Paste this link:<br><input type="text" readonly id="cardLink" value="'+link+'"> <button class="btn" id="copyLink">Copy link</button></li>'+
-      '<li>Name it <b>Reelcards</b>, then tap the shortcut\'s name at the top and choose <b>Add to Home Screen</b>. In Settings you can also put it on the Action Button or Back Tap.</li>'+
-      '<li>Tap it whenever you want a card. It opens straight on one. Answer it, then go back to your reels.</li></ol>'+
-      '<p><b>Optional nudge:</b> in Shortcuts, open the <b>Automation</b> tab, tap <b>+</b>, choose <b>App</b>, pick TikTok (or Instagram or YouTube) and <b>Is Opened</b>, then <b>Run Immediately</b>. Add <b>Wait</b> for 5 minutes, then the same <b>Open URLs</b> action. It\'s worth a try, but I haven\'t been able to test it on an iPhone yet.</p>';
+    box.innerHTML = '<p><b>Put it on your home screen:</b> tap Share <span aria-hidden="true">(the square with an arrow)</span>, then <b>Add to Home Screen</b>. It opens full screen, like an app, and works without signal.</p>';
     box.hidden = false;
-    $("copyLink").onclick = () => { const f = $("cardLink"); f.select(); try { navigator.clipboard.writeText(link); } catch (e) { document.execCommand("copy"); } $("copyLink").textContent = "Copied"; };
     return;
   }
   let ask = null;
@@ -77,6 +69,17 @@ function installOffer(){
     $("installBtn").onclick = () => { if (!ask) return; ask.prompt(); ask.userChoice.then(() => { ask = null; box.hidden = true; }); };
   });
   window.addEventListener("appinstalled", () => { box.hidden = true; });
+}
+
+/* "Get Reelcards": the install steps for each device. Marks the card for the device you're on and fills in
+   the Shortcut link for iPhones. */
+function getSection(){
+  const ua = navigator.userAgent, ios = /iPhone|iPad|iPod/.test(ua) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  const android = /Android/.test(ua), mine = ios ? "g-iphone" : android ? "g-android" : "g-computer";
+  const card = $(mine); card.classList.add("mine"); card.querySelector(".badge").hidden = false;
+  const link = location.origin + location.pathname.replace(/[^/]*$/, "") + "?app=1&card=1";
+  $("cardLink").value = /^https?:$/.test(location.protocol) ? link : "(open this page on its web address to get the link)";
+  $("copyLink").onclick = () => { const f = $("cardLink"); f.select(); try { navigator.clipboard.writeText(f.value); } catch (e) { document.execCommand("copy"); } $("copyLink").textContent = "Copied"; };
 }
 
 let E, UI, offset = 0;
@@ -669,7 +672,7 @@ $("labFile").addEventListener("change", e => {
 });
 window.addEventListener("resize", fitLab);
 
-if (!restore()) fresh(); render(true); if (!APP) renderLab(); installOffer();
+if (!restore()) fresh(); render(true); if (!APP) { renderLab(); getSection(); } installOffer();
 // ?card=1 (the iPhone Shortcut's link): open straight on a card, once setup is done
 if (/[?&]card=1\b/.test(location.search) && UI.onboarded && E.cards.length) testCard();
 })();

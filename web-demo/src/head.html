@@ -478,6 +478,22 @@ select{min-height:40px;border-radius:10px;border:1px solid var(--line);backgroun
 @media (prefers-reduced-motion:reduce){.screen.enter,.card *,.card .bgl,.card .bgl::after{animation:none!important;transition:none!important}}
 /* Add to Home Screen: the offer on the page, and the app itself (opened from the home screen, or ?app=1):
    just the phone, filling the screen, with nothing of the demo around it */
+.get{background:var(--panel);border:1px solid var(--line);border-radius:22px;padding:20px 22px;display:flex;flex-direction:column;gap:12px}
+.get h2{margin:0;font-size:26px;font-weight:600;letter-spacing:-.8px}
+.getlead{margin:0}
+.gets{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+@media (max-width:1000px){.gets{grid-template-columns:minmax(0,1fr)}}
+.gcard{position:relative;background:var(--ground);border:1px solid var(--line);border-radius:18px;padding:16px;display:flex;flex-direction:column;gap:10px}
+.gcard.mine{border-color:var(--accent);order:-1}
+.gcard h3{margin:0;font-size:18px;font-weight:600;letter-spacing:-.4px}
+.gcard p{margin:0;font-size:13.5px}
+.gcard .btn{align-self:flex-start;text-decoration:none;display:inline-flex;align-items:center}
+.gcard ol{margin:0;padding-left:20px;font-size:13.5px;display:flex;flex-direction:column;gap:7px}
+.gcard input[type=text]{width:100%;margin:6px 0;font-size:12px;padding:6px 10px;border-radius:10px;border:1px solid var(--line);background:var(--panel);color:var(--text);box-sizing:border-box}
+.gcard .small,.getfoot{font-size:12px}
+.gcard a,.getfoot a{color:var(--text)}
+.badge{align-self:flex-start;background:var(--accent);color:var(--onaccent);font-size:11.5px;font-weight:500;padding:3px 10px;border-radius:999px}
+.badge[hidden]{display:none}
 .install{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;margin-top:10px;padding:10px 12px;background:var(--panel);border:1px solid var(--line);border-radius:12px;max-width:68ch}
 .install[hidden]{display:none}
 .install p{margin:0;flex:1 1 220px;font-size:13px}

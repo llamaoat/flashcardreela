@@ -8,6 +8,53 @@
     <div class="stats" id="stats"></div>
   </header>
 
+  <section class="get" id="get" aria-labelledby="h-get">
+    <h2 id="h-get">Get Reelcards</h2>
+    <p class="sub getlead">Pick your device. Each one takes about a minute. Not sure yet? Try it right here first: the phone below is the real thing, running in your browser.</p>
+    <div class="gets">
+      <article class="gcard" id="g-android">
+        <span class="badge" hidden>For your phone</span>
+        <h3>Android phone</h3>
+        <p class="muted">The full app. Cards slip in between your real videos in TikTok, Instagram, YouTube Shorts, Snapchat, Facebook, X, Reddit and Pinterest.</p>
+        <a class="btn primary" id="apkLink" href="https://github.com/llamaoat/flashcardreela/releases/download/v1.3.0/Reelcards.apk">Download the app (.apk)</a>
+        <ol>
+          <li>Tap the button. If the phone warns the file can harm your device, tap <b>Download anyway</b>.</li>
+          <li>Open the file. If asked, allow your browser to <b>install unknown apps</b>, then tap <b>Install</b>. If Play Protect says it hasn't seen it, tap <b>More details</b>, then <b>Install anyway</b>.</li>
+          <li>Open Reelcards and tap <b>Set up in 1 minute</b>. Pick a deck and your exam date.</li>
+          <li>Tap <b>Switch it on</b>, agree, and turn on <b>Reelcards</b> in Accessibility. <b>Switch greyed out?</b> Go back, tap <b>Open app info</b>, then <b>⋮</b>, then <b>Allow restricted settings</b>, and try again.</li>
+          <li>Scroll TikTok, Instagram or YouTube Shorts. A card appears every few videos.</li>
+        </ol>
+        <p class="muted small">Early test version: it hasn't run on many phones yet. <a href="https://github.com/llamaoat/flashcardreela/releases">All versions</a></p>
+      </article>
+      <article class="gcard" id="g-iphone">
+        <span class="badge" hidden>For your phone</span>
+        <h3>iPhone</h3>
+        <p class="muted">iPhones don't let any app draw over TikTok, so a card can't slip in by itself. This gives you the app and a one-tap card.</p>
+        <ol>
+          <li>Open this page in <b>Safari</b>. Tap <b>Share</b>, then <b>Add to Home Screen</b>. Set up your decks in it.</li>
+          <li>Open the <b>Shortcuts</b> app, tap <b>+</b>, <b>Add Action</b>, then <b>Open URLs</b>. Paste this link:
+            <input type="text" readonly id="cardLink" aria-label="Link for the Shortcut"> <button class="btn" id="copyLink">Copy link</button></li>
+          <li>Name it <b>Reelcards</b>, then add it to your Home Screen, Action Button or Back Tap. Tap it when you want a card.</li>
+        </ol>
+        <p class="muted small">Optional: in Shortcuts, Automation, <b>App</b>, pick TikTok and <b>Is Opened</b>, then <b>Run Immediately</b>, add <b>Wait</b> 5 minutes and the same <b>Open URLs</b>. Untested on a real iPhone. Use the home-screen copy or Safari for the app, not both: they keep separate cards.</p>
+      </article>
+      <article class="gcard" id="g-computer">
+        <span class="badge" hidden>For your computer</span>
+        <h3>Computer</h3>
+        <p class="muted">A browser extension for Chrome, Edge, Brave and Opera. Cards slip in between videos on TikTok, Instagram Reels, YouTube Shorts and X.</p>
+        <a class="btn primary" href="Reelcards-extension.zip" download>Download the extension (.zip)</a>
+        <ol>
+          <li>Unzip the file. You get a folder called <b>Reelcards-extension</b>; keep it somewhere safe, because Chrome reads it from there.</li>
+          <li>Open <b>chrome://extensions</b> (Edge: <b>edge://extensions</b>) and switch on <b>Developer mode</b>.</li>
+          <li>Click <b>Load unpacked</b> and choose the unzipped folder.</li>
+          <li>Pin Reelcards from the puzzle-piece menu, click it, pick a deck and open one of the sites.</li>
+        </ol>
+        <p class="muted small">Not in the Chrome Web Store yet, so it's installed this way.</p>
+      </article>
+    </div>
+    <p class="muted small getfoot">Free. No account, no ads, and nothing you watch is saved or sent anywhere. <a href="privacy.html">Privacy</a> · <a href="https://github.com/llamaoat/flashcardreela">Source code</a> · <a href="https://github.com/llamaoat/flashcardreela/blob/main/docs/TESTERS.md">Testing it? Read this</a></p>
+  </section>
+
   <div class="main">
     <div class="phonecol">
       <div class="hostbar" role="group" aria-label="App you're scrolling in" id="hostbar"></div>
