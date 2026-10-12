@@ -95,3 +95,11 @@ Instagram or YouTube aren't detected, the log shows the view name to add to `REE
 1. Long-press the home screen → Widgets → Reelcards. Add it. It shows a due card (or "Nothing due right now").
 2. Tap *Show answer*, then *Knew it*. A new card appears; the dashboard's count for today goes up by one.
 3. With the service on, scroll videos in X, Reddit and Pinterest. A card should appear every few videos, as in TikTok.
+
+## Pictures full screen
+
+1. Open a deck with pictures (the sample Anki deck has some). On a card with a picture, tap to reveal the answer.
+2. The picture shows a small corner mark. Tap it: the picture fills the screen with a **Close** button.
+3. Pinch to zoom in, drag to move, double-tap to zoom in and out. Nothing behind it reacts (no reveal, heart or swipe).
+4. Tap **Close**: the card is back as it was. Double-tap the card elsewhere: "I knew it" still works.
+5. Try an image occlusion card too, and a card whose answer is a picture.

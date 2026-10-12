@@ -392,6 +392,13 @@ select{min-height:40px;border-radius:10px;border:1px solid var(--line);backgroun
 .card.sheet .pic.io{--mw:100%}
 .card.sheet .pic.io + .q{margin-top:2px}
 .card .pic.apic{--mh:150px}
+.card .pic.zoomable{cursor:zoom-in}
+.card .pic.zoomable::after{content:"";position:absolute;right:8px;bottom:8px;width:26px;height:26px;border-radius:8px;background:rgba(0,0,0,.7) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 26 26' fill='none' stroke='white' stroke-width='1.8' stroke-linecap='round'%3E%3Cpath d='M7 11V7h4M19 15v4h-4'/%3E%3C/svg%3E") center/100% no-repeat;pointer-events:none}
+/* a picture full screen: pinch, scroll or double-tap to zoom; Close goes back to the card (Render.zoomIn) */
+.zoomer{position:absolute;inset:0;z-index:60;background:rgba(0,0,0,.95);display:flex;align-items:center;justify-content:center;overflow:hidden;touch-action:none;user-select:none;-webkit-user-select:none}
+.zoomer img{max-width:100%;max-height:100%;background:#fff;transform-origin:center;will-change:transform;-webkit-user-drag:none}
+.zoomer .zx{position:absolute;top:12px;right:12px;border:none;border-radius:999px;background:#fff;color:#111;font:600 14px/1 var(--hf,system-ui);padding:10px 16px;cursor:pointer;z-index:2}
+.zoomer .zt{position:absolute;bottom:14px;left:0;right:0;text-align:center;color:rgba(255,255,255,.7);font:12.5px var(--hf,system-ui);pointer-events:none}
 .card .pic svg{position:absolute;inset:0;width:100%;height:100%}
 .card .pic .m{stroke:#1d1d1f;stroke-width:1.5;transition:fill-opacity .35s,stroke .35s}
 .card .pic .m.o{fill:#f3e7c9}
@@ -529,7 +536,7 @@ html.appmode .phone{width:100%;max-width:none;height:100%;aspect-ratio:auto;bord
         <span class="badge" hidden>For your phone</span>
         <h3>Android phone</h3>
         <p class="muted">The full app. Cards slip in between your real videos in TikTok, Instagram, YouTube Shorts, Snapchat, Facebook, X, Reddit and Pinterest.</p>
-        <a class="btn primary" id="apkLink" href="https://github.com/llamaoat/flashcardreela/releases/download/v1.3.0/Reelcards.apk">Download the app (.apk)</a>
+        <a class="btn primary" id="apkLink" href="https://github.com/llamaoat/flashcardreela/releases/latest/download/Reelcards.apk">Download the app (.apk)</a>
         <ol>
           <li>Tap the button. If the phone warns the file can harm your device, tap <b>Download anyway</b>.</li>
           <li>Open the file. If asked, allow your browser to <b>install unknown apps</b>, then tap <b>Install</b>. If Play Protect says it hasn't seen it, tap <b>More details</b>, then <b>Install anyway</b>.</li>
@@ -1997,9 +2004,9 @@ function pictureHTML(it){
       else if (sh.pts) rows.push('<polygon class="'+cls+'" points="'+sh.pts.map(a=>a[0]+","+a[1]).join(" ")+'" vector-effect="non-scaling-stroke"/>');
     }
     const labels = s.io.shapes.filter(sh => sh.kind === "text").map(sh => '<span class="iolabel" style="left:'+(sh.x*100)+'%;top:'+(sh.y*100)+'%">'+esc(sh.text)+'</span>').join("");
-    return '<div class="pic io" style="'+picSize(s.imgW, s.imgH)+'"><img src="'+esc(s.img)+'" alt=""><svg viewBox="0 0 1 1" preserveAspectRatio="none" aria-hidden="true">'+rows.join("")+'</svg>'+labels+'</div>';
+    return '<div class="pic io'+(it.revealed ? ' zoomable' : '')+'" data-src="'+esc(s.img)+'" style="'+picSize(s.imgW, s.imgH)+'"><img src="'+esc(s.img)+'" alt=""><svg viewBox="0 0 1 1" preserveAspectRatio="none" aria-hidden="true">'+rows.join("")+'</svg>'+labels+'</div>';
   }
-  return s.img ? '<div class="pic" style="'+picSize(s.imgW, s.imgH)+'"><img src="'+esc(s.img)+'" alt=""></div>' : '';
+  return s.img ? '<div class="pic'+(it.revealed ? ' zoomable' : '')+'" data-src="'+esc(s.img)+'" style="'+picSize(s.imgW, s.imgH)+'"><img src="'+esc(s.img)+'" alt=""></div>' : '';
 }
 /* sized from the picture's own dimensions, so masks line up exactly; width and height limits are in CSS */
 function picSize(w, h){ return w && h ? '--r:'+(w/h).toFixed(4)+';aspect-ratio:'+w+'/'+h : ''; }
@@ -2039,7 +2046,7 @@ function revealOrAnswer(it){
 }
 /* an Anki card's sound ([sound:…]): "Listen" with the question, "Hear it" with the answer (mirrors CardView.addSound) */
 const soundButton = (it, answer) => (answer ? it.s.asnd : it.s.snd) ? '<button class="snd" data-act="sound" data-v="'+(answer?"a":"q")+'" aria-label="Play the '+(answer?"answer":"question")+'\'s sound">▶&nbsp; '+(answer?"Hear it":"Listen")+'</button>' : '';
-const answerPic = it => it.s.aimg ? '<div class="pic apic" style="'+picSize(it.s.aimgW, it.s.aimgH)+'"><img src="'+esc(it.s.aimg)+'" alt=""></div>' : '';
+const answerPic = it => it.s.aimg ? '<div class="pic apic'+(it.revealed ? ' zoomable' : '')+'" data-src="'+esc(it.s.aimg)+'" style="'+picSize(it.s.aimgW, it.s.aimgH)+'"><img src="'+esc(it.s.aimg)+'" alt=""></div>' : '';
 /* the first-cards tip, in words that fit the card: a quiz is answered by picking (mirrors CardView.coachText) */
 function coachText(it){
   if (it.f.layout === "quiz" && it.s.correct >= 0) return "Tap the answer you think is right";
@@ -2177,7 +2184,31 @@ function plainReel(n, hue, host){
     '<div style="position:absolute;left:18px;bottom:15%;text-align:left;color:#fff;font-size:13px;text-shadow:0 1px 2px #000"><b style="font-size:14px">'+creators[n%8]+'</b><br>'+caps[n%6]+'</div></div>';
 }
 
-return {card, plainReel, esc, LOOKS, I, thinkSecs, ptDelays};
+/* A picture full screen (mirrors CardView.zoom): pinch, scroll or double-click to zoom, drag to move, and a
+   Close button back to the card. It's added to `host`, which must be positioned and outlive the card's redraws. */
+function zoomIn(host, src){
+  if (host.querySelector(".zoomer")) return null;
+  const z = document.createElement("div"); z.className = "zoomer";
+  z.innerHTML = '<img src="'+esc(src)+'" alt="Picture. Pinch or double-click to zoom, drag to move." draggable="false"><button class="zx" type="button" aria-label="Close the picture and go back to the card">✕ Close</button><span class="zt">Pinch, scroll or double-tap to zoom</span>';
+  const img = z.querySelector("img"), pts = new Map();
+  let k = 1, x = 0, y = 0, d0 = 0, k0 = 1;
+  const apply = () => { k = Math.max(1, Math.min(6, k)); if (k === 1) x = y = 0; img.style.transform = "translate("+x+"px,"+y+"px) scale("+k+")"; };
+  z._wheel = e => { k *= e.deltaY < 0 ? 1.18 : 1/1.18; apply(); };
+  z.addEventListener("wheel", e => { e.preventDefault(); e.stopPropagation(); z._wheel(e); }, {passive:false});
+  z.addEventListener("dblclick", e => { e.stopPropagation(); k = k > 1.05 ? 1 : 3; apply(); });
+  z.addEventListener("pointerdown", e => { if (e.target.closest(".zx")) return; pts.set(e.pointerId, e); try { z.setPointerCapture(e.pointerId); } catch (err) {} if (pts.size === 2) { const [a, b] = [...pts.values()]; d0 = Math.hypot(a.clientX-b.clientX, a.clientY-b.clientY); k0 = k; } });
+  z.addEventListener("pointermove", e => {
+    const prev = pts.get(e.pointerId); if (!prev) return; pts.set(e.pointerId, e);
+    if (pts.size === 2) { const [a, b] = [...pts.values()]; k = k0 * Math.hypot(a.clientX-b.clientX, a.clientY-b.clientY) / (d0 || 1); apply(); }
+    else if (k > 1) { x += e.clientX - prev.clientX; y += e.clientY - prev.clientY; apply(); }
+  });
+  const lift = e => pts.delete(e.pointerId);
+  z.addEventListener("pointerup", lift); z.addEventListener("pointercancel", lift);
+  z.addEventListener("click", e => { e.stopPropagation(); if (e.target.closest(".zx")) z.remove(); });
+  host.appendChild(z);
+  return z;
+}
+return {card, plainReel, esc, LOOKS, I, thinkSecs, ptDelays, zoomIn};
 })();
 
 /* The demo app: setup screens, the feed, the dashboard, the judge panels, the design lab and a simulated student. */
@@ -2870,7 +2901,12 @@ $("screen").addEventListener("click", e => {
     }
     return;
   }
-  if (e.target.closest("[data-card]")) { clearTimeout(tapTimer); tapTimer = setTimeout(reveal, 260); }
+  if (e.target.closest("[data-card]")) {
+    clearTimeout(tapTimer);
+    const pic = e.target.closest(".pic.zoomable");
+    if (pic && pic.dataset.src && UI.current && UI.current.revealed) tapTimer = setTimeout(() => Render.zoomIn($("phone"), pic.dataset.src), 260); // once the answer's showing, a tap on a picture opens it full screen
+    else tapTimer = setTimeout(reveal, 260);
+  }
 });
 $("screen").addEventListener("dblclick", e => { if (!e.target.closest("[data-card]") || e.target.closest("[data-act]")) return; clearTimeout(tapTimer); const p = $("screen").getBoundingClientRect(); like(e.clientX-p.left, e.clientY-p.top); });
 $("apkgFile").addEventListener("change", e => {

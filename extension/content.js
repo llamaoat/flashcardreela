@@ -73,7 +73,11 @@ function mount(){
   addEventListener("keydown", onKey, true);
   scale(); addEventListener("resize", scale);
 }
-function onWheel(e){ if (!cur) return; e.preventDefault(); e.stopImmediatePropagation(); if (e.deltaY > 30) done(); }
+function onWheel(e){
+  if (!cur) return; e.preventDefault(); e.stopImmediatePropagation();
+  const z = root && root.querySelector(".zoomer"); if (z) { z._wheel(e); return; } // a picture is open: scrolling zooms it
+  if (e.deltaY > 30) done();
+}
 function unmount(){ removeEventListener("wheel", onWheel, {capture:true}); removeEventListener("keydown", onKey, true); removeEventListener("resize", scale); if (host) host.remove(); host = root = null; }
 /* the card is designed at 360 x 740 (a phone); scale it to the window's height */
 function scale(){ if (!root) return; const k = Math.min((innerHeight - 70) / 740, (innerWidth - 20) / 360, 1.25); root.querySelector(".frame").style.setProperty("--k", k.toFixed(3)); }
@@ -163,12 +167,18 @@ function onClick(e){
     }
     return;
   }
-  if (e.target.closest("[data-card]")) { clearTimeout(tapTimer); tapTimer = setTimeout(reveal, 260); }
+  if (e.target.closest("[data-card]")) {
+    clearTimeout(tapTimer);
+    const pic = e.target.closest(".pic.zoomable");
+    if (pic && pic.dataset.src && cur.revealed) tapTimer = setTimeout(() => Render.zoomIn(root, pic.dataset.src), 260); // once the answer's showing, a click on a picture opens it full screen
+    else tapTimer = setTimeout(reveal, 260);
+  }
 }
 function onDbl(e){ if (!e.target.closest("[data-card]") || e.target.closest("[data-act]")) return; clearTimeout(tapTimer); like(); }
 function onKey(e){
   if (!cur) return;
-  const k = e.key;
+  const k = e.key, z = root && root.querySelector(".zoomer");
+  if (z) { if (k === "Escape") { z.remove(); e.preventDefault(); e.stopPropagation(); } return; } // a picture is open: Esc closes it, not the card
   if (k === "ArrowDown" || k === "j" || k === "Escape" || k === "PageDown") done();
   else if (k === " " || k === "Enter") reveal();
   else if (k === "l") like();

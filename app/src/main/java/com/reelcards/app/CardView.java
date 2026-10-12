@@ -182,6 +182,7 @@ final class CardView extends FrameLayout {
     private boolean picLoading, ansLoading;
     private Boolean picThere, ansThere; // whether the picture files exist (null: not looked yet)
     private PicView picView, ansView;   // the latest drawn, which a picture still decoding is handed to
+    private FrameLayout viewer;          // the full-screen picture, while it's open (zoom)
     private boolean maskShown;          // the occlusion mask has faded in once
     private android.media.MediaPlayer player; // the card's sound, while it plays
     private boolean questionSoundPlayed;
@@ -221,7 +222,14 @@ final class CardView extends FrameLayout {
         setClipChildren(true);
         gestures = new GestureDetector(c, new GestureDetector.SimpleOnGestureListener() {
             @Override public boolean onDown(MotionEvent e) { return true; }
-            @Override public boolean onSingleTapConfirmed(MotionEvent e) { reveal(); return true; }
+            @Override public boolean onSingleTapConfirmed(MotionEvent e) {
+                if (outcome.revealed && !moreOpen) { // once the answer's showing, a tap on a picture opens it full screen
+                    PicView hit = pictureAt(e.getRawX(), e.getRawY());
+                    if (hit != null) { zoom(hit); return true; }
+                }
+                reveal();
+                return true;
+            }
             @Override public boolean onDoubleTapEvent(MotionEvent e) {
                 // like on the second finger-up, and only if that touch didn't turn into a swipe
                 if (e.getActionMasked() == MotionEvent.ACTION_UP && !dragging) like(e.getX(), e.getY());
@@ -771,6 +779,61 @@ final class CardView extends FrameLayout {
         }
     }
 
+    // --- a picture, full screen: pinch, drag, double-tap; the Close button brings the card back
+
+    /** The picture under a touch, if it can be opened: only once the answer's showing, and only while its file is there. */
+    private PicView pictureAt(float rawX, float rawY) {
+        int[] loc = new int[2];
+        for (PicView v : new PicView[]{ansView, picView}) {
+            if (v == null || !v.zoomable || v.getWindowToken() == null || !v.isShown() || v.bitmap() == null) continue;
+            v.getLocationOnScreen(loc);
+            if (rawX >= loc[0] && rawX <= loc[0] + v.getWidth() && rawY >= loc[1] && rawY <= loc[1] + v.getHeight()) return v;
+        }
+        return null;
+    }
+
+    private void zoom(PicView v) {
+        File f = Store.mediaFile(getContext(), v == ansView ? s.answerImage : s.image);
+        if (f == null || !f.isFile() || v.bitmap() == null) return;
+        closeViewer();
+        final FrameLayout box = new FrameLayout(getContext());
+        box.setBackgroundColor(0xF2000000);
+        box.setClickable(true); // nothing underneath hears a touch while it's open
+        final ZoomView z = new ZoomView(getContext());
+        z.setBitmap(v.bitmap()); // what's already decoded, straight away
+        box.addView(z, new LayoutParams(-1, -1));
+        TextView close = tvb("✕  Close", 15, 0xFF111111, bold());
+        close.setBackground(round(0xFFFFFFFF, u(22)));
+        close.setPadding(u(16), u(10), u(18), u(10));
+        close.setContentDescription("Close the picture and go back to the card");
+        close.setOnClickListener(new OnClickListener() { @Override public void onClick(View x) { closeViewer(); } });
+        LayoutParams cl = new LayoutParams(-2, -2);
+        cl.gravity = Gravity.TOP | Gravity.END;
+        cl.topMargin = Math.max(st, u(18));
+        cl.rightMargin = u(16);
+        box.addView(close, cl);
+        TextView tip = tvb("Pinch or double-tap to zoom", 12.5f, 0xB3FFFFFF, regular());
+        LayoutParams tl = new LayoutParams(-2, -2);
+        tl.gravity = Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL;
+        tl.bottomMargin = Math.max(sb, u(24));
+        box.addView(tip, tl);
+        addView(box, new LayoutParams(-1, -1));
+        viewer = box;
+        // a sharper copy for zooming in on, swapped in when it's decoded
+        int px = Math.min(2400, getResources().getDisplayMetrics().widthPixels * 2);
+        Ui.picture(f.getPath(), px, new Ui.PictureLoaded() {
+            @Override public void loaded(Bitmap b) { if (b != null && viewer == box) z.setBitmap(b); }
+        });
+    }
+
+    /** Closes the full-screen picture; false if none was open. */
+    boolean closeViewer() {
+        if (viewer == null) return false;
+        removeView(viewer);
+        viewer = null;
+        return true;
+    }
+
     // --- sounds from Anki cards ([sound:…]): the question's plays when the card appears, the answer's when it shows
 
     /** A "Listen" pill that plays the card's sound again; it's a control, so tapping it doesn't reveal. */
@@ -939,6 +1002,7 @@ final class CardView extends FrameLayout {
             v.maskIn = !maskShown && !outcome.revealed; // fades in when the card first appears
             v.setContentDescription(outcome.revealed ? "Picture, with the highlighted part uncovered" : "Picture: name the highlighted part");
         } else v.setContentDescription(answer ? "Picture from the answer" : "Picture from the card");
+        v.zoomable = outcome.revealed && !v.missing; // tapping a picture opens it full screen once the answer's showing
         if (!sheet) v.setElevation(u(8));
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(w, h);
         lp.topMargin = body.getChildCount() == 0 ? 0 : Math.round(u(14) * fit);
@@ -2039,6 +2103,7 @@ final class CardView extends FrameLayout {
     @Override
     protected void onDetachedFromWindow() {
         stopSound();
+        closeViewer();
         if (typingPulse != null) { typingPulse.cancel(); typingPulse = null; }
         if (progress != null) { progress.cancel(); progress = null; } // up to 30 s long: don't let it run on a closed card
         super.onDetachedFromWindow();
@@ -2060,6 +2125,7 @@ final class CardView extends FrameLayout {
 
     @Override
     public boolean dispatchTouchEvent(MotionEvent ev) {
+        if (viewer != null) return super.dispatchTouchEvent(ev); // the picture is open: no taps, hearts or swipes for the card behind it
         if (velocity == null) velocity = VelocityTracker.obtain();
         if (ev.getActionMasked() == MotionEvent.ACTION_UP) { lastUpX = ev.getRawX(); lastUpY = ev.getRawY(); }
         if (ev.getActionMasked() == MotionEvent.ACTION_DOWN) {
@@ -2085,6 +2151,7 @@ final class CardView extends FrameLayout {
 
     @Override
     public boolean onInterceptTouchEvent(MotionEvent ev) {
+        if (viewer != null) return false;
         switch (ev.getActionMasked()) {
             case MotionEvent.ACTION_DOWN:
                 downY = ev.getRawY(); dragging = false; return false;
@@ -2230,6 +2297,7 @@ final class CardView extends FrameLayout {
         float open;                    // 0 = target masked, 1 = uncovered
         boolean missing;               // the picture's file has gone (or can't be read)
         boolean maskIn;                // fade the target mask in once it's on screen (the web demo's "maskin")
+        boolean zoomable;              // a tap opens it full screen (drawn with a small corner mark)
         private float in = 1f;         // that fade, 0..1
         float labelPx;
         Typeface labelFace;
@@ -2246,6 +2314,8 @@ final class CardView extends FrameLayout {
             setClipToOutline(true);
             setImportantForAccessibility(IMPORTANT_FOR_ACCESSIBILITY_YES);
         }
+
+        Bitmap bitmap() { return bmp; }
 
         /** The decoded picture arrives (null: it couldn't be read). */
         void setBitmap(Bitmap b) {
@@ -2332,6 +2402,21 @@ final class CardView extends FrameLayout {
                 float in = p.getStrokeWidth() / 2f;
                 r.set(in, in, w - in, h - in);
                 c.drawRoundRect(r, radius, radius, p);
+            }
+            if (zoomable && bmp != null) { // a small "expand" mark in the corner: a tap opens the picture full screen
+                float s = 26 * dp, x = w - s - 8 * dp, y = h - s - 8 * dp;
+                p.setStyle(Paint.Style.FILL);
+                p.setColor(0xB3000000);
+                r.set(x, y, x + s, y + s);
+                c.drawRoundRect(r, 8 * dp, 8 * dp, p);
+                p.setStyle(Paint.Style.STROKE);
+                p.setStrokeCap(Paint.Cap.ROUND);
+                p.setStrokeWidth(1.8f * dp);
+                p.setColor(0xFFFFFFFF);
+                float a = 7 * dp, b = 14 * dp, e = 4 * dp; // two opposite corner brackets
+                c.drawLine(x + a, y + a, x + a + e, y + a, p); c.drawLine(x + a, y + a, x + a, y + a + e, p);
+                c.drawLine(x + b + a - e, y + b + a, x + b + a, y + b + a, p); c.drawLine(x + b + a, y + b + a - e, x + b + a, y + b + a, p);
+                p.setStrokeCap(Paint.Cap.BUTT);
             }
         }
 

@@ -550,7 +550,12 @@ $("screen").addEventListener("click", e => {
     }
     return;
   }
-  if (e.target.closest("[data-card]")) { clearTimeout(tapTimer); tapTimer = setTimeout(reveal, 260); }
+  if (e.target.closest("[data-card]")) {
+    clearTimeout(tapTimer);
+    const pic = e.target.closest(".pic.zoomable");
+    if (pic && pic.dataset.src && UI.current && UI.current.revealed) tapTimer = setTimeout(() => Render.zoomIn($("phone"), pic.dataset.src), 260); // once the answer's showing, a tap on a picture opens it full screen
+    else tapTimer = setTimeout(reveal, 260);
+  }
 });
 $("screen").addEventListener("dblclick", e => { if (!e.target.closest("[data-card]") || e.target.closest("[data-act]")) return; clearTimeout(tapTimer); const p = $("screen").getBoundingClientRect(); like(e.clientX-p.left, e.clientY-p.top); });
 $("apkgFile").addEventListener("change", e => {

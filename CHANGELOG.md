@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.3.1: pictures full screen
+
+- Once the answer's showing, tap a card's picture to open it full screen. Pinch or double-tap to zoom,
+  drag to move, and tap **Close** to go back to the card. Pictures you can open have a small corner
+  mark. A double-tap on the card still means "I knew it". Same in the web demo and the extension (there,
+  scroll to zoom and Esc closes the picture).
+
 ## 1.3.0: browser extension, home-screen web app, dense decks
 
 **Anki**
