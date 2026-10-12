@@ -84,9 +84,9 @@ function pictureHTML(it){
       else if (sh.pts) rows.push('<polygon class="'+cls+'" points="'+sh.pts.map(a=>a[0]+","+a[1]).join(" ")+'" vector-effect="non-scaling-stroke"/>');
     }
     const labels = s.io.shapes.filter(sh => sh.kind === "text").map(sh => '<span class="iolabel" style="left:'+(sh.x*100)+'%;top:'+(sh.y*100)+'%">'+esc(sh.text)+'</span>').join("");
-    return '<div class="pic io" style="'+picSize(s.imgW, s.imgH)+'"><img src="'+esc(s.img)+'" alt=""><svg viewBox="0 0 1 1" preserveAspectRatio="none" aria-hidden="true">'+rows.join("")+'</svg>'+labels+'</div>';
+    return '<div class="pic io'+(it.revealed ? ' zoomable' : '')+'" data-src="'+esc(s.img)+'" style="'+picSize(s.imgW, s.imgH)+'"><img src="'+esc(s.img)+'" alt=""><svg viewBox="0 0 1 1" preserveAspectRatio="none" aria-hidden="true">'+rows.join("")+'</svg>'+labels+'</div>';
   }
-  return s.img ? '<div class="pic" style="'+picSize(s.imgW, s.imgH)+'"><img src="'+esc(s.img)+'" alt=""></div>' : '';
+  return s.img ? '<div class="pic'+(it.revealed ? ' zoomable' : '')+'" data-src="'+esc(s.img)+'" style="'+picSize(s.imgW, s.imgH)+'"><img src="'+esc(s.img)+'" alt=""></div>' : '';
 }
 /* sized from the picture's own dimensions, so masks line up exactly; width and height limits are in CSS */
 function picSize(w, h){ return w && h ? '--r:'+(w/h).toFixed(4)+';aspect-ratio:'+w+'/'+h : ''; }
@@ -126,7 +126,7 @@ function revealOrAnswer(it){
 }
 /* an Anki card's sound ([sound:…]): "Listen" with the question, "Hear it" with the answer (mirrors CardView.addSound) */
 const soundButton = (it, answer) => (answer ? it.s.asnd : it.s.snd) ? '<button class="snd" data-act="sound" data-v="'+(answer?"a":"q")+'" aria-label="Play the '+(answer?"answer":"question")+'\'s sound">▶&nbsp; '+(answer?"Hear it":"Listen")+'</button>' : '';
-const answerPic = it => it.s.aimg ? '<div class="pic apic" style="'+picSize(it.s.aimgW, it.s.aimgH)+'"><img src="'+esc(it.s.aimg)+'" alt=""></div>' : '';
+const answerPic = it => it.s.aimg ? '<div class="pic apic'+(it.revealed ? ' zoomable' : '')+'" data-src="'+esc(it.s.aimg)+'" style="'+picSize(it.s.aimgW, it.s.aimgH)+'"><img src="'+esc(it.s.aimg)+'" alt=""></div>' : '';
 /* the first-cards tip, in words that fit the card: a quiz is answered by picking (mirrors CardView.coachText) */
 function coachText(it){
   if (it.f.layout === "quiz" && it.s.correct >= 0) return "Tap the answer you think is right";
@@ -264,5 +264,29 @@ function plainReel(n, hue, host){
     '<div style="position:absolute;left:18px;bottom:15%;text-align:left;color:#fff;font-size:13px;text-shadow:0 1px 2px #000"><b style="font-size:14px">'+creators[n%8]+'</b><br>'+caps[n%6]+'</div></div>';
 }
 
-return {card, plainReel, esc, LOOKS, I, thinkSecs, ptDelays};
+/* A picture full screen (mirrors CardView.zoom): pinch, scroll or double-click to zoom, drag to move, and a
+   Close button back to the card. It's added to `host`, which must be positioned and outlive the card's redraws. */
+function zoomIn(host, src){
+  if (host.querySelector(".zoomer")) return null;
+  const z = document.createElement("div"); z.className = "zoomer";
+  z.innerHTML = '<img src="'+esc(src)+'" alt="Picture. Pinch or double-click to zoom, drag to move." draggable="false"><button class="zx" type="button" aria-label="Close the picture and go back to the card">✕ Close</button><span class="zt">Pinch, scroll or double-tap to zoom</span>';
+  const img = z.querySelector("img"), pts = new Map();
+  let k = 1, x = 0, y = 0, d0 = 0, k0 = 1;
+  const apply = () => { k = Math.max(1, Math.min(6, k)); if (k === 1) x = y = 0; img.style.transform = "translate("+x+"px,"+y+"px) scale("+k+")"; };
+  z._wheel = e => { k *= e.deltaY < 0 ? 1.18 : 1/1.18; apply(); };
+  z.addEventListener("wheel", e => { e.preventDefault(); e.stopPropagation(); z._wheel(e); }, {passive:false});
+  z.addEventListener("dblclick", e => { e.stopPropagation(); k = k > 1.05 ? 1 : 3; apply(); });
+  z.addEventListener("pointerdown", e => { if (e.target.closest(".zx")) return; pts.set(e.pointerId, e); try { z.setPointerCapture(e.pointerId); } catch (err) {} if (pts.size === 2) { const [a, b] = [...pts.values()]; d0 = Math.hypot(a.clientX-b.clientX, a.clientY-b.clientY); k0 = k; } });
+  z.addEventListener("pointermove", e => {
+    const prev = pts.get(e.pointerId); if (!prev) return; pts.set(e.pointerId, e);
+    if (pts.size === 2) { const [a, b] = [...pts.values()]; k = k0 * Math.hypot(a.clientX-b.clientX, a.clientY-b.clientY) / (d0 || 1); apply(); }
+    else if (k > 1) { x += e.clientX - prev.clientX; y += e.clientY - prev.clientY; apply(); }
+  });
+  const lift = e => pts.delete(e.pointerId);
+  z.addEventListener("pointerup", lift); z.addEventListener("pointercancel", lift);
+  z.addEventListener("click", e => { e.stopPropagation(); if (e.target.closest(".zx")) z.remove(); });
+  host.appendChild(z);
+  return z;
+}
+return {card, plainReel, esc, LOOKS, I, thinkSecs, ptDelays, zoomIn};
 })();

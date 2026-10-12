@@ -198,7 +198,7 @@ function renderPhone(anim){
   const scr = $("screen"); let h = "";
   switch (UI.screen) {
     case "welcome":
-      h = '<div class="app"><div class="brand">Reelcards</div><div class="hero" data-motion="welcome"></div><h3>Revise without trying<span>between your reels</span></h3><p class="muted">Your flashcards slip in between TikTok, Instagram and YouTube Shorts, looking just like another reel. Double-tap if you know it. Swipe if you don\'t.</p>'+
+      h = '<div class="app sea"><div class="hero" data-motion="welcome" data-cy=".34"></div><div class="brand">Reelcards</div><div class="spacer"></div><h3>Revise without trying<span>between your reels</span></h3><p class="muted">Your flashcards slip in between TikTok, Instagram and YouTube Shorts, looking just like another reel. Double-tap if you know it. Swipe if you don\'t.</p>'+
         '<button class="abtn" data-act="go" data-v="decks">Set up in 1 minute</button><p class="muted" style="font-size:12px">Free. Works offline. Nothing you watch is saved or sent anywhere.</p></div>'; break;
     case "decks": {
       const have = n => E.cards.some(c=>c.deck===n);
@@ -314,21 +314,21 @@ function motionWords(kind){
 }
 function motion(el, kind){
   const words = motionWords(kind); if (!words.length) return;
-  const small = el.classList.contains("small"), cv = document.createElement("canvas"); el.appendChild(cv);
+  const small = el.classList.contains("top"), cv = document.createElement("canvas"); el.appendChild(cv);
   const W = el.clientWidth || 390, H = el.clientHeight || 300, dpr = Math.min(2, window.devicePixelRatio || 1);
   cv.width = W*dpr; cv.height = H*dpr; const g = cv.getContext("2d"); g.scale(dpr, dpr);
   const els = words.map(() => { const d = document.createElement("div"); d.className = "w"; el.appendChild(d); return d; });
-  const N = words.length, STEP = small ? 27 : 30, R = small ? 260 : 320, BX = W*.42, still = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const STEP_ = small ? 27 : 30, N = words.length, STEP = STEP_, R = small ? 260 : 320, BX = W*.42, still = matchMedia("(prefers-reduced-motion: reduce)").matches;
   let seed = 7; const rnd = () => (seed = (seed*16807) % 2147483647) / 2147483647;
   const G = 9, pts = []; for (let y=-G; y<H+G; y+=G) for (let x=-G; x<W+G; x+=G) pts.push([x+rnd()*G*.8, y+rnd()*G*.8, 4+rnd()*4, rnd(), rnd()*6.28]);
-  const sx = W*.2, sy = H*.5;
+  const cyF = +el.dataset.cy || .5, sx = W*.2, sy = H*cyF, fadeN = Math.min(sy, H-sy)/STEP_ + .5;
   function frame(t){
     if (!el.isConnected) return;
     sea(g, pts, W, H, sx, sy, t);
     const off = (t/1400) % N;
     els.forEach((e,i) => { let k = ((i-off)%N+N)%N; if (k > N/2) k -= N; const y = k*STEP, a = Math.asin(Math.max(-1, Math.min(1, y/R)));
-      e.style.transform = "translate("+(BX + R*(1-Math.cos(a)))+"px,"+(H/2+y-12)+"px) rotate("+(a*.8)+"rad)";
-      e.style.opacity = Math.max(0, 1-Math.abs(k)/(H/STEP/2+.5));
+      e.style.transform = "translate("+(BX + R*(1-Math.cos(a)))+"px,"+(sy+y-12)+"px) rotate("+(a*.8)+"rad)";
+      e.style.opacity = Math.max(0, 1-Math.abs(k)/fadeN);
       const sel = Math.abs(k) < .5;
       e.innerHTML = sel ? '<i>[ </i>'+esc(words[i][0])+'<i>]</i><em>'+esc(words[i][1])+'</em>' : esc(words[i][0]);
       e.style.marginLeft = sel ? "-13px" : "0"; });
@@ -347,8 +347,8 @@ function sea(g, pts, W, H, sx, sy, t){
     const dr = Math.sin(t*.0016+p[4])*1.4, x = p[0]+Math.cos(a)*dr, y = p[1]+Math.sin(a)*dr;
     const k = x - (front + Math.sin(y*.02+t*.0009)*30 + Math.sin(y*.066)*10);
     let len = p[2]*(1-pull*.5), w = .9, col = "rgba(150,188,220,"+(.4+p[3]*.3).toFixed(2)+")";
-    if (k < 0 && k > -22) { len = 1+p[3]*1.5; w = 1.7+p[3]; col = "rgba(255,255,255,.95)"; }
-    else if (k <= -22 && k > -300) { if (p[3] < .3) continue; len = 2.5+p[3]*4; w = 2.5; col = "rgba(255,255,255,.9)"; a *= .4; }
+    if (k < 0 && k > -22) { len = 1+p[3]*1.5; w = 1.7+p[3]; col = "rgba(255,255,255,.8)"; }
+    else if (k <= -22 && k > -300) { if (p[3] < .3) continue; len = 2.5+p[3]*4; w = 2.5; col = "rgba(255,255,255,.55)"; a *= .4; }
     const ca = Math.cos(a)*len/2, sa = Math.sin(a)*len/2; g.strokeStyle = col; g.lineWidth = w;
     g.beginPath(); g.moveTo(x-ca,y-sa); g.lineTo(x+ca,y+sa); g.stroke();
   }
@@ -372,7 +372,7 @@ function dashHTML(){
   const saved = E.cards.filter(c=>c.saved);
   const favs = RC.DIMS.map(dm=>{ const fv = E.bandit.favourite(dm); if (!fv) return ""; return '<div style="font-size:13px">'+RC.DIMLABEL[dm]+': <b>'+esc(LABEL[fv])+'</b> <span class="muted">('+Math.round(E.bandit.mean(dm,fv)*100)+'% held)</span></div>'; }).join("");
   const quiet = E.snoozeUntil > t ? " Quiet mode for a few minutes after lots of fast skips." : "";
-  return tabs()+'<div class="app" style="padding-top:52px">'+(E.cards.length?'<div class="hero small" data-motion="decks"></div>':'')+'<div class="status"><b>On</b><div class="muted" style="font-size:12.5px">Cards appear in TikTok, Instagram, YouTube Shorts, Snapchat, Facebook, X, Reddit and Pinterest.'+quiet+'</div></div>'+
+  return tabs()+'<div class="app'+(E.cards.length?' hastop':'')+'" style="padding-top:'+(E.cards.length?'236px':'52px')+'">'+(E.cards.length?'<div class="hero top" data-motion="decks" data-cy=".42"></div>':'')+'<div class="status"><b>On</b><div class="muted" style="font-size:12.5px">Cards appear in TikTok, Instagram, YouTube Shorts, Snapchat, Facebook, X, Reddit and Pinterest.'+quiet+'</div></div>'+
     '<div class="sec">Today</div><div class="tiles"><div class="tile"><b>'+d.reviews+'</b><small>cards done</small></div><div class="tile"><b>'+d.skips+'</b><small>skipped</small></div><div class="tile"><b>'+(rr<0?"–":Math.round(rr*100)+"%")+'</b><small>remembered, last 7 days</small></div><div class="tile"><b>'+E.streak(k)+'</b><small>day streak</small></div></div>'+
     '<div class="box"><span class="steplbl">Forecast</span><span style="font-size:13px">'+esc(fs)+'</span></div>'+
     '<div class="box"><span class="steplbl">Rhythm</span><span style="font-size:13px">'+esc(E.rhythmText())+'</span>'+(E.calibration.describe()?'<span class="steplbl" style="margin-top:4px">Your memory</span><span style="font-size:13px">'+esc(E.calibration.describe())+'</span>':'')+'</div>'+
@@ -550,7 +550,12 @@ $("screen").addEventListener("click", e => {
     }
     return;
   }
-  if (e.target.closest("[data-card]")) { clearTimeout(tapTimer); tapTimer = setTimeout(reveal, 260); }
+  if (e.target.closest("[data-card]")) {
+    clearTimeout(tapTimer);
+    const pic = e.target.closest(".pic.zoomable");
+    if (pic && pic.dataset.src && UI.current && UI.current.revealed) tapTimer = setTimeout(() => Render.zoomIn($("phone"), pic.dataset.src), 260); // once the answer's showing, a tap on a picture opens it full screen
+    else tapTimer = setTimeout(reveal, 260);
+  }
 });
 $("screen").addEventListener("dblclick", e => { if (!e.target.closest("[data-card]") || e.target.closest("[data-act]")) return; clearTimeout(tapTimer); const p = $("screen").getBoundingClientRect(); like(e.clientX-p.left, e.clientY-p.top); });
 $("apkgFile").addEventListener("change", e => {

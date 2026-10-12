@@ -139,6 +139,7 @@ python3 tools/make-test-decks.py   # regenerate engine/src/test/resources/anki/*
 - Pictures aren't in Android's backup, so after a phone move `Store.checkMedia` puts cards with a missing
   picture or sound in `Engine.hidden` (never saved; `buried()` skips them, in both engines), and the
   dashboard offers to reopen the Anki file. Files are named by their content, so reopening restores them.
+- A card's picture opens full screen on a tap once the answer shows (`CardView.zoom`, `ZoomView`; `Render.zoomIn` in `render.js`, used by the web demo and the extension). While it's open the card ignores touches. The web page's download button points at `releases/latest`, so publish each release as the latest one, not a pre-release.
 - Imported pictures: cards store a file name in `Store.mediaDir` (resolve with `Store.mediaFile`).
   `Store.cleanMedia` deletes pictures no card uses (a removed deck, an unused import), sparing files
   under 10 minutes old. Card pictures decode off the main thread (`Ui.picture` with a callback).

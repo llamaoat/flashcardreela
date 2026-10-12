@@ -236,3 +236,5 @@ along a curve over it, the middle one bracketed with a grey note ("[ Enzymes ] 9
 stops when the phone's animations are off (reduce motion). Cards keep their host-matched faces so
 they still pass as reels. The widget uses the system font: launchers draw it, and custom fonts there
 need Android 12+.
+
+The sea is the welcome screen's whole background, fading to solid navy under the words at the bottom. On the dashboard it's the top of the page, melting into it and scrolling away with the content. Foam is kept soft behind the wheel so the words stay readable.

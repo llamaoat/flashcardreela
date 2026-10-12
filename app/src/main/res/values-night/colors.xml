@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <color name="icon_bg">#0B2140</color>
-    <!-- the widget: the app's own light and dark colours (Ui.java) -->
-    <color name="widget_bg">#F20E0E0D</color>
-    <color name="widget_text">#FFF2F1EC</color>
-    <color name="widget_muted">#FF8E8D87</color>
-    <color name="widget_ink">#FFF2F1EC</color>
-    <color name="widget_on_ink">#FF111111</color>
-    <color name="widget_panel">#FF20201E</color>
+    <!-- the widget, in the app's dark colours (Ui.java): the sea's navy -->
+    <color name="widget_bg">#F20B2140</color>
+    <color name="widget_text">#FFEEF2F8</color>
+    <color name="widget_muted">#FF8FA3C4</color>
+    <color name="widget_ink">#FFFFFFFF</color>
+    <color name="widget_on_ink">#FF0B2140</color>
+    <color name="widget_panel">#FF1A3560</color>
 </resources>
