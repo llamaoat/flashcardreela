@@ -171,10 +171,12 @@ select{min-height:40px;border-radius:10px;border:1px solid var(--line);backgroun
 .bars div span{position:absolute;bottom:-15px;left:0;right:0;text-align:center;font-size:9.5px;color:var(--muted);font-variant-numeric:tabular-nums}
 /* the moving hero: a sea of dashes with a lone swimmer and waves of foam rolling past, and a wheel of
    topics floating over it (motion() in app.js). Navy in light and dark alike. */
-.hero{position:relative;height:300px;margin:4px -20px;flex-shrink:0;overflow:hidden;background:#0B2140}
+.hero{position:relative;height:300px;margin:4px -20px;flex-shrink:0;overflow:hidden;background:var(--hero-bg,#EEF4F8)}
 .hero canvas{position:absolute;inset:0;width:100%;height:100%}
 /* welcome: the sea fills the whole screen, fading to solid navy under the words at the bottom */
-.app.sea{--ground:#0B2140;--panel:#12294D;--panel2:#1A3560;--line:#24406D;--text:#FFFFFF;--muted:rgba(255,255,255,.62);--accent:#FFFFFF;--onaccent:#0B2140;background:#0B2140;color:#fff;color-scheme:dark}
+.app.sea{--ground:#EEF4F8;--panel:#FFFFFF;--panel2:#F2F2EF;--line:#D5E1EA;--text:#0B2140;--muted:rgba(11,33,64,.62);--accent:#0B2140;--onaccent:#FFFFFF;--hero-bg:#EEF4F8;--hero-ink:#0B2140;--hero-soft:rgba(11,33,64,.55);--hero-glow:rgba(255,255,255,.95);background:#EEF4F8;color:#0B2140;color-scheme:light}
+@media (prefers-color-scheme:dark){.app.sea,.app > .hero.top{--ground:#0B2140;--panel:#12294D;--panel2:#1A3560;--line:#24406D;--text:#FFFFFF;--muted:rgba(255,255,255,.62);--accent:#FFFFFF;--onaccent:#0B2140;--hero-bg:#0B2140;--hero-ink:#FFFFFF;--hero-soft:rgba(255,255,255,.58);--hero-glow:rgba(11,33,64,.95);background:#0B2140;color:#fff;color-scheme:dark}}
+.app > .hero.top{--hero-ink:#0B2140;--hero-soft:rgba(11,33,64,.55);--hero-glow:rgba(255,255,255,.95)}
 .app.sea > .hero{position:absolute;inset:0;margin:0;height:auto;z-index:0}
 .app.sea > :not(.hero){position:relative;z-index:3}
 .app.sea .spacer{flex:1;min-height:150px}
@@ -182,14 +184,14 @@ select{min-height:40px;border-radius:10px;border:1px solid var(--line);backgroun
 .app > .hero.top{position:absolute;top:0;left:0;right:0;margin:0;height:300px;z-index:0}
 .app > .hero.top::after{content:"";position:absolute;left:0;right:0;bottom:0;height:46%;z-index:1;pointer-events:none;background:linear-gradient(to bottom,rgba(0,0,0,0),var(--ground))}
 .app.hastop > :not(.hero){position:relative;z-index:3}
-.hero .w{z-index:2;position:absolute;left:0;top:0;font-size:18px;font-weight:500;letter-spacing:-.3px;white-space:nowrap;color:#fff;transform-origin:0 50%;will-change:transform,opacity;text-shadow:0 0 3px rgba(11,33,64,.95),0 1px 10px rgba(11,33,64,.95)}
-.hero .w i{font-style:normal;color:rgba(255,255,255,.55);font-weight:400}
-.hero .w em{font-style:normal;color:rgba(255,255,255,.6);font-weight:400;margin-left:8px}
+.hero .w{z-index:2;position:absolute;left:0;top:0;font-size:18px;font-weight:500;letter-spacing:-.3px;white-space:nowrap;color:var(--hero-ink,#fff);transform-origin:0 50%;will-change:transform,opacity;text-shadow:0 0 3px var(--hero-glow),0 1px 10px var(--hero-glow)}
+.hero .w i{font-style:normal;color:var(--hero-soft);font-weight:400}
+.hero .w em{font-style:normal;color:var(--hero-soft);font-weight:400;margin-left:8px}
 .brand{font-weight:600;font-size:15px;letter-spacing:-.3px}
 .tabs{position:absolute;top:10px;left:0;right:0;z-index:12;display:flex;justify-content:center;gap:18px;pointer-events:none}
 .tabs button{pointer-events:auto;background:none;border:none;color:#ffffffa0;font-weight:800;font-size:14px;padding:6px 2px;min-height:34px;text-shadow:0 1px 3px #000}
 .tabs button.on{color:#fff;border-bottom:2px solid #fff}
-.tabs.ondash button{color:rgba(255,255,255,.7);text-shadow:none;font-weight:500}.tabs.ondash button.on{color:#fff;border-bottom-color:#fff}
+.tabs.ondash button{color:var(--muted);text-shadow:none;font-weight:500}.tabs.ondash button.on{color:var(--text);border-bottom-color:var(--text)}
 .settings-sim{position:absolute;inset:0;background:#f4f4f6;color:#1b1b1f;z-index:20;display:flex;flex-direction:column;padding:28px 16px;gap:10px}
 .settings-sim .lbl{font-size:10.5px;text-transform:uppercase;letter-spacing:.08em;color:#6b6b75;font-weight:800}
 .settings-sim .row2{display:flex;align-items:center;justify-content:space-between;background:#fff;border-radius:14px;padding:14px;min-height:56px}

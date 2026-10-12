@@ -240,3 +240,5 @@ need Android 12+.
 The sea is the welcome screen's whole background, fading to solid navy under the words at the bottom. On the dashboard it's the top of the page, melting into it and scrolling away with the content. Foam is kept soft behind the wheel so the words stay readable.
 
 Behind the dashes is a slow shapeshifting colour field (`PAL` and `field()` in `app.js`, mirrored in `MotionView.java`): a deep base with three soft blobs of colour drifting over it, easing every 30 seconds into the next palette (ocean, dusk, lagoon, indigo). It starts on a palette that follows the hour, so the colours change as time goes on, like Reelcards itself changing shape from card to card. The palettes stay dark enough that the white dashes and words always read, and the swimmer's orange stays clear of every one.
+
+In light mode the colour field is airy and white (sky, blush, mint and periwinkle, with soft cyan and bright blue drifting through), with dark navy ink for the dashes, the wheel and the words; the foam is a darker blue band. Dark mode keeps the deep palettes with white ink. Both follow the phone's setting.
