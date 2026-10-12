@@ -33,18 +33,22 @@ final class MotionView extends View {
     private final long start = SystemClock.uptimeMillis();
     private float[] pts = new float[0]; // x, y, length, jitter, phase for each dash
     private final float d;
-    // The colour field behind the sea (mirrors PAL/field() in web-demo/src/app.js): a deep base with three soft
-    // blobs of colour drifting over it. Every 30 s it eases into the next palette (ocean, dusk, lagoon, indigo),
+    // The colour field behind the sea (mirrors PAL/field() in web-demo/src/app.js): a deep base with four soft
+    // blobs of colour drifting over it. Every 18 s it eases into the next palette (ocean, dusk, lagoon, indigo, aurora, rose, deep sea, twilight),
     // starting at one that follows the hour, so the colours move on as time goes on. Always dark enough for
     // the white dashes and words.
     private static final int[][][] PAL = {
-            {{11, 33, 64}, {29, 78, 216}, {34, 184, 207}, {125, 211, 252}},
-            {{26, 16, 56}, {91, 63, 208}, {190, 60, 170}, {96, 165, 250}},
-            {{8, 38, 46}, {14, 159, 142}, {45, 212, 191}, {56, 189, 248}},
-            {{13, 28, 70}, {67, 56, 202}, {14, 165, 233}, {167, 139, 250}}};
-    private static final float PAL_MS = 30000f;
+            {{11, 33, 64}, {29, 78, 216}, {34, 184, 207}, {125, 211, 252}, {99, 102, 241}},
+            {{26, 16, 56}, {91, 63, 208}, {190, 60, 170}, {96, 165, 250}, {236, 72, 153}},
+            {{8, 38, 46}, {14, 159, 142}, {45, 212, 191}, {56, 189, 248}, {16, 185, 129}},
+            {{13, 28, 70}, {67, 56, 202}, {14, 165, 233}, {167, 139, 250}, {217, 70, 239}},
+            {{6, 26, 30}, {16, 185, 129}, {124, 58, 237}, {34, 211, 238}, {163, 230, 53}},
+            {{32, 10, 38}, {219, 39, 119}, {147, 51, 234}, {59, 130, 246}, {251, 113, 133}},
+            {{5, 18, 42}, {14, 116, 144}, {30, 64, 175}, {94, 234, 212}, {168, 85, 247}},
+            {{20, 18, 52}, {59, 130, 246}, {236, 72, 153}, {45, 212, 191}, {129, 140, 248}}};
+    private static final float PAL_MS = 18000f;
     private final float palStart = java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY) / 24f * PAL.length * PAL_MS;
-    private final float[][] cur = new float[4][3];
+    private final float[][] cur = new float[5][3];
     private float cyFrac = .5f;           // where the wheel and swimmer sit, as a fraction of the height
     private int scrim, fade;              // welcome: solid under the words at the bottom; dashboard: melts into the page
     private android.graphics.LinearGradient fadeShader;
@@ -113,7 +117,7 @@ final class MotionView extends View {
         float u = (t + palStart) / PAL_MS, f0 = u - (float) Math.floor(u), f = f0 * f0 * (3 - 2 * f0);
         int i = (int) Math.floor(u);
         int[][] a = PAL[i % PAL.length], b = PAL[(i + 1) % PAL.length];
-        for (int k = 0; k < 4; k++) for (int j = 0; j < 3; j++) cur[k][j] = a[k][j] + (b[k][j] - a[k][j]) * f;
+        for (int k = 0; k < 5; k++) for (int j = 0; j < 3; j++) cur[k][j] = a[k][j] + (b[k][j] - a[k][j]) * f;
     }
 
     private static int col(float[] c, float alpha) { return Color.argb(Math.round(alpha * 255), Math.round(c[0]), Math.round(c[1]), Math.round(c[2])); }
@@ -121,10 +125,11 @@ final class MotionView extends View {
     private void field(Canvas cv, float t, float w, float h) {
         cv.drawColor(col(cur[0], 1f));
         float big = Math.max(w, h) * .62f;
-        for (int i = 0; i < 3; i++) {
-            double a = t / (11000.0 + i * 4300) + i * 2.1;
+        float[] rs = {1f, 1f, .7f, .5f}, as = {.8f, .8f, .6f, .55f};
+        for (int i = 0; i < 4; i++) {
+            double a = t / (9000.0 + i * 3700) + i * 1.7;
             float x = w * (.5f + .4f * (float) Math.cos(a)), y = h * (.42f + .32f * (float) Math.sin(a * 1.3 + i));
-            paint.setShader(new RadialGradient(x, y, big * (i == 2 ? .6f : 1f), col(cur[i + 1], i == 2 ? .55f : .8f), col(cur[i + 1], 0f), Shader.TileMode.CLAMP));
+            paint.setShader(new RadialGradient(x, y, big * rs[i], col(cur[i + 1], as[i]), col(cur[i + 1], 0f), Shader.TileMode.CLAMP));
             cv.drawRect(0, 0, w, h, paint);
         }
         paint.setShader(null);

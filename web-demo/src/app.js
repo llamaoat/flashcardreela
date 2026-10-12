@@ -336,17 +336,21 @@ function motion(el, kind){
   }
   requestAnimationFrame(frame);
 }
-/* The colour field behind the sea: a deep base with three soft blobs of colour drifting over it. Every 30
-   seconds it eases into the next palette (ocean, dusk, lagoon, indigo), and it starts at a palette that
+/* The colour field behind the sea: a deep base with three soft blobs of colour drifting over it. Every 18
+   seconds it eases into the next palette (ocean, dusk, lagoon, indigo, aurora, rose, deep sea, twilight), and it starts at a palette that
    follows the hour, so the app's colours move on as time goes on, like Reelcards itself changing shape
    from card to card. Kept dark enough that the white dashes and words always read. */
 const PAL = [
-  {base:[11,33,64],  b:[[29,78,216],[34,184,207],[125,211,252]]},   // ocean
-  {base:[26,16,56],  b:[[91,63,208],[190,60,170],[96,165,250]]},    // dusk
-  {base:[8,38,46],   b:[[14,159,142],[45,212,191],[56,189,248]]},   // lagoon
-  {base:[13,28,70],  b:[[67,56,202],[14,165,233],[167,139,250]]}    // indigo
+  {base:[11,33,64], b:[[29,78,216],[34,184,207],[125,211,252],[99,102,241]]}, // ocean
+  {base:[26,16,56], b:[[91,63,208],[190,60,170],[96,165,250],[236,72,153]]}, // dusk
+  {base:[8,38,46], b:[[14,159,142],[45,212,191],[56,189,248],[16,185,129]]}, // lagoon
+  {base:[13,28,70], b:[[67,56,202],[14,165,233],[167,139,250],[217,70,239]]}, // indigo
+  {base:[6,26,30], b:[[16,185,129],[124,58,237],[34,211,238],[163,230,53]]}, // aurora
+  {base:[32,10,38], b:[[219,39,119],[147,51,234],[59,130,246],[251,113,133]]}, // rose
+  {base:[5,18,42], b:[[14,116,144],[30,64,175],[94,234,212],[168,85,247]]}, // deep sea
+  {base:[20,18,52], b:[[59,130,246],[236,72,153],[45,212,191],[129,140,248]]} // twilight
 ];
-const PAL_MS = 30000, PAL_START = new Date().getHours()/24 * PAL.length * PAL_MS;
+const PAL_MS = 18000, PAL_START = new Date().getHours()/24 * PAL.length * PAL_MS;
 const lerp = (a, b, f) => a + (b-a)*f, mix = (a, b, f) => a.map((v, i) => lerp(v, b[i], f)), rgb = (c, al) => "rgba("+Math.round(c[0])+","+Math.round(c[1])+","+Math.round(c[2])+","+(al==null?1:al)+")";
 function paletteAt(t){
   const u = (t + PAL_START) / PAL_MS, i = Math.floor(u), f0 = u - i, f = f0*f0*(3-2*f0), A = PAL[i % PAL.length], B = PAL[(i+1) % PAL.length];
@@ -354,9 +358,9 @@ function paletteAt(t){
 }
 function field(g, W, H, t, pal, still){
   g.fillStyle = rgb(pal.base); g.fillRect(0,0,W,H);
-  const R = Math.max(W, H)*.62;
-  pal.b.forEach((c, i) => { const a = t/(11000+i*4300)+i*2.1, x = W*(.5+.4*Math.cos(a)), y = H*(.42+.32*Math.sin(a*1.3+i)), rg = g.createRadialGradient(x,y,0,x,y,R*(i===2?.6:1));
-    rg.addColorStop(0, rgb(c, i===2?.55:.8)); rg.addColorStop(1, rgb(c, 0)); g.fillStyle = rg; g.fillRect(0,0,W,H); });
+  const R = Math.max(W, H)*.62, RS = [1,1,.7,.5], AS = [.8,.8,.6,.55];
+  pal.b.forEach((c, i) => { const a = t/(9000+i*3700)+i*1.7, x = W*(.5+.4*Math.cos(a)), y = H*(.42+.32*Math.sin(a*1.3+i)), rg = g.createRadialGradient(x,y,0,x,y,R*RS[i]);
+    rg.addColorStop(0, rgb(c, AS[i])); rg.addColorStop(1, rgb(c, 0)); g.fillStyle = rg; g.fillRect(0,0,W,H); });
 }
 function sea(g, pts, W, H, sx, sy, t, scrim){
   const pal = paletteAt(t); field(g, W, H, t, pal); g.lineCap = "round";
