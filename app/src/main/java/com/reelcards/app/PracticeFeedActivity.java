@@ -45,7 +45,7 @@ public final class PracticeFeedActivity extends Activity {
     @Override
     protected void onCreate(Bundle b) {
         super.onCreate(b);
-        Ui.fonts(this);
+        Ui.theme(this);
         engine = Store.engine(this);
         Speaker.init(this);
         root = new FrameLayout(this);
@@ -104,9 +104,9 @@ public final class PracticeFeedActivity extends Activity {
             }
         });
         row.addView(toggle);
-        TextView nextBtn = Ui.text(this, "Next ↑", 13, Ui.ON_ACCENT, Ui.DISPLAY);
+        TextView nextBtn = Ui.text(this, "Next ↑", 13, 0xFF111111, Ui.DISPLAY); // over video: always white on dark
         nextBtn.setPadding(Ui.dp(this, 14), Ui.dp(this, 10), Ui.dp(this, 14), Ui.dp(this, 10));
-        nextBtn.setBackground(Ui.round(Ui.ACCENT, Ui.dp(this, 20)));
+        nextBtn.setBackground(Ui.round(0xFFFFFFFF, Ui.dp(this, 20)));
         nextBtn.setContentDescription("Next reel");
         nextBtn.setOnClickListener(new View.OnClickListener() { @Override public void onClick(View v) { if (card != null) card.finish("swipe"); else next(); } });
         LinearLayout.LayoutParams nl = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);

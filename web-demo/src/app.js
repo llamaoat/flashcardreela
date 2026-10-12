@@ -178,7 +178,7 @@ function hush(){ try { window.speechSynthesis && speechSynthesis.cancel(); } cat
 /* ---------------- phone screens ---------------- */
 const stepbar = n => '<div class="steplbl">Step '+n+' of 4</div><div class="stepbar">'+[1,2,3,4].map(i=>'<i class="'+(i<=n?"on":"")+'"></i>').join("")+'</div>';
 const choice = (act,val,title,sub,on,dis) => '<button class="choice'+(on?" on":"")+'" data-act="'+act+'" data-v="'+esc(val)+'"'+(dis?" disabled":"")+'><span class="t"><b>'+esc(title)+'</b>'+(sub?'<small>'+esc(sub)+'</small>':'')+'</span><span class="m">'+(on?"✓":"")+'</span></button>';
-const tabs = () => UI.onboarded ? '<div class="tabs"><button data-act="tab" data-v="dash" class="'+(UI.screen==="dash"?"on":"")+'">Reelcards</button><button data-act="tab" data-v="feed" class="'+(UI.screen==="feed"?"on":"")+'">For You</button></div>' : "";
+const tabs = () => UI.onboarded ? '<div class="tabs'+(UI.screen==="dash"?" ondash":"")+'"><button data-act="tab" data-v="dash" class="'+(UI.screen==="dash"?"on":"")+'">Reelcards</button><button data-act="tab" data-v="feed" class="'+(UI.screen==="feed"?"on":"")+'">For You</button></div>' : "";
 let timers = [];
 const clearTimers = () => { timers.forEach(clearTimeout); timers = []; };
 
@@ -187,8 +187,7 @@ function renderPhone(anim){
   const scr = $("screen"); let h = "";
   switch (UI.screen) {
     case "welcome":
-      h = '<div class="app"><div class="steplbl">Reelcards</div><h3>Revise without trying</h3><p>Your flashcards slip in between your TikTok, Instagram and YouTube Shorts reels, looking just like another reel. Double-tap if you know it. Swipe if you don\'t.</p>'+
-        '<div class="box"><b>How it feels</b><span class="muted" style="font-size:13px">Reel, reel, reel, <span style="color:var(--accent)">flashcard</span>, reel… Each card is styled for the app you\'re in and the things you watch, so it doesn\'t feel like homework.</span></div>'+
+      h = '<div class="app"><div class="brand">Reelcards</div><div class="hero" data-motion="welcome"></div><h3>Revise without trying<span>between your reels</span></h3><p class="muted">Your flashcards slip in between TikTok, Instagram and YouTube Shorts, looking just like another reel. Double-tap if you know it. Swipe if you don\'t.</p>'+
         '<button class="abtn" data-act="go" data-v="decks">Set up in 1 minute</button><p class="muted" style="font-size:12px">Free. Works offline. Nothing you watch is saved or sent anywhere.</p></div>'; break;
     case "decks": {
       const have = n => E.cards.some(c=>c.deck===n);
@@ -240,6 +239,7 @@ function renderPhone(anim){
     case "dash": h = dashHTML(); break;
   }
   scr.innerHTML = h;
+  scr.querySelectorAll("[data-motion]").forEach(el => motion(el, el.dataset.motion));
   fitCards(scr);
   $("phone").classList.toggle("feedmode", UI.screen==="feed");
   if (anim) { scr.classList.remove("enter"); void scr.offsetWidth; scr.classList.add("enter"); }
@@ -283,6 +283,46 @@ function startCardTimers(){
   if (it.count > 0) timers.push(setTimeout(()=>{ if (UI.current===it && !it.revealed) { it.count--; const r = $("screen").querySelector(".ring"); if (r) r.textContent = it.count>0 ? it.count : "?"; startCardTimers(); } }, 1000));
 }
 
+/* The moving hero on the welcome screen and dashboard: a soft orb and a wheel of words rolling along
+   a curve, the middle one bracketed with a grey note. Mirrors MotionView.java. Stops when its element
+   leaves the page; with "reduce motion" on it draws one still frame. */
+const TOPICS = [["Osmosis","12 due"],["Photosynthesis","8 due"],["Respiration","5 due"],["Enzymes","9 due"],["Mitosis","3 due"],["Ionic bonds","7 due"],["Electrolysis","4 due"],["Moles","6 due"],["Acids","11 due"],["Forces","2 due"],["Waves","5 due"],["El tiempo","8 due"],["La familia","6 due"],["Diffusion","3 due"],["DNA","9 due"],["Alkenes","4 due"],["Momentum","7 due"],["Circuits","5 due"]];
+function motionWords(kind){
+  if (kind !== "decks") return TOPICS;
+  const t = now(), k = E.dk(t), d = E.day(k), rr = E.recallRate(k,7);
+  const out = [...new Set(E.cards.map(c=>c.deck))].map(dk => { const cs = E.cards.filter(c=>c.deck===dk);
+    const due = cs.filter(c=>c.state!==NEW&&c.due<=t).length, nw = cs.filter(c=>c.state===NEW).length;
+    return [RC.deckLabel(dk), due ? due+" due" : nw ? nw+" new" : "all done"]; });
+  const all = E.cards.filter(c=>c.state!==NEW&&c.due<=t).length;
+  out.push(["Today", d.reviews+(d.reviews===1?" card":" cards")], ["Streak", E.streak(k)+(E.streak(k)===1?" day":" days")], ["Due now", all+(all===1?" card":" cards")]);
+  if (rr >= 0) out.push(["Remembered", Math.round(rr*100)+"%"]);
+  let w = out.slice(); while (w.length < 12) w = w.concat(out);
+  return w;
+}
+function motion(el, kind){
+  const words = motionWords(kind); if (!words.length) return;
+  const small = el.classList.contains("small"), cv = document.createElement("canvas"); cv.width = cv.height = 380; el.appendChild(cv);
+  const g = cv.getContext("2d"), els = words.map(w => { const d = document.createElement("div"); d.className = "w"; el.appendChild(d); return d; });
+  const N = words.length, STEP = small ? 27 : 30, R = small ? 260 : 320, BX = small ? 118 : 146, still = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const blobs = [["242,106,61",.9],["244,183,154",.75],["110,143,85",.55],["251,226,211",.65],["224,71,42",.7]];
+  function frame(t){
+    if (!el.isConnected) return;
+    const H = el.clientHeight, CY = H/2, off = (t/1400) % N;
+    els.forEach((e,i) => { let k = ((i-off)%N+N)%N; if (k > N/2) k -= N; const y = k*STEP, a = Math.asin(Math.max(-1, Math.min(1, y/R)));
+      e.style.transform = "translate("+(BX + R*(1-Math.cos(a)))+"px,"+(CY+y-12)+"px) rotate("+(a*.8)+"rad)";
+      e.style.opacity = Math.max(0, 1-Math.abs(k)/(H/STEP/2+.5));
+      const sel = Math.abs(k) < .5;
+      e.innerHTML = sel ? '<i>[ </i>'+esc(words[i][0])+'<i>]</i><em>'+esc(words[i][1])+'</em>' : esc(words[i][0]);
+      e.style.marginLeft = sel ? "-13px" : "0"; });
+    g.clearRect(0,0,380,380); g.save(); g.beginPath(); g.arc(190,190,190,0,7); g.clip(); g.fillStyle = "rgb(240,138,98)"; g.fillRect(0,0,380,380);
+    blobs.forEach((b,i) => { const a = t/(2600+i*700)+i*1.7, x = 190+Math.cos(a)*95, y = 190+Math.sin(a*1.3)*85, r = 70+110*b[1];
+      const rg = g.createRadialGradient(x,y,0,x,y,r); rg.addColorStop(0,"rgba("+b[0]+",.95)"); rg.addColorStop(1,"rgba("+b[0]+",0)"); g.fillStyle = rg; g.fillRect(0,0,380,380); });
+    const sh = g.createRadialGradient(130,115,30,190,190,200); sh.addColorStop(0,"rgba(255,255,255,.2)"); sh.addColorStop(.75,"rgba(0,0,0,0)"); sh.addColorStop(1,"rgba(60,20,10,.28)"); g.fillStyle = sh; g.fillRect(0,0,380,380); g.restore();
+    if (!still) requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+}
+
 function dashHTML(){
   const t = now(), k = E.dk(t), d = E.day(k), rr = E.recallRate(k,7), f = E.forecast(t);
   let fs = "At "+f.mins+" min of reels a day you'll see about "+f.perDay+" cards a day"+(f.capped?" (your daily limit)":"")+": about "+f.minsOnCards+" min of revision you barely notice.";
@@ -290,17 +330,17 @@ function dashHTML(){
   else if (E.cards.length) fs += " You've seen every card. Now it's all reviews.";
   const n = 14; let max = 1; const vals = [];
   for (let i=0;i<n;i++){ const x = E.stats.days[k-(n-1-i)]; const v = x?[x.reviews,x.skips]:[0,0]; vals.push(v); max = Math.max(max, v[0]+v[1]); }
-  const bars = vals.map((v,i)=>'<div><i style="height:'+(v[1]/max*64)+'px;background:#4a4c5a"></i><i style="height:'+(v[0]/max*64)+'px;background:var(--accent)"></i>'+((i%2===(n-1)%2)?'<span>'+new Date(t-(n-1-i)*DAY).getDate()+'</span>':'')+'</div>').join("");
+  const bars = vals.map((v,i)=>'<div><i style="height:'+(v[1]/max*64)+'px;background:var(--bar2)"></i><i style="height:'+(v[0]/max*64)+'px;background:var(--accent)"></i>'+((i%2===(n-1)%2)?'<span>'+new Date(t-(n-1-i)*DAY).getDate()+'</span>':'')+'</div>').join("");
   const decks = [...new Set(E.cards.map(c=>c.deck))].map(dk=>{ const cs = E.cards.filter(c=>c.deck===dk); const nw = cs.filter(c=>c.state===NEW).length, ld = cs.filter(c=>c.state===REVIEW).length, lg = cs.length-nw-ld, due = cs.filter(c=>c.state!==NEW&&c.due<=t).length;
     return '<div class="mini2"><b>'+esc(dk)+'</b><br><span class="muted">'+ld+' learned · '+lg+' learning · '+nw+' new · '+due+' due now</span></div>'; }).join("");
   const saved = E.cards.filter(c=>c.saved);
   const favs = RC.DIMS.map(dm=>{ const fv = E.bandit.favourite(dm); if (!fv) return ""; return '<div style="font-size:13px">'+RC.DIMLABEL[dm]+': <b>'+esc(LABEL[fv])+'</b> <span class="muted">('+Math.round(E.bandit.mean(dm,fv)*100)+'% held)</span></div>'; }).join("");
   const quiet = E.snoozeUntil > t ? " Quiet mode for a few minutes after lots of fast skips." : "";
-  return tabs()+'<div class="app" style="padding-top:52px"><div class="status"><b>On</b><div class="muted" style="font-size:12.5px">Cards appear in TikTok, Instagram, YouTube Shorts, Snapchat, Facebook, X, Reddit and Pinterest.'+quiet+'</div></div>'+
+  return tabs()+'<div class="app" style="padding-top:52px">'+(E.cards.length?'<div class="hero small" data-motion="decks"></div>':'')+'<div class="status"><b>On</b><div class="muted" style="font-size:12.5px">Cards appear in TikTok, Instagram, YouTube Shorts, Snapchat, Facebook, X, Reddit and Pinterest.'+quiet+'</div></div>'+
     '<div class="sec">Today</div><div class="tiles"><div class="tile"><b>'+d.reviews+'</b><small>cards done</small></div><div class="tile"><b>'+d.skips+'</b><small>skipped</small></div><div class="tile"><b>'+(rr<0?"–":Math.round(rr*100)+"%")+'</b><small>remembered, last 7 days</small></div><div class="tile"><b>'+E.streak(k)+'</b><small>day streak</small></div></div>'+
     '<div class="box"><span class="steplbl">Forecast</span><span style="font-size:13px">'+esc(fs)+'</span></div>'+
     '<div class="box"><span class="steplbl">Rhythm</span><span style="font-size:13px">'+esc(E.rhythmText())+'</span>'+(E.calibration.describe()?'<span class="steplbl" style="margin-top:4px">Your memory</span><span style="font-size:13px">'+esc(E.calibration.describe())+'</span>':'')+'</div>'+
-    '<div class="box"><span class="steplbl">Last 14 days · yellow = reviewed, grey = skipped</span><div class="bars">'+bars+'</div></div>'+
+    '<div class="box"><span class="steplbl">Last 14 days · dark = reviewed, light = skipped</span><div class="bars">'+bars+'</div></div>'+
     (saved.length?'<div class="box"><span class="steplbl">Saved ('+saved.length+')</span>'+saved.slice(0,5).map(c=>'<div class="mini2">'+esc(c.f)+'</div>').join("")+'</div>':'')+
     '<div class="box"><span class="steplbl">Your cards</span>'+(decks||'<span class="muted">No cards yet.</span>')+'<button class="abtn ghost" data-act="addCards">Add cards</button></div>'+
     '<div class="box"><span class="steplbl">How often</span><div class="seg">'+["chill","normal","cram","demo"].map(m=>'<button data-act="setIntensity" data-v="'+m+'" class="'+(E.settings.intensity===m?"on":"")+'">'+m[0].toUpperCase()+m.slice(1)+'</button>').join("")+'</div>'+

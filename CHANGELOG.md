@@ -12,8 +12,9 @@
   another antidote), so it's no longer obviously wrong.
 
 **Look**
-- The app's screens, the extension popup and the web demo now use Schibsted Grotesk, with
-  Newsreader for page titles. Cards are unchanged.
+- A new look for the app's own screens, the extension popup and the web demo: Inter, light by day
+  and dark when your phone is, ink pill buttons. The welcome screen and dashboard have a moving orb
+  and a wheel of your topics. Cards are unchanged.
 
 **Android**
 - A home-screen widget: one due card, *Show answer*, then *Knew it* or *Again*. Cards that need a
