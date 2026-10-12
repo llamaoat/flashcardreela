@@ -52,7 +52,10 @@ hasn't run on a real phone yet.
 7. **iPhone.** iOS doesn't let apps detect individual reels.
    - **Options:** cards timed with Screen Time (every few minutes of TikTok), home-screen and
      lock-screen widgets, and a Shortcuts automation that opens a card when TikTok opens.
-   - **Today:** the web demo can be added to an iPhone's home screen, where it opens full screen and
+   - **Today:** an iPhone Shortcut (steps shown on the web page when opened in iOS Safari) opens the web
+     demo's `?app=1&card=1` link, which goes straight to a card once setup is done. The timed
+     automation (open TikTok, wait, open the link) is untested. Safari and a home-screen copy keep
+     separate saves, so the guide says to use one. The web demo can be added to an iPhone's home screen, where it opens full screen and
      works offline (`manifest.webmanifest`, `sw.js`, the `appmode` view). It keeps progress in the
      browser (localStorage, plus IndexedDB for Anki files with pictures).
    - **Needs:** a Mac with Xcode (none in this project's cloud sessions), and Apple's Family Controls

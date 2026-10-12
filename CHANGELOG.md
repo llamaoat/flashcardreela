@@ -11,6 +11,11 @@
 - A quiz's wrong answer now comes from a card asking the same kind of question ("Antidote for…" gets
   another antidote), so it's no longer obviously wrong.
 
+**iPhone**
+- On an iPhone, the web page now explains how to make a Shortcut that opens straight onto a card
+  (`?app=1&card=1`), and an optional automation that does it after you open TikTok. iPhones don't let
+  any app draw over other apps, so this is a one-tap card, not one slipped into the feed.
+
 **Look**
 - A new look for the app's own screens, the extension popup and the web demo: Inter, light by day
   and dark when your phone is, ink pill buttons. The welcome screen and dashboard have a moving sea
