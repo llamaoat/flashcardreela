@@ -2,6 +2,9 @@
 
 ## 1.3.1: pictures full screen, a seamless sea
 
+- Behind the sea there's now a slowly shapeshifting colour field: four hues at once drifting and blending,
+  easing every 18 seconds through eight palettes (ocean, dusk, lagoon, indigo, aurora, rose, deep sea,
+  twilight), starting from one that follows the hour. It stays deep so the white words always read.
 - The moving sea now fills the whole welcome screen instead of a band, and on the dashboard it melts into
   the page and scrolls away with it. Foam is softer behind the topic wheel so it stays readable.
 

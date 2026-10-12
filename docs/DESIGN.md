@@ -238,3 +238,5 @@ they still pass as reels. The widget uses the system font: launchers draw it, an
 need Android 12+.
 
 The sea is the welcome screen's whole background, fading to solid navy under the words at the bottom. On the dashboard it's the top of the page, melting into it and scrolling away with the content. Foam is kept soft behind the wheel so the words stay readable.
+
+Behind the dashes is a slow shapeshifting colour field (`PAL` and `field()` in `app.js`, mirrored in `MotionView.java`): a deep base with four soft blobs of colour drifting over it, easing every 18 seconds into the next of eight palettes (ocean, dusk, lagoon, indigo, aurora, rose, deep sea, twilight). It starts on a palette that follows the hour, so the colours change as time goes on, like Reelcards itself changing shape from card to card. The palettes stay dark enough that the white dashes and words always read, and the swimmer's orange stays clear of every one.
