@@ -1,6 +1,9 @@
 # Changelog
 
-## 1.3.1: pictures full screen
+## 1.3.1: pictures full screen, a seamless sea
+
+- The moving sea now fills the whole welcome screen instead of a band, and on the dashboard it melts into
+  the page and scrolls away with it. Foam is softer behind the topic wheel so it stays readable.
 
 - Once the answer's showing, tap a card's picture to open it full screen. Pinch or double-tap to zoom,
   drag to move, and tap **Close** to go back to the card. Pictures you can open have a small corner

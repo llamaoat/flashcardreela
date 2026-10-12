@@ -133,11 +133,13 @@ final class Ui {
     static TextView title(Context c, String s) { return title(c, s, null); }
 
     /** A heading, with an optional second line in grey ("Revise without trying / between your reels"). */
-    static TextView title(Context c, String s, String sub) {
-        TextView t = text(c, s, 26, TEXT, DISPLAY);
+    static TextView title(Context c, String s, String sub) { return title(c, s, sub, TEXT, MUTED); }
+
+    static TextView title(Context c, String s, String sub, int main, int muted) {
+        TextView t = text(c, s, 26, main, DISPLAY);
         if (sub != null) {
             android.text.SpannableStringBuilder b = new android.text.SpannableStringBuilder(s + "\n" + sub);
-            b.setSpan(new android.text.style.ForegroundColorSpan(MUTED), s.length() + 1, b.length(), 0);
+            b.setSpan(new android.text.style.ForegroundColorSpan(muted), s.length() + 1, b.length(), 0);
             t.setText(b);
         }
         t.setLetterSpacing(-0.025f);

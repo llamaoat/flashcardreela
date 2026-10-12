@@ -8,6 +8,9 @@ import android.widget.ImageView;
 import android.content.ComponentName;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.content.res.ColorStateList;
+import android.graphics.Color;
+import android.graphics.drawable.RippleDrawable;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -89,11 +92,16 @@ public final class MainActivity extends Activity {
     }
 
     /** System bar colours and icons to match light or dark. */
-    private void bars() {
-        getWindow().setStatusBarColor(Ui.BG);
-        getWindow().setNavigationBarColor(Ui.BG);
-        getWindow().getDecorView().setSystemUiVisibility(Ui.dark ? 0
-                : View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR | View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR);
+    private void bars() { bars(0); }
+
+    /** Bar colours and icons for a page: over the sea (1 welcome, 2 dashboard) the top is navy with light icons. */
+    private void bars(int sea) {
+        getWindow().setStatusBarColor(sea == 0 ? Ui.BG : MotionView.SEA);
+        getWindow().setNavigationBarColor(sea == 1 ? MotionView.SEA : Ui.BG);
+        int flags = 0;
+        if (!Ui.dark && sea != 1) flags |= View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR;
+        if (!Ui.dark && sea == 0) flags |= View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR;
+        getWindow().getDecorView().setSystemUiVisibility(flags);
     }
 
     /** Dark mode switched while open (uiMode is in configChanges, so an import survives it): restyle. */
@@ -131,16 +139,38 @@ public final class MainActivity extends Activity {
 
     private int dp(float v) { return Ui.dp(this, v); }
 
-    private LinearLayout page(String name, Runnable onBack) {
+    private LinearLayout page(String name, Runnable onBack) { return page(name, onBack, 0, null); }
+
+    /**
+     * @param sea 0: a plain page. 1: the welcome screen, with the moving sea filling the whole screen behind it.
+     *            2: the dashboard, with the sea across the top, melting into the page and scrolling away with it.
+     */
+    private LinearLayout page(String name, Runnable onBack, int sea, String[][] words) {
         screen = name;
         back = onBack;
+        bars(sea);
         ScrollView sv = new ScrollView(this);
-        sv.setBackgroundColor(Ui.BG);
+        sv.setBackgroundColor(sea == 0 ? Ui.BG : Color.TRANSPARENT);
         sv.setFillViewport(true);
         LinearLayout col = Ui.column(this);
         col.setPadding(dp(20), dp(28), dp(20), dp(36));
         sv.addView(col, new ScrollView.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
-        setContentView(sv);
+        if (sea == 0) setContentView(sv);
+        else {
+            FrameLayout fl = new FrameLayout(this);
+            fl.setBackgroundColor(sea == 1 ? MotionView.SEA : Ui.BG);
+            if (sea == 1) {
+                fl.addView(new MotionView(this, words, false).setCentre(.30f).setScrim(MotionView.SEA), new FrameLayout.LayoutParams(-1, -1));
+            } else {
+                final MotionView mv = new MotionView(this, words, true).setCentre(.42f).setFade(Ui.BG);
+                fl.addView(mv, new FrameLayout.LayoutParams(-1, dp(300)));
+                sv.setOnScrollChangeListener(new View.OnScrollChangeListener() {
+                    @Override public void onScrollChange(View v, int x, int y, int ox, int oy) { mv.setTranslationY(-y); }
+                });
+            }
+            fl.addView(sv, new FrameLayout.LayoutParams(-1, -1));
+            setContentView(fl);
+        }
         if (Build.VERSION.SDK_INT >= 35) Api35.fitSystemBars(sv);
         if (Build.VERSION.SDK_INT >= 33) Api33.syncBack(this);
         return col;
@@ -222,14 +252,6 @@ public final class MainActivity extends Activity {
             {"Waves", "5 due"}, {"El tiempo", "8 due"}, {"La familia", "6 due"}, {"Diffusion", "3 due"}, {"DNA", "9 due"}, {"Alkenes", "4 due"},
             {"Momentum", "7 due"}, {"Circuits", "5 due"}};
 
-    private void hero(LinearLayout col, String[][] words, boolean small) {
-        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(small ? 220 : 300));
-        lp.leftMargin = -dp(20);
-        lp.rightMargin = -dp(20);
-        col.setClipToPadding(false);
-        col.addView(new MotionView(this, words, small), lp);
-    }
-
     /** Each deck with what's waiting in it, then today's numbers, for the dashboard's wheel (as motionWords() in app.js). */
     private String[][] dashWords(long now) {
         java.util.Map<String, int[]> decks = new java.util.LinkedHashMap<>();
@@ -260,23 +282,26 @@ public final class MainActivity extends Activity {
     // ------------------------------------------------------------------ welcome
 
     private void showWelcome() {
-        LinearLayout col = page("welcome", null);
-        Ui.add(col, Ui.text(this, "Reelcards", 15, Ui.TEXT, Ui.DISPLAY), 0);
-        hero(col, TOPICS, false);
-        Ui.add(col, Ui.title(this, "Revise without trying", "between your reels"), 4);
-        Ui.add(col, Ui.text(this, "Your flashcards slip in between TikTok, Instagram and YouTube Shorts, looking just like another reel. Double-tap if you know it. Swipe if you don't.", 15, Ui.MUTED, Ui.BODY), 10);
+        LinearLayout col = page("welcome", null, 1, TOPICS);
+        final int white = 0xFFFFFFFF, soft = 0xB3FFFFFF;
+        Ui.add(col, Ui.text(this, "Reelcards", 15, white, Ui.DISPLAY), 0);
+        col.addView(new View(this), new LinearLayout.LayoutParams(-1, dp(240))); // the sea and its wheel show through here
+        Ui.add(col, Ui.title(this, "Revise without trying", "between your reels", white, 0x9EFFFFFF), 4);
+        Ui.add(col, Ui.text(this, "Your flashcards slip in between TikTok, Instagram and YouTube Shorts, looking just like another reel. Double-tap if you know it. Swipe if you don't.", 15, soft, Ui.BODY), 10);
 
         final FrameLayout preview = new FrameLayout(this);
-        preview.setBackground(Ui.round(Ui.SURFACE, dp(22)));
+        preview.setBackground(Ui.round(0xFF12294D, dp(22)));
         preview.setClipToOutline(true);
-        Ui.add(col, Ui.muted(this, "Try this one: tap to reveal, double-tap if you knew it, swipe up for another."), 18);
+        Ui.add(col, Ui.text(this, "Try this one: tap to reveal, double-tap if you knew it, swipe up for another.", 13, soft, Ui.BODY), 18);
         LinearLayout.LayoutParams pl = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(470));
         pl.topMargin = dp(8);
         col.addView(preview, pl);
         loadPreview(preview);
 
-        primary(col, "Set up in 1 minute", go(new Runnable() { @Override public void run() { addMode = false; showDecks(); } }), 18);
-        Ui.add(col, Ui.muted(this, "Free. Works offline. Nothing you watch is saved or sent anywhere."), 10);
+        Button go = primary(col, "Set up in 1 minute", go(new Runnable() { @Override public void run() { addMode = false; showDecks(); } }), 18);
+        go.setTextColor(MotionView.SEA); // a white pill on the sea
+        go.setBackground(new RippleDrawable(ColorStateList.valueOf(0x220B2140), Ui.round(white, dp(26)), null));
+        Ui.add(col, Ui.text(this, "Free. Works offline. Nothing you watch is saved or sent anywhere.", 13, 0x99FFFFFF, Ui.BODY), 10);
     }
 
     /** A live, playable sample card using a throwaway engine (doesn't touch the student's data). */
@@ -968,11 +993,12 @@ public final class MainActivity extends Activity {
     private void showDashboard() {
         addMode = false;
         final long now = System.currentTimeMillis();
-        LinearLayout col = page("dashboard", null);
+        boolean sea = !engine.cards.isEmpty();
+        LinearLayout col = page("dashboard", null, sea ? 2 : 0, sea ? dashWords(now) : null);
         LinearLayout head = Ui.row(this);
-        head.addView(Ui.text(this, "Reelcards", 15, Ui.TEXT, Ui.DISPLAY), Ui.weight(1));
+        head.addView(Ui.text(this, "Reelcards", 15, sea ? 0xFFFFFFFF : Ui.TEXT, Ui.DISPLAY), Ui.weight(1));
         Ui.add(col, head, 0);
-        if (!engine.cards.isEmpty()) hero(col, dashWords(now), true);
+        if (sea) col.addView(new View(this), new LinearLayout.LayoutParams(-1, dp(190))); // the sea and its wheel show through here
         if (restoreNote != null) { // after a damaged save (Store.engine), until the app is next opened
             TextView n = Ui.text(this, restoreNote, 14, Ui.TEXT, Ui.BODY);
             n.setBackground(Ui.outline(Ui.WARN_BG, Ui.WARN, dp(1), dp(14)));

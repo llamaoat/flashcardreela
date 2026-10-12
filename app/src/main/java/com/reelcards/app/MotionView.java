@@ -5,6 +5,7 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.RectF;
+import android.graphics.Shader;
 import android.os.SystemClock;
 import android.provider.Settings;
 import android.view.View;
@@ -26,10 +27,14 @@ final class MotionView extends View {
     private final boolean still;
     private final Paint dash = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint text = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint paint = new Paint(); // the scrim and the fade
     private final RectF oval = new RectF();
     private final long start = SystemClock.uptimeMillis();
     private float[] pts = new float[0]; // x, y, length, jitter, phase for each dash
     private final float d;
+    private float cyFrac = .5f;           // where the wheel and swimmer sit, as a fraction of the height
+    private int scrim, fade;              // welcome: solid under the words at the bottom; dashboard: melts into the page
+    private android.graphics.LinearGradient scrimShader, fadeShader;
 
     MotionView(Context c, String[][] words, boolean small) {
         super(c);
@@ -41,13 +46,25 @@ final class MotionView extends View {
         text.setTypeface(Ui.MEDIUM);
         text.setTextSize(Ui.dp(c, small ? 17 : 18));
         text.setLetterSpacing(-0.015f);
-        text.setShadowLayer(6 * d, 0, d, 0xE60B2140);
+        text.setShadowLayer(10 * d, 0, d, 0xF20B2140);
         setBackgroundColor(SEA);
         setImportantForAccessibility(IMPORTANT_FOR_ACCESSIBILITY_NO);
     }
 
+    /** The wheel and the swimmer sit this far down (0..1). */
+    MotionView setCentre(float f) { cyFrac = f; return this; }
+
+    /** Fills the sea's lower part with this colour, solid at the bottom, so words read over it. */
+    MotionView setScrim(int colour) { scrim = colour; return this; }
+
+    /** Melts the sea's lower edge into the page behind it. */
+    MotionView setFade(int colour) { fade = colour; return this; }
+
     @Override
     protected void onSizeChanged(int w, int h, int ow, int oh) {
+        if (scrim != 0) scrimShader = new android.graphics.LinearGradient(0, h, 0, 0, new int[]{scrim, (scrim & 0x00FFFFFF) | 0xE6000000, scrim & 0x00FFFFFF},
+                new float[]{0f, .30f, .62f}, Shader.TileMode.CLAMP);
+        if (fade != 0) fadeShader = new android.graphics.LinearGradient(0, h * .54f, 0, h, fade & 0x00FFFFFF, fade | 0xFF000000, Shader.TileMode.CLAMP);
         Random r = new Random(7);
         float g = 9 * d;
         int cols = (int) (w / g) + 3, rows = (int) (h / g) + 3;
@@ -67,7 +84,9 @@ final class MotionView extends View {
     protected void onDraw(Canvas cv) {
         float t = SystemClock.uptimeMillis() - start;
         float w = getWidth(), h = getHeight();
-        sea(cv, t, w, h, w * .2f, h * .5f);
+        sea(cv, t, w, h, w * .2f, h * cyFrac);
+        if (scrimShader != null) { paint.setShader(scrimShader); cv.drawRect(0, 0, w, h, paint); paint.setShader(null); }
+        if (fadeShader != null) { paint.setShader(fadeShader); cv.drawRect(0, h * .54f, w, h, paint); paint.setShader(null); }
         if (words.length > 0) wheel(cv, t, w, h);
         if (!still) postInvalidateOnAnimation();
     }
@@ -85,8 +104,8 @@ final class MotionView extends View {
             float k = x - (front + (float) (Math.sin(y / d * .02 + t * .0009) * 30 + Math.sin(y / d * .066) * 10) * d);
             float l = len * (1 - pull * .5f), sw = .9f;
             int col = Color.argb(Math.round((.4f + j * .3f) * 255), 150, 188, 220);
-            if (k < 0 && k > -22 * d) { l = (1 + j * 1.5f) * d; sw = 1.7f + j; col = 0xF2FFFFFF; }
-            else if (k <= -22 * d && k > -300 * d) { if (j < .3f) continue; l = (2.5f + j * 4) * d; sw = 2.5f; col = 0xE6FFFFFF; a *= .4; }
+            if (k < 0 && k > -22 * d) { l = (1 + j * 1.5f) * d; sw = 1.7f + j; col = 0xCCFFFFFF; }
+            else if (k <= -22 * d && k > -300 * d) { if (j < .3f) continue; l = (2.5f + j * 4) * d; sw = 2.5f; col = 0x8CFFFFFF; a *= .4; }
             float ca = (float) Math.cos(a) * l / 2, sa = (float) Math.sin(a) * l / 2;
             dash.setColor(col);
             dash.setStrokeWidth(sw * d);
@@ -114,13 +133,13 @@ final class MotionView extends View {
 
     private void wheel(Canvas cv, float t, float w, float h) {
         int n = words.length;
-        float cy = h / 2f, step = d * (small ? 27 : 30), r = d * (small ? 260 : 320), bx = w * .42f;
-        float off = (t / 1400f) % n, fade = h / step / 2f + .5f;
+        float cy = h * cyFrac, step = d * (small ? 27 : 30), r = d * (small ? 260 : 320), bx = w * .42f;
+        float off = (t / 1400f) % n, reach = Math.min(cy, h - cy) / step + .5f;
         float base = -(text.ascent() + text.descent()) / 2f;
         for (int i = 0; i < n; i++) {
             float k = ((i - off) % n + n) % n;
             if (k > n / 2f) k -= n;
-            float alpha = Math.max(0f, 1f - Math.abs(k) / fade);
+            float alpha = Math.max(0f, 1f - Math.abs(k) / reach);
             if (alpha <= 0f) continue;
             float y = k * step;
             double a = Math.asin(Math.max(-1f, Math.min(1f, y / r)));
