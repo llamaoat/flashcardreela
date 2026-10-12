@@ -18,6 +18,8 @@
 
 ## Install it on a phone (students)
 
+**Testing it for us? Start with the [tester guide](docs/TESTERS.md).**
+
 1. Download **[`Reelcards.apk`](release/Reelcards.apk)** onto the Android phone (from the Releases page, this repo, or a USB cable).
 2. Open it. If Android asks, allow your browser or Files app to **install unknown apps**, then tap **Install**.
 3. Open **Reelcards** and follow the 4 short steps:
