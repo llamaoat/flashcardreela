@@ -22,7 +22,7 @@ import java.util.Random;
  */
 final class MotionView extends View {
     static final int SEA = 0xFF0B2140;
-    private final int swimmer = Ui.dark ? 0xFFEE8A63 : 0xFFE5683A;
+    private static final int SWIMMER = 0xFFEE8A63;
     private final String[][] words;
     private final boolean small;
     private final boolean still;
@@ -42,16 +42,7 @@ final class MotionView extends View {
             {{26, 16, 56}, {91, 63, 208}, {190, 60, 170}, {96, 165, 250}},
             {{8, 38, 46}, {14, 159, 142}, {45, 212, 191}, {56, 189, 248}},
             {{13, 28, 70}, {67, 56, 202}, {14, 165, 233}, {167, 139, 250}}};
-    // light mode: airy and white, with soft cyan and bright blue drifting through; dark ink goes on top
-    private static final int[][][] PAL_LIGHT = {
-            {{238, 244, 249}, {110, 205, 240}, {59, 130, 246}, {255, 255, 255}},
-            {{243, 240, 250}, {196, 181, 253}, {251, 207, 232}, {147, 197, 253}},
-            {{236, 248, 246}, {153, 238, 226}, {103, 220, 240}, {147, 197, 253}},
-            {{238, 241, 252}, {165, 180, 252}, {103, 220, 240}, {255, 255, 255}}};
-    static final int LIGHT_BASE = 0xFFEEF4F9;   // the light sea's page colour, for the bars behind it
     private static final float PAL_MS = 30000f;
-    private final boolean light = !Ui.dark;
-    private final int ink = light ? 0xFF0B2140 : 0xFFFFFFFF, inkMid = light ? 0x990B2140 : 0x99FFFFFF, inkSoft = light ? 0x8C0B2140 : 0x8CFFFFFF;
     private final float palStart = java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY) / 24f * PAL.length * PAL_MS;
     private final float[][] cur = new float[4][3];
     private float cyFrac = .5f;           // where the wheel and swimmer sit, as a fraction of the height
@@ -68,8 +59,8 @@ final class MotionView extends View {
         text.setTypeface(Ui.MEDIUM);
         text.setTextSize(Ui.dp(c, small ? 17 : 18));
         text.setLetterSpacing(-0.015f);
-        text.setShadowLayer(10 * d, 0, d, light ? 0xF2FFFFFF : 0xF20B2140);
-        setBackgroundColor(light ? LIGHT_BASE : SEA);
+        text.setShadowLayer(10 * d, 0, d, 0xF20B2140);
+        setBackgroundColor(SEA);
         setImportantForAccessibility(IMPORTANT_FOR_ACCESSIBILITY_NO);
     }
 
@@ -121,8 +112,7 @@ final class MotionView extends View {
     private void palette(float t) {
         float u = (t + palStart) / PAL_MS, f0 = u - (float) Math.floor(u), f = f0 * f0 * (3 - 2 * f0);
         int i = (int) Math.floor(u);
-        int[][][] pal = light ? PAL_LIGHT : PAL;
-        int[][] a = pal[i % pal.length], b = pal[(i + 1) % pal.length];
+        int[][] a = PAL[i % PAL.length], b = PAL[(i + 1) % PAL.length];
         for (int k = 0; k < 4; k++) for (int j = 0; j < 3; j++) cur[k][j] = a[k][j] + (b[k][j] - a[k][j]) * f;
     }
 
@@ -152,9 +142,9 @@ final class MotionView extends View {
             float x = px + (float) Math.cos(a) * dr, y = py + (float) Math.sin(a) * dr;
             float k = x - (front + (float) (Math.sin(y / d * .02 + t * .0009) * 30 + Math.sin(y / d * .066) * 10) * d);
             float l = len * (1 - pull * .5f), sw = 1.05f;
-            int col = light ? Color.argb(Math.round((.22f + j * .28f) * 255), 11, 33, 64) : Color.argb(Math.round((.46f + j * .3f) * 255), 240, 248, 255);
-            if (k < 0 && k > -22 * d) { l = (1 + j * 1.5f) * d; sw = 1.7f + j; col = light ? 0xCC1D4ED8 : 0xCCFFFFFF; }
-            else if (k <= -22 * d && k > -300 * d) { if (j < .3f) continue; l = (2.5f + j * 4) * d; sw = 2.5f; col = light ? 0x802563EB : 0x8CFFFFFF; a *= .4; }
+            int col = Color.argb(Math.round((.46f + j * .3f) * 255), 240, 248, 255);
+            if (k < 0 && k > -22 * d) { l = (1 + j * 1.5f) * d; sw = 1.7f + j; col = 0xCCFFFFFF; }
+            else if (k <= -22 * d && k > -300 * d) { if (j < .3f) continue; l = (2.5f + j * 4) * d; sw = 2.5f; col = 0x8CFFFFFF; a *= .4; }
             float ca = (float) Math.cos(a) * l / 2, sa = (float) Math.sin(a) * l / 2;
             dash.setColor(col);
             dash.setStrokeWidth(sw * d);
@@ -166,7 +156,7 @@ final class MotionView extends View {
         cv.translate(sx, sy);
         cv.scale(d, d);
         cv.rotate(-20);
-        dash.setColor(swimmer);
+        dash.setColor(SWIMMER);
         dash.setStyle(Paint.Style.FILL);
         oval.set(-8, -4.5f, 8, 4.5f);
         cv.drawOval(oval, dash);
@@ -196,12 +186,12 @@ final class MotionView extends View {
             cv.translate(bx + r * (float) (1 - Math.cos(a)), cy + y);
             cv.rotate((float) Math.toDegrees(a * .8));
             if (Math.abs(k) < .5f) {
-                draw(cv, "[ ", -text.measureText("[ "), base, inkSoft, alpha);
-                float tw = draw(cv, words[i][0], 0, base, ink, alpha);
-                float bw = draw(cv, "]", tw, base, inkSoft, alpha);
-                draw(cv, words[i][1], tw + bw + 8 * d, base, inkMid, alpha);
+                draw(cv, "[ ", -text.measureText("[ "), base, 0x8CFFFFFF, alpha);
+                float tw = draw(cv, words[i][0], 0, base, 0xFFFFFFFF, alpha);
+                float bw = draw(cv, "]", tw, base, 0x8CFFFFFF, alpha);
+                draw(cv, words[i][1], tw + bw + 8 * d, base, 0x99FFFFFF, alpha);
             } else {
-                draw(cv, words[i][0], 0, base, ink, alpha);
+                draw(cv, words[i][0], 0, base, 0xFFFFFFFF, alpha);
             }
             cv.restore();
         }
