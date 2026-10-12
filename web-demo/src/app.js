@@ -198,7 +198,7 @@ function renderPhone(anim){
   const scr = $("screen"); let h = "";
   switch (UI.screen) {
     case "welcome":
-      h = '<div class="app sea"><div class="hero" data-motion="welcome" data-cy=".34"></div><div class="brand">Reelcards</div><div class="spacer"></div><h3>Revise without trying<span>between your reels</span></h3><p class="muted">Your flashcards slip in between TikTok, Instagram and YouTube Shorts, looking just like another reel. Double-tap if you know it. Swipe if you don\'t.</p>'+
+      h = '<div class="app sea"><div class="hero" data-motion="welcome" data-cy=".34" data-scrim="1"></div><div class="brand">Reelcards</div><div class="spacer"></div><h3>Revise without trying<span>between your reels</span></h3><p class="muted">Your flashcards slip in between TikTok, Instagram and YouTube Shorts, looking just like another reel. Double-tap if you know it. Swipe if you don\'t.</p>'+
         '<button class="abtn" data-act="go" data-v="decks">Set up in 1 minute</button><p class="muted" style="font-size:12px">Free. Works offline. Nothing you watch is saved or sent anywhere.</p></div>'; break;
     case "decks": {
       const have = n => E.cards.some(c=>c.deck===n);
@@ -324,7 +324,7 @@ function motion(el, kind){
   const cyF = +el.dataset.cy || .5, sx = W*.2, sy = H*cyF, fadeN = Math.min(sy, H-sy)/STEP_ + .5;
   function frame(t){
     if (!el.isConnected) return;
-    sea(g, pts, W, H, sx, sy, t);
+    sea(g, pts, W, H, sx, sy, t, el.dataset.scrim === "1");
     const off = (t/1400) % N;
     els.forEach((e,i) => { let k = ((i-off)%N+N)%N; if (k > N/2) k -= N; const y = k*STEP, a = Math.asin(Math.max(-1, Math.min(1, y/R)));
       e.style.transform = "translate("+(BX + R*(1-Math.cos(a)))+"px,"+(sy+y-12)+"px) rotate("+(a*.8)+"rad)";
@@ -336,8 +336,30 @@ function motion(el, kind){
   }
   requestAnimationFrame(frame);
 }
-function sea(g, pts, W, H, sx, sy, t){
-  g.fillStyle = "#0B2140"; g.fillRect(0,0,W,H); g.lineCap = "round";
+/* The colour field behind the sea: a deep base with three soft blobs of colour drifting over it. Every 30
+   seconds it eases into the next palette (ocean, dusk, lagoon, indigo), and it starts at a palette that
+   follows the hour, so the app's colours move on as time goes on, like Reelcards itself changing shape
+   from card to card. Kept dark enough that the white dashes and words always read. */
+const PAL = [
+  {base:[11,33,64],  b:[[29,78,216],[34,184,207],[125,211,252]]},   // ocean
+  {base:[26,16,56],  b:[[91,63,208],[190,60,170],[96,165,250]]},    // dusk
+  {base:[8,38,46],   b:[[14,159,142],[45,212,191],[56,189,248]]},   // lagoon
+  {base:[13,28,70],  b:[[67,56,202],[14,165,233],[167,139,250]]}    // indigo
+];
+const PAL_MS = 30000, PAL_START = new Date().getHours()/24 * PAL.length * PAL_MS;
+const lerp = (a, b, f) => a + (b-a)*f, mix = (a, b, f) => a.map((v, i) => lerp(v, b[i], f)), rgb = (c, al) => "rgba("+Math.round(c[0])+","+Math.round(c[1])+","+Math.round(c[2])+","+(al==null?1:al)+")";
+function paletteAt(t){
+  const u = (t + PAL_START) / PAL_MS, i = Math.floor(u), f0 = u - i, f = f0*f0*(3-2*f0), A = PAL[i % PAL.length], B = PAL[(i+1) % PAL.length];
+  return {base: mix(A.base, B.base, f), b: A.b.map((c, k) => mix(c, B.b[k], f))};
+}
+function field(g, W, H, t, pal, still){
+  g.fillStyle = rgb(pal.base); g.fillRect(0,0,W,H);
+  const R = Math.max(W, H)*.62;
+  pal.b.forEach((c, i) => { const a = t/(11000+i*4300)+i*2.1, x = W*(.5+.4*Math.cos(a)), y = H*(.42+.32*Math.sin(a*1.3+i)), rg = g.createRadialGradient(x,y,0,x,y,R*(i===2?.6:1));
+    rg.addColorStop(0, rgb(c, i===2?.55:.8)); rg.addColorStop(1, rgb(c, 0)); g.fillStyle = rg; g.fillRect(0,0,W,H); });
+}
+function sea(g, pts, W, H, sx, sy, t, scrim){
+  const pal = paletteAt(t); field(g, W, H, t, pal); g.lineCap = "round";
   const front = ((t*.06) % (W+520)) - 160;
   for (const p of pts) {
     let a = -.6 + Math.sin(p[1]*.009+t*.00035)*.22 + Math.cos(p[0]*.007-t*.00025)*.18;
@@ -346,12 +368,13 @@ function sea(g, pts, W, H, sx, sy, t){
     if (d < 14) continue;
     const dr = Math.sin(t*.0016+p[4])*1.4, x = p[0]+Math.cos(a)*dr, y = p[1]+Math.sin(a)*dr;
     const k = x - (front + Math.sin(y*.02+t*.0009)*30 + Math.sin(y*.066)*10);
-    let len = p[2]*(1-pull*.5), w = .9, col = "rgba(150,188,220,"+(.4+p[3]*.3).toFixed(2)+")";
+    let len = p[2]*(1-pull*.5), w = 1.05, col = "rgba(240,248,255,"+(.46+p[3]*.3).toFixed(2)+")";
     if (k < 0 && k > -22) { len = 1+p[3]*1.5; w = 1.7+p[3]; col = "rgba(255,255,255,.8)"; }
     else if (k <= -22 && k > -300) { if (p[3] < .3) continue; len = 2.5+p[3]*4; w = 2.5; col = "rgba(255,255,255,.55)"; a *= .4; }
     const ca = Math.cos(a)*len/2, sa = Math.sin(a)*len/2; g.strokeStyle = col; g.lineWidth = w;
     g.beginPath(); g.moveTo(x-ca,y-sa); g.lineTo(x+ca,y+sa); g.stroke();
   }
+  if (scrim) { const sg = g.createLinearGradient(0,H,0,0); sg.addColorStop(0, rgb(pal.base)); sg.addColorStop(.3, rgb(pal.base,.9)); sg.addColorStop(.62, rgb(pal.base,0)); g.fillStyle = sg; g.fillRect(0,0,W,H); } // solid under the words
   // the swimmer
   const s = Math.sin(t*.006); g.save(); g.translate(sx, sy); g.rotate(-.35); g.fillStyle = g.strokeStyle = "#EE8A63"; g.lineWidth = 3;
   g.beginPath(); g.ellipse(0,0,8,4.5,0,0,7); g.fill(); g.beginPath(); g.arc(9.5,-.5,3.5,0,7); g.fill();

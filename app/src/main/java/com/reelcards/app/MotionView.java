@@ -4,6 +4,7 @@ import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
+import android.graphics.RadialGradient;
 import android.graphics.RectF;
 import android.graphics.Shader;
 import android.os.SystemClock;
@@ -32,9 +33,21 @@ final class MotionView extends View {
     private final long start = SystemClock.uptimeMillis();
     private float[] pts = new float[0]; // x, y, length, jitter, phase for each dash
     private final float d;
+    // The colour field behind the sea (mirrors PAL/field() in web-demo/src/app.js): a deep base with three soft
+    // blobs of colour drifting over it. Every 30 s it eases into the next palette (ocean, dusk, lagoon, indigo),
+    // starting at one that follows the hour, so the colours move on as time goes on. Always dark enough for
+    // the white dashes and words.
+    private static final int[][][] PAL = {
+            {{11, 33, 64}, {29, 78, 216}, {34, 184, 207}, {125, 211, 252}},
+            {{26, 16, 56}, {91, 63, 208}, {190, 60, 170}, {96, 165, 250}},
+            {{8, 38, 46}, {14, 159, 142}, {45, 212, 191}, {56, 189, 248}},
+            {{13, 28, 70}, {67, 56, 202}, {14, 165, 233}, {167, 139, 250}}};
+    private static final float PAL_MS = 30000f;
+    private final float palStart = java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY) / 24f * PAL.length * PAL_MS;
+    private final float[][] cur = new float[4][3];
     private float cyFrac = .5f;           // where the wheel and swimmer sit, as a fraction of the height
     private int scrim, fade;              // welcome: solid under the words at the bottom; dashboard: melts into the page
-    private android.graphics.LinearGradient scrimShader, fadeShader;
+    private android.graphics.LinearGradient fadeShader;
 
     MotionView(Context c, String[][] words, boolean small) {
         super(c);
@@ -62,8 +75,6 @@ final class MotionView extends View {
 
     @Override
     protected void onSizeChanged(int w, int h, int ow, int oh) {
-        if (scrim != 0) scrimShader = new android.graphics.LinearGradient(0, h, 0, 0, new int[]{scrim, (scrim & 0x00FFFFFF) | 0xE6000000, scrim & 0x00FFFFFF},
-                new float[]{0f, .30f, .62f}, Shader.TileMode.CLAMP);
         if (fade != 0) fadeShader = new android.graphics.LinearGradient(0, h * .54f, 0, h, fade & 0x00FFFFFF, fade | 0xFF000000, Shader.TileMode.CLAMP);
         Random r = new Random(7);
         float g = 9 * d;
@@ -84,11 +95,39 @@ final class MotionView extends View {
     protected void onDraw(Canvas cv) {
         float t = SystemClock.uptimeMillis() - start;
         float w = getWidth(), h = getHeight();
+        palette(t);
+        field(cv, t, w, h);
         sea(cv, t, w, h, w * .2f, h * cyFrac);
-        if (scrimShader != null) { paint.setShader(scrimShader); cv.drawRect(0, 0, w, h, paint); paint.setShader(null); }
+        if (scrim != 0) { // solid in the palette's own base colour under the words
+            paint.setShader(new android.graphics.LinearGradient(0, h, 0, 0, new int[]{col(cur[0], 1f), col(cur[0], .9f), col(cur[0], 0f)},
+                    new float[]{0f, .30f, .62f}, Shader.TileMode.CLAMP));
+            cv.drawRect(0, 0, w, h, paint);
+            paint.setShader(null);
+        }
         if (fadeShader != null) { paint.setShader(fadeShader); cv.drawRect(0, h * .54f, w, h, paint); paint.setShader(null); }
         if (words.length > 0) wheel(cv, t, w, h);
         if (!still) postInvalidateOnAnimation();
+    }
+
+    private void palette(float t) {
+        float u = (t + palStart) / PAL_MS, f0 = u - (float) Math.floor(u), f = f0 * f0 * (3 - 2 * f0);
+        int i = (int) Math.floor(u);
+        int[][] a = PAL[i % PAL.length], b = PAL[(i + 1) % PAL.length];
+        for (int k = 0; k < 4; k++) for (int j = 0; j < 3; j++) cur[k][j] = a[k][j] + (b[k][j] - a[k][j]) * f;
+    }
+
+    private static int col(float[] c, float alpha) { return Color.argb(Math.round(alpha * 255), Math.round(c[0]), Math.round(c[1]), Math.round(c[2])); }
+
+    private void field(Canvas cv, float t, float w, float h) {
+        cv.drawColor(col(cur[0], 1f));
+        float big = Math.max(w, h) * .62f;
+        for (int i = 0; i < 3; i++) {
+            double a = t / (11000.0 + i * 4300) + i * 2.1;
+            float x = w * (.5f + .4f * (float) Math.cos(a)), y = h * (.42f + .32f * (float) Math.sin(a * 1.3 + i));
+            paint.setShader(new RadialGradient(x, y, big * (i == 2 ? .6f : 1f), col(cur[i + 1], i == 2 ? .55f : .8f), col(cur[i + 1], 0f), Shader.TileMode.CLAMP));
+            cv.drawRect(0, 0, w, h, paint);
+        }
+        paint.setShader(null);
     }
 
     private void sea(Canvas cv, float t, float w, float h, float sx, float sy) {
@@ -102,8 +141,8 @@ final class MotionView extends View {
             float dr = (float) Math.sin(t * .0016 + pts[i + 4]) * 1.4f * d;
             float x = px + (float) Math.cos(a) * dr, y = py + (float) Math.sin(a) * dr;
             float k = x - (front + (float) (Math.sin(y / d * .02 + t * .0009) * 30 + Math.sin(y / d * .066) * 10) * d);
-            float l = len * (1 - pull * .5f), sw = .9f;
-            int col = Color.argb(Math.round((.4f + j * .3f) * 255), 150, 188, 220);
+            float l = len * (1 - pull * .5f), sw = 1.05f;
+            int col = Color.argb(Math.round((.46f + j * .3f) * 255), 240, 248, 255);
             if (k < 0 && k > -22 * d) { l = (1 + j * 1.5f) * d; sw = 1.7f + j; col = 0xCCFFFFFF; }
             else if (k <= -22 * d && k > -300 * d) { if (j < .3f) continue; l = (2.5f + j * 4) * d; sw = 2.5f; col = 0x8CFFFFFF; a *= .4; }
             float ca = (float) Math.cos(a) * l / 2, sa = (float) Math.sin(a) * l / 2;

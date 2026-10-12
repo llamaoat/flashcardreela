@@ -2,6 +2,8 @@
 
 ## 1.3.1: pictures full screen, a seamless sea
 
+- Behind the sea there's now a slowly shapeshifting colour field: blue, violet, teal and indigo blend
+  into each other and change as time goes on.
 - The moving sea now fills the whole welcome screen instead of a band, and on the dashboard it melts into
   the page and scrolls away with it. Foam is softer behind the topic wheel so it stays readable.
 
