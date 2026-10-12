@@ -4,52 +4,119 @@ import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
-import android.graphics.Path;
-import android.graphics.RadialGradient;
-import android.graphics.Shader;
+import android.graphics.RectF;
 import android.os.SystemClock;
 import android.provider.Settings;
 import android.view.View;
 
+import java.util.Random;
+
 /**
- * The moving hero on the welcome screen and dashboard: a soft orb of drifting colour on the left and a
- * wheel of words rolling along a curve beside it, the middle one bracketed with a grey note
- * ("[ Enzymes ] 9 due"). Mirrors motion() in web-demo/src/app.js. Draws only while attached; with
- * animations switched off in the phone's settings it draws one still frame.
+ * The moving hero on the welcome screen and dashboard: a sea of short dashes drifting on a slow current,
+ * a small orange swimmer they turn towards, and waves of white foam rolling across (the feed washing past
+ * you), with a wheel of words rolling along a curve over it, the middle one bracketed with a grey note
+ * ("[ Enzymes ] 9 due"). Mirrors motion() and sea() in web-demo/src/app.js. Draws only while attached;
+ * with animations switched off in the phone's settings it draws one still frame.
  */
 final class MotionView extends View {
+    static final int SEA = 0xFF0B2140;
+    private static final int SWIMMER = 0xFFEE8A63;
     private final String[][] words;
     private final boolean small;
     private final boolean still;
-    private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint dash = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint text = new Paint(Paint.ANTI_ALIAS_FLAG);
-    private final Path clip = new Path();
+    private final RectF oval = new RectF();
     private final long start = SystemClock.uptimeMillis();
-    private static final int[] BLOBS = {0xF2F26A3D, 0xF2F4B79A, 0xF26E8F55, 0xF2FBE2D3, 0xF2E0472A};
-    private static final float[] SIZES = {.9f, .75f, .55f, .65f, .7f};
+    private float[] pts = new float[0]; // x, y, length, jitter, phase for each dash
+    private final float d;
 
     MotionView(Context c, String[][] words, boolean small) {
         super(c);
         this.words = words;
         this.small = small;
         this.still = Settings.Global.getFloat(c.getContentResolver(), Settings.Global.ANIMATOR_DURATION_SCALE, 1f) == 0f;
+        d = c.getResources().getDisplayMetrics().density;
+        dash.setStrokeCap(Paint.Cap.ROUND);
         text.setTypeface(Ui.MEDIUM);
         text.setTextSize(Ui.dp(c, small ? 17 : 18));
         text.setLetterSpacing(-0.015f);
+        text.setShadowLayer(6 * d, 0, d, 0xE60B2140);
+        setBackgroundColor(SEA);
         setImportantForAccessibility(IMPORTANT_FOR_ACCESSIBILITY_NO);
     }
 
     @Override
-    protected void onDraw(Canvas cv) {
-        if (words.length == 0) return;
-        float t = SystemClock.uptimeMillis() - start, d = getResources().getDisplayMetrics().density;
-        float h = getHeight(), cy = h / 2f;
-        orb(cv, t, -d * (small ? 50 : 64), cy, d * (small ? 75 : 95));
+    protected void onSizeChanged(int w, int h, int ow, int oh) {
+        Random r = new Random(7);
+        float g = 9 * d;
+        int cols = (int) (w / g) + 3, rows = (int) (h / g) + 3;
+        pts = new float[cols * rows * 5];
+        int i = 0;
+        for (int y = 0; y < rows; y++)
+            for (int x = 0; x < cols; x++) {
+                pts[i++] = (x - 1) * g + r.nextFloat() * g * .8f;
+                pts[i++] = (y - 1) * g + r.nextFloat() * g * .8f;
+                pts[i++] = (4 + r.nextFloat() * 4) * d;
+                pts[i++] = r.nextFloat();
+                pts[i++] = r.nextFloat() * 6.28f;
+            }
+    }
 
+    @Override
+    protected void onDraw(Canvas cv) {
+        float t = SystemClock.uptimeMillis() - start;
+        float w = getWidth(), h = getHeight();
+        sea(cv, t, w, h, w * .2f, h * .5f);
+        if (words.length > 0) wheel(cv, t, w, h);
+        if (!still) postInvalidateOnAnimation();
+    }
+
+    private void sea(Canvas cv, float t, float w, float h, float sx, float sy) {
+        float front = ((t * .06f * d) % (w + 520 * d)) - 160 * d;
+        for (int i = 0; i < pts.length; i += 5) {
+            float px = pts[i], py = pts[i + 1], len = pts[i + 2], j = pts[i + 3];
+            double a = -.6 + Math.sin(py / d * .009 + t * .00035) * .22 + Math.cos(px / d * .007 - t * .00025) * .18;
+            float dx = px - sx, dy = py - sy, dist = (float) Math.hypot(dx, dy), pull = Math.max(0f, 1f - dist / (120 * d));
+            if (pull > 0) a = a * (1 - pull) + Math.atan2(dy, dx) * pull;
+            if (dist < 14 * d) continue;
+            float dr = (float) Math.sin(t * .0016 + pts[i + 4]) * 1.4f * d;
+            float x = px + (float) Math.cos(a) * dr, y = py + (float) Math.sin(a) * dr;
+            float k = x - (front + (float) (Math.sin(y / d * .02 + t * .0009) * 30 + Math.sin(y / d * .066) * 10) * d);
+            float l = len * (1 - pull * .5f), sw = .9f;
+            int col = Color.argb(Math.round((.4f + j * .3f) * 255), 150, 188, 220);
+            if (k < 0 && k > -22 * d) { l = (1 + j * 1.5f) * d; sw = 1.7f + j; col = 0xF2FFFFFF; }
+            else if (k <= -22 * d && k > -300 * d) { if (j < .3f) continue; l = (2.5f + j * 4) * d; sw = 2.5f; col = 0xE6FFFFFF; a *= .4; }
+            float ca = (float) Math.cos(a) * l / 2, sa = (float) Math.sin(a) * l / 2;
+            dash.setColor(col);
+            dash.setStrokeWidth(sw * d);
+            cv.drawLine(x - ca, y - sa, x + ca, y + sa, dash);
+        }
+        // the swimmer
+        float s = (float) Math.sin(t * .006);
+        cv.save();
+        cv.translate(sx, sy);
+        cv.scale(d, d);
+        cv.rotate(-20);
+        dash.setColor(SWIMMER);
+        dash.setStyle(Paint.Style.FILL);
+        oval.set(-8, -4.5f, 8, 4.5f);
+        cv.drawOval(oval, dash);
+        cv.drawCircle(9.5f, -.5f, 3.5f, dash);
+        dash.setStyle(Paint.Style.STROKE);
+        dash.setStrokeWidth(3);
+        cv.drawLine(4, -3, 15 + s * 2.5f, -6 + s * 4, dash);
+        cv.drawLine(4, 3, 14 - s * 2.5f, 9 - s * 3, dash);
+        cv.drawLine(-7, -2, -16, -4 + s * 2, dash);
+        cv.drawLine(-7, 2, -16, 4.5f - s * 2, dash);
+        cv.restore();
+    }
+
+    private void wheel(Canvas cv, float t, float w, float h) {
         int n = words.length;
-        float step = d * (small ? 27 : 30), r = d * (small ? 260 : 320), bx = d * (small ? 118 : 146);
-        float off = (t / 1400f) % n;
-        float fade = h / step / 2f + .5f;
+        float cy = h / 2f, step = d * (small ? 27 : 30), r = d * (small ? 260 : 320), bx = w * .42f;
+        float off = (t / 1400f) % n, fade = h / step / 2f + .5f;
+        float base = -(text.ascent() + text.descent()) / 2f;
         for (int i = 0; i < n; i++) {
             float k = ((i - off) % n + n) % n;
             if (k > n / 2f) k -= n;
@@ -57,24 +124,19 @@ final class MotionView extends View {
             if (alpha <= 0f) continue;
             float y = k * step;
             double a = Math.asin(Math.max(-1f, Math.min(1f, y / r)));
-            float x = bx + r * (float) (1 - Math.cos(a));
-            boolean sel = Math.abs(k) < .5f;
             cv.save();
-            cv.translate(x, cy + y);
+            cv.translate(bx + r * (float) (1 - Math.cos(a)), cy + y);
             cv.rotate((float) Math.toDegrees(a * .8));
-            float base = -(text.ascent() + text.descent()) / 2f;
-            if (sel) {
-                float lx = -text.measureText("[ ");
-                draw(cv, "[ ", lx, base, Ui.MUTED, alpha);
-                float w = draw(cv, words[i][0], 0, base, Ui.TEXT, alpha);
-                float bw = draw(cv, "]", w, base, Ui.MUTED, alpha);
-                draw(cv, words[i][1], w + bw + 8 * d, base, Ui.MUTED, alpha);
+            if (Math.abs(k) < .5f) {
+                draw(cv, "[ ", -text.measureText("[ "), base, 0x8CFFFFFF, alpha);
+                float tw = draw(cv, words[i][0], 0, base, 0xFFFFFFFF, alpha);
+                float bw = draw(cv, "]", tw, base, 0x8CFFFFFF, alpha);
+                draw(cv, words[i][1], tw + bw + 8 * d, base, 0x99FFFFFF, alpha);
             } else {
-                draw(cv, words[i][0], 0, base, Ui.TEXT, alpha);
+                draw(cv, words[i][0], 0, base, 0xFFFFFFFF, alpha);
             }
             cv.restore();
         }
-        if (!still) postInvalidateOnAnimation();
     }
 
     private float draw(Canvas cv, String s, float x, float y, int colour, float alpha) {
@@ -82,27 +144,5 @@ final class MotionView extends View {
         text.setAlpha(Math.round(Color.alpha(colour) * alpha));
         cv.drawText(s, x, y, text);
         return text.measureText(s);
-    }
-
-    private void orb(Canvas cv, float t, float cx, float cy, float rad) {
-        cv.save();
-        clip.reset();
-        clip.addCircle(cx, cy, rad, Path.Direction.CW);
-        cv.clipPath(clip);
-        paint.setShader(null);
-        paint.setColor(0xFFF08A62);
-        cv.drawCircle(cx, cy, rad, paint);
-        for (int i = 0; i < BLOBS.length; i++) {
-            double a = t / (2600.0 + i * 700) + i * 1.7;
-            float x = cx + (float) Math.cos(a) * rad * .5f, y = cy + (float) Math.sin(a * 1.3) * rad * .45f;
-            float r = rad * (.37f + .58f * SIZES[i]);
-            paint.setShader(new RadialGradient(x, y, r, BLOBS[i], BLOBS[i] & 0x00FFFFFF, Shader.TileMode.CLAMP));
-            cv.drawCircle(x, y, r, paint);
-        }
-        paint.setShader(new RadialGradient(cx - rad * .32f, cy - rad * .4f, rad * 1.4f,
-                new int[]{0x33FFFFFF, 0x00000000, 0x473C140A}, new float[]{0f, .55f, .75f}, Shader.TileMode.CLAMP));
-        cv.drawCircle(cx, cy, rad, paint);
-        paint.setShader(null);
-        cv.restore();
     }
 }

@@ -13,8 +13,8 @@
 
 **Look**
 - A new look for the app's own screens, the extension popup and the web demo: Inter, light by day
-  and dark when your phone is, ink pill buttons. The welcome screen and dashboard have a moving orb
-  and a wheel of your topics. Cards are unchanged.
+  and dark when your phone is, ink pill buttons. The welcome screen and dashboard have a moving sea
+  (a swimmer, waves of foam rolling past) with a wheel of your topics over it. Cards are unchanged.
 
 **Android**
 - A home-screen widget: one due card, *Show answer*, then *Knew it* or *Again*. Cards that need a
