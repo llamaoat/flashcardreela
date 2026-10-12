@@ -7,7 +7,7 @@ name: Web demo
 on:
   push:
     branches: [main, master]
-    paths: ["web-demo/**", "tools/build-web-demo.py", "PRIVACY.md", "tools/build-privacy-page.py", ".github/workflows/pages.yml"]
+    paths: ["web-demo/**", "extension/**", "tools/build-web-demo.py", "PRIVACY.md", "tools/build-privacy-page.py", ".github/workflows/pages.yml"]
   workflow_dispatch:
 
 permissions:
@@ -47,6 +47,8 @@ jobs:
           mkdir -p _site
           cp -r web-demo/index.html web-demo/manifest.webmanifest web-demo/sw.js web-demo/icons _site/
           python3 tools/build-privacy-page.py _site/privacy.html
+          mkdir -p _pack/Reelcards-extension && cp -r extension/. _pack/Reelcards-extension/
+          (cd _pack && zip -qr ../_site/Reelcards-extension.zip Reelcards-extension)
 
       - if: steps.pages.outputs.on == 'true'
         uses: actions/configure-pages@v5

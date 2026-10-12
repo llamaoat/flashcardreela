@@ -6,6 +6,10 @@ Instagram, YouTube Shorts and other apps, drawn so they look like another video.
 **This is an early test version. It has not been tried on a real phone by its makers yet**, so
 you are one of the first. Things may break. That is what we want to find out.
 
+**The quickest way:** open **https://llamaoat.github.io/flashcardreela/**. The "Get Reelcards" box at the
+top has the download button and the steps for Android, iPhone and computer, with the one for your
+device highlighted. The rest of this page says the same in more detail.
+
 ## What you need
 
 - An **Android phone** (Android 8 or newer). The real thing only works on Android.

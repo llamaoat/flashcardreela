@@ -478,6 +478,22 @@ select{min-height:40px;border-radius:10px;border:1px solid var(--line);backgroun
 @media (prefers-reduced-motion:reduce){.screen.enter,.card *,.card .bgl,.card .bgl::after{animation:none!important;transition:none!important}}
 /* Add to Home Screen: the offer on the page, and the app itself (opened from the home screen, or ?app=1):
    just the phone, filling the screen, with nothing of the demo around it */
+.get{background:var(--panel);border:1px solid var(--line);border-radius:22px;padding:20px 22px;display:flex;flex-direction:column;gap:12px}
+.get h2{margin:0;font-size:26px;font-weight:600;letter-spacing:-.8px}
+.getlead{margin:0}
+.gets{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+@media (max-width:1000px){.gets{grid-template-columns:minmax(0,1fr)}}
+.gcard{position:relative;background:var(--ground);border:1px solid var(--line);border-radius:18px;padding:16px;display:flex;flex-direction:column;gap:10px}
+.gcard.mine{border-color:var(--accent);order:-1}
+.gcard h3{margin:0;font-size:18px;font-weight:600;letter-spacing:-.4px}
+.gcard p{margin:0;font-size:13.5px}
+.gcard .btn{align-self:flex-start;text-decoration:none;display:inline-flex;align-items:center}
+.gcard ol{margin:0;padding-left:20px;font-size:13.5px;display:flex;flex-direction:column;gap:7px}
+.gcard input[type=text]{width:100%;margin:6px 0;font-size:12px;padding:6px 10px;border-radius:10px;border:1px solid var(--line);background:var(--panel);color:var(--text);box-sizing:border-box}
+.gcard .small,.getfoot{font-size:12px}
+.gcard a,.getfoot a{color:var(--text)}
+.badge{align-self:flex-start;background:var(--accent);color:var(--onaccent);font-size:11.5px;font-weight:500;padding:3px 10px;border-radius:999px}
+.badge[hidden]{display:none}
 .install{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;margin-top:10px;padding:10px 12px;background:var(--panel);border:1px solid var(--line);border-radius:12px;max-width:68ch}
 .install[hidden]{display:none}
 .install p{margin:0;flex:1 1 220px;font-size:13px}
@@ -504,6 +520,53 @@ html.appmode .phone{width:100%;max-width:none;height:100%;aspect-ratio:auto;bord
     </div>
     <div class="stats" id="stats"></div>
   </header>
+
+  <section class="get" id="get" aria-labelledby="h-get">
+    <h2 id="h-get">Get Reelcards</h2>
+    <p class="sub getlead">Pick your device. Each one takes about a minute. Not sure yet? Try it right here first: the phone below is the real thing, running in your browser.</p>
+    <div class="gets">
+      <article class="gcard" id="g-android">
+        <span class="badge" hidden>For your phone</span>
+        <h3>Android phone</h3>
+        <p class="muted">The full app. Cards slip in between your real videos in TikTok, Instagram, YouTube Shorts, Snapchat, Facebook, X, Reddit and Pinterest.</p>
+        <a class="btn primary" id="apkLink" href="https://github.com/llamaoat/flashcardreela/releases/download/v1.3.0/Reelcards.apk">Download the app (.apk)</a>
+        <ol>
+          <li>Tap the button. If the phone warns the file can harm your device, tap <b>Download anyway</b>.</li>
+          <li>Open the file. If asked, allow your browser to <b>install unknown apps</b>, then tap <b>Install</b>. If Play Protect says it hasn't seen it, tap <b>More details</b>, then <b>Install anyway</b>.</li>
+          <li>Open Reelcards and tap <b>Set up in 1 minute</b>. Pick a deck and your exam date.</li>
+          <li>Tap <b>Switch it on</b>, agree, and turn on <b>Reelcards</b> in Accessibility. <b>Switch greyed out?</b> Go back, tap <b>Open app info</b>, then <b>⋮</b>, then <b>Allow restricted settings</b>, and try again.</li>
+          <li>Scroll TikTok, Instagram or YouTube Shorts. A card appears every few videos.</li>
+        </ol>
+        <p class="muted small">Early test version: it hasn't run on many phones yet. <a href="https://github.com/llamaoat/flashcardreela/releases">All versions</a></p>
+      </article>
+      <article class="gcard" id="g-iphone">
+        <span class="badge" hidden>For your phone</span>
+        <h3>iPhone</h3>
+        <p class="muted">iPhones don't let any app draw over TikTok, so a card can't slip in by itself. This gives you the app and a one-tap card.</p>
+        <ol>
+          <li>Open this page in <b>Safari</b>. Tap <b>Share</b>, then <b>Add to Home Screen</b>. Set up your decks in it.</li>
+          <li>Open the <b>Shortcuts</b> app, tap <b>+</b>, <b>Add Action</b>, then <b>Open URLs</b>. Paste this link:
+            <input type="text" readonly id="cardLink" aria-label="Link for the Shortcut"> <button class="btn" id="copyLink">Copy link</button></li>
+          <li>Name it <b>Reelcards</b>, then add it to your Home Screen, Action Button or Back Tap. Tap it when you want a card.</li>
+        </ol>
+        <p class="muted small">Optional: in Shortcuts, Automation, <b>App</b>, pick TikTok and <b>Is Opened</b>, then <b>Run Immediately</b>, add <b>Wait</b> 5 minutes and the same <b>Open URLs</b>. Untested on a real iPhone. Use the home-screen copy or Safari for the app, not both: they keep separate cards.</p>
+      </article>
+      <article class="gcard" id="g-computer">
+        <span class="badge" hidden>For your computer</span>
+        <h3>Computer</h3>
+        <p class="muted">A browser extension for Chrome, Edge, Brave and Opera. Cards slip in between videos on TikTok, Instagram Reels, YouTube Shorts and X.</p>
+        <a class="btn primary" href="Reelcards-extension.zip" download>Download the extension (.zip)</a>
+        <ol>
+          <li>Unzip the file. You get a folder called <b>Reelcards-extension</b>; keep it somewhere safe, because Chrome reads it from there.</li>
+          <li>Open <b>chrome://extensions</b> (Edge: <b>edge://extensions</b>) and switch on <b>Developer mode</b>.</li>
+          <li>Click <b>Load unpacked</b> and choose the unzipped folder.</li>
+          <li>Pin Reelcards from the puzzle-piece menu, click it, pick a deck and open one of the sites.</li>
+        </ol>
+        <p class="muted small">Not in the Chrome Web Store yet, so it's installed this way.</p>
+      </article>
+    </div>
+    <p class="muted small getfoot">Free. No account, no ads, and nothing you watch is saved or sent anywhere. <a href="privacy.html">Privacy</a> · <a href="https://github.com/llamaoat/flashcardreela">Source code</a> · <a href="https://github.com/llamaoat/flashcardreela/blob/main/docs/TESTERS.md">Testing it? Read this</a></p>
+  </section>
 
   <div class="main">
     <div class="phonecol">
@@ -2314,16 +2377,8 @@ function installOffer(){
   if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
   const ios = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
   if (ios) {
-    const link = location.origin + location.pathname + "?app=1&card=1";
-    box.innerHTML = '<p><b>Put it on your home screen:</b> tap Share <span aria-hidden="true">(the square with an arrow)</span>, then <b>Add to Home Screen</b>. It opens full screen, like an app, and works without signal.</p>'+
-      '<p><b>Cards while you scroll, on an iPhone:</b> iPhones don\'t let any app draw over TikTok or Instagram, so a card can\'t slip in by itself like it does on Android. A Shortcut can get you one in a tap:</p>'+
-      '<ol><li>Set up your decks here in Safari first. A home-screen copy keeps its own separate cards, so use one or the other.</li>'+
-      '<li>Open the <b>Shortcuts</b> app, tap <b>+</b>, then <b>Add Action</b> and choose <b>Open URLs</b>. Paste this link:<br><input type="text" readonly id="cardLink" value="'+link+'"> <button class="btn" id="copyLink">Copy link</button></li>'+
-      '<li>Name it <b>Reelcards</b>, then tap the shortcut\'s name at the top and choose <b>Add to Home Screen</b>. In Settings you can also put it on the Action Button or Back Tap.</li>'+
-      '<li>Tap it whenever you want a card. It opens straight on one. Answer it, then go back to your reels.</li></ol>'+
-      '<p><b>Optional nudge:</b> in Shortcuts, open the <b>Automation</b> tab, tap <b>+</b>, choose <b>App</b>, pick TikTok (or Instagram or YouTube) and <b>Is Opened</b>, then <b>Run Immediately</b>. Add <b>Wait</b> for 5 minutes, then the same <b>Open URLs</b> action. It\'s worth a try, but I haven\'t been able to test it on an iPhone yet.</p>';
+    box.innerHTML = '<p><b>Put it on your home screen:</b> tap Share <span aria-hidden="true">(the square with an arrow)</span>, then <b>Add to Home Screen</b>. It opens full screen, like an app, and works without signal.</p>';
     box.hidden = false;
-    $("copyLink").onclick = () => { const f = $("cardLink"); f.select(); try { navigator.clipboard.writeText(link); } catch (e) { document.execCommand("copy"); } $("copyLink").textContent = "Copied"; };
     return;
   }
   let ask = null;
@@ -2334,6 +2389,17 @@ function installOffer(){
     $("installBtn").onclick = () => { if (!ask) return; ask.prompt(); ask.userChoice.then(() => { ask = null; box.hidden = true; }); };
   });
   window.addEventListener("appinstalled", () => { box.hidden = true; });
+}
+
+/* "Get Reelcards": the install steps for each device. Marks the card for the device you're on and fills in
+   the Shortcut link for iPhones. */
+function getSection(){
+  const ua = navigator.userAgent, ios = /iPhone|iPad|iPod/.test(ua) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  const android = /Android/.test(ua), mine = ios ? "g-iphone" : android ? "g-android" : "g-computer";
+  const card = $(mine); card.classList.add("mine"); card.querySelector(".badge").hidden = false;
+  const link = location.origin + location.pathname.replace(/[^/]*$/, "") + "?app=1&card=1";
+  $("cardLink").value = /^https?:$/.test(location.protocol) ? link : "(open this page on its web address to get the link)";
+  $("copyLink").onclick = () => { const f = $("cardLink"); f.select(); try { navigator.clipboard.writeText(f.value); } catch (e) { document.execCommand("copy"); } $("copyLink").textContent = "Copied"; };
 }
 
 let E, UI, offset = 0;
@@ -2926,7 +2992,7 @@ $("labFile").addEventListener("change", e => {
 });
 window.addEventListener("resize", fitLab);
 
-if (!restore()) fresh(); render(true); if (!APP) renderLab(); installOffer();
+if (!restore()) fresh(); render(true); if (!APP) { renderLab(); getSection(); } installOffer();
 // ?card=1 (the iPhone Shortcut's link): open straight on a card, once setup is done
 if (/[?&]card=1\b/.test(location.search) && UI.onboarded && E.cards.length) testCard();
 })();
