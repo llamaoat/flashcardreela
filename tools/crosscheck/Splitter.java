@@ -31,7 +31,8 @@ public class Splitter {
                .append(" | starts=").append(x.multi() ? String.join(",", AnswerShape.starts(x.points)) : "")
                .append(" | layouts=").append(String.join(",", lay))
                .append(" | like=").append(com.reelcards.engine.CopyWriter.likeness(AnswerShape.plainText(r.get(0)), AnswerShape.plainText(r.get(1))))
-               .append(" | case=").append(AnswerShape.caseMatters(AnswerShape.plainText(r.get(0)))).append(" | deck=").append(com.reelcards.engine.CopyWriter.deckLabel(r.get(2))).append('\n');
+               .append(" | case=").append(AnswerShape.caseMatters(AnswerShape.plainText(r.get(0)))).append(" | deck=").append(com.reelcards.engine.CopyWriter.deckLabel(r.get(2)))
+               .append(" | kin=").append(com.reelcards.engine.CopyWriter.kin(AnswerShape.plainText(r.get(0)), AnswerShape.plainText(r.get(2)))).append('\n');
         }
         new java.io.PrintStream(System.out, true, "UTF-8").print(out); // UTF-8 whatever the console's encoding
     }

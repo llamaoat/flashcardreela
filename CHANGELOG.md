@@ -2,6 +2,34 @@
 
 ## 1.3.0: browser extension, home-screen web app, dense decks
 
+**Anki**
+- Anki's text-to-speech fields (`{{tts es_ES:Front}}`) are spoken in their language: by the phone's own
+  voice in the app, the browser's in the web demo and the extension. They used to show as plain text.
+  This works for AnkiDroid cards too.
+
+**Quizzes**
+- A quiz's wrong answer now comes from a card asking the same kind of question ("Antidote for…" gets
+  another antidote), so it's no longer obviously wrong.
+
+**iPhone**
+- On an iPhone, the web page now explains how to make a Shortcut that opens straight onto a card
+  (`?app=1&card=1`), and an optional automation that does it after you open TikTok. iPhones don't let
+  any app draw over other apps, so this is a one-tap card, not one slipped into the feed.
+
+**Look**
+- A new look for the app's own screens, the extension popup and the web demo: Inter, light by day
+  and dark when your phone is, ink pill buttons. The welcome screen and dashboard have a moving sea
+  (a swimmer, waves of foam rolling past) with a wheel of your topics over it. Cards are unchanged.
+
+**Android**
+- A home-screen widget: one due card, *Show answer*, then *Knew it* or *Again*. Cards that need a
+  picture or a sound stay out of it.
+- Cards now also appear between videos in X, Reddit and Pinterest (as well as TikTok, Instagram,
+  YouTube Shorts, Snapchat and Facebook). Detection in the new apps still needs checking on a phone.
+- After moving to a new phone, Anki cards whose pictures or sounds didn't come across (Android doesn't back
+  them up) are held back instead of showing "Picture not found". The dashboard says which decks, and
+  opening the same Anki file again brings them back.
+
 **Browser extension** (`extension/`)
 - Cards between videos on TikTok, Instagram Reels, YouTube Shorts and X in Chrome and Edge: the same
   engine and card designs, drawn like each site's reels. Click for the answer, double-click if you knew

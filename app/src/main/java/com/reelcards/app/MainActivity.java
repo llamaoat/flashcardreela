@@ -26,6 +26,7 @@ import android.widget.ScrollView;
 import android.widget.TextView;
 
 import com.reelcards.engine.Card;
+import com.reelcards.engine.CopyWriter;
 import com.reelcards.engine.Engine;
 import com.reelcards.engine.Format;
 import com.reelcards.engine.NotesParser;
@@ -77,14 +78,34 @@ public final class MainActivity extends Activity {
     @Override
     protected void onCreate(Bundle b) {
         super.onCreate(b);
-        getWindow().setStatusBarColor(Ui.BG);
-        getWindow().setNavigationBarColor(Ui.BG);
+        Ui.theme(this);
+        bars();
         engine = Store.engine(this);
         restoreNote = Store.prefs(this).getString("restore_note", null);
         if (restoreNote != null) Store.prefs(this).edit().remove("restore_note").apply();
         Store.cleanMedia(this, null); // pictures from an import that was never used, or a deck since removed
         if (Store.prefs(this).getBoolean("onboarded", false)) showDashboard();
         else showWelcome();
+    }
+
+    /** System bar colours and icons to match light or dark. */
+    private void bars() {
+        getWindow().setStatusBarColor(Ui.BG);
+        getWindow().setNavigationBarColor(Ui.BG);
+        getWindow().getDecorView().setSystemUiVisibility(Ui.dark ? 0
+                : View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR | View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR);
+    }
+
+    /** Dark mode switched while open (uiMode is in configChanges, so an import survives it): restyle. */
+    @Override
+    public void onConfigurationChanged(android.content.res.Configuration c) {
+        super.onConfigurationChanged(c);
+        boolean was = Ui.dark;
+        Ui.theme(this);
+        if (was == Ui.dark) return;
+        bars();
+        if ("dashboard".equals(screen)) showDashboard();
+        else if ("welcome".equals(screen)) showWelcome();
     }
 
     @Override
@@ -194,13 +215,56 @@ public final class MainActivity extends Activity {
         return new View.OnClickListener() { @Override public void onClick(View v) { r.run(); } };
     }
 
+    // ------------------------------------------------------------------ the moving hero (MotionView)
+
+    private static final String[][] TOPICS = {{"Osmosis", "12 due"}, {"Photosynthesis", "8 due"}, {"Respiration", "5 due"}, {"Enzymes", "9 due"},
+            {"Mitosis", "3 due"}, {"Ionic bonds", "7 due"}, {"Electrolysis", "4 due"}, {"Moles", "6 due"}, {"Acids", "11 due"}, {"Forces", "2 due"},
+            {"Waves", "5 due"}, {"El tiempo", "8 due"}, {"La familia", "6 due"}, {"Diffusion", "3 due"}, {"DNA", "9 due"}, {"Alkenes", "4 due"},
+            {"Momentum", "7 due"}, {"Circuits", "5 due"}};
+
+    private void hero(LinearLayout col, String[][] words, boolean small) {
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(small ? 220 : 300));
+        lp.leftMargin = -dp(20);
+        lp.rightMargin = -dp(20);
+        col.setClipToPadding(false);
+        col.addView(new MotionView(this, words, small), lp);
+    }
+
+    /** Each deck with what's waiting in it, then today's numbers, for the dashboard's wheel (as motionWords() in app.js). */
+    private String[][] dashWords(long now) {
+        java.util.Map<String, int[]> decks = new java.util.LinkedHashMap<>();
+        int due = 0;
+        for (Card c : engine.cards) {
+            int[] v = decks.get(c.deck);
+            if (v == null) decks.put(c.deck, v = new int[2]);
+            if (c.isNew()) v[1]++;
+            else if (c.due <= now) { v[0]++; due++; }
+        }
+        java.util.List<String[]> out = new java.util.ArrayList<>();
+        for (java.util.Map.Entry<String, int[]> e : decks.entrySet()) {
+            int[] v = e.getValue();
+            out.add(new String[]{CopyWriter.deckLabel(e.getKey()), v[0] > 0 ? v[0] + " due" : v[1] > 0 ? v[1] + " new" : "all done"});
+        }
+        long today = engine.dayKey(now);
+        int done = engine.stats.day(today).reviews, streak = engine.stats.streak(today);
+        out.add(new String[]{"Today", done + (done == 1 ? " card" : " cards")});
+        out.add(new String[]{"Streak", streak + (streak == 1 ? " day" : " days")});
+        out.add(new String[]{"Due now", due + (due == 1 ? " card" : " cards")});
+        double rr = engine.stats.recallRate(today, 7);
+        if (rr >= 0) out.add(new String[]{"Remembered", Math.round(rr * 100) + "%"});
+        java.util.List<String[]> w = new java.util.ArrayList<>(out);
+        while (w.size() < 12) w.addAll(out);
+        return w.toArray(new String[0][]);
+    }
+
     // ------------------------------------------------------------------ welcome
 
     private void showWelcome() {
         LinearLayout col = page("welcome", null);
-        Ui.add(col, Ui.label(this, "Reelcards"), 0);
-        Ui.add(col, Ui.title(this, "Revise without trying"), 10);
-        Ui.add(col, Ui.body(this, "Your flashcards slip in between your TikTok, Instagram and YouTube Shorts reels, looking just like another reel. Double-tap if you know it. Swipe if you don't."), 10);
+        Ui.add(col, Ui.text(this, "Reelcards", 15, Ui.TEXT, Ui.DISPLAY), 0);
+        hero(col, TOPICS, false);
+        Ui.add(col, Ui.title(this, "Revise without trying", "between your reels"), 4);
+        Ui.add(col, Ui.text(this, "Your flashcards slip in between TikTok, Instagram and YouTube Shorts, looking just like another reel. Double-tap if you know it. Swipe if you don't.", 15, Ui.MUTED, Ui.BODY), 10);
 
         final FrameLayout preview = new FrameLayout(this);
         preview.setBackground(Ui.round(Ui.SURFACE, dp(22)));
@@ -405,6 +469,13 @@ public final class MainActivity extends Activity {
             Ui.add(col, Ui.muted(this, "Reelcards reads .apkg and .colpkg files from any Anki version, with no account. Audio and suspended cards are left out."), 8);
         } else {
             LinearLayout p = Ui.panel(this);
+            // the same file again after a phone move: its pictures were just saved again, so cards waiting for them come back
+            Engine eng = Store.engine(this);
+            int waiting = eng.hidden.size(), back = waiting - Store.checkMedia(this, eng);
+            if (back > 0) {
+                TextView ok = Ui.text(this, "Pictures are back for " + back + (back == 1 ? " card" : " cards") + ". They'll show in your feed again.", 15, Ui.GOOD, Ui.MEDIUM);
+                Ui.add(col, ok, 10);
+            }
             p.addView(Ui.text(this, r.cards.size() + " cards from “" + name + "”", 18, Ui.TEXT, Ui.DISPLAY));
             Ui.add(p, Ui.muted(this, r.stats.summary()), 4);
             for (int i = 0; i < Math.min(6, r.cards.size()); i++) {
@@ -831,7 +902,7 @@ public final class MainActivity extends Activity {
 
     /** The prominent disclosure for Google Play: what the accessibility service sees, uses, keeps and never does. */
     static final String[][] DISCLOSURE = {
-        {"What it sees", "Which app is open, and when a list scrolls in TikTok, Instagram, YouTube, Snapchat or Facebook: the scrolling view's size, position and internal name (like “reel_viewer”)."},
+        {"What it sees", "Which app is open, and when a list scrolls in TikTok, Instagram, YouTube, Snapchat, Facebook, X, Reddit or Pinterest: the scrolling view's size, position and internal name (like “reel_viewer”)."},
         {"What it does with it", "Notices when you swipe to a new reel, shows one of your flashcards on top, and takes it down when you leave the app."},
         {"What it keeps", "Counts on your phone, like how many reels you swipe and the seconds between swipes, so it learns when to show a card. Reelcards has no internet access, so nothing is sent anywhere or shared."},
         {"What it never does", "Read your messages, comments, captions or anything else on screen, or record what you watch or who posted it."},
@@ -899,13 +970,29 @@ public final class MainActivity extends Activity {
         final long now = System.currentTimeMillis();
         LinearLayout col = page("dashboard", null);
         LinearLayout head = Ui.row(this);
-        head.addView(Ui.title(this, "Reelcards"), Ui.weight(1));
+        head.addView(Ui.text(this, "Reelcards", 15, Ui.TEXT, Ui.DISPLAY), Ui.weight(1));
         Ui.add(col, head, 0);
+        if (!engine.cards.isEmpty()) hero(col, dashWords(now), true);
         if (restoreNote != null) { // after a damaged save (Store.engine), until the app is next opened
             TextView n = Ui.text(this, restoreNote, 14, Ui.TEXT, Ui.BODY);
-            n.setBackground(Ui.outline(0xFF2A2410, Ui.WARN, dp(1), dp(14)));
+            n.setBackground(Ui.outline(Ui.WARN_BG, Ui.WARN, dp(1), dp(14)));
             n.setPadding(dp(14), dp(12), dp(14), dp(12));
             Ui.add(col, n, 12);
+        }
+        // pictures missing (a new or restored phone: pictures aren't in Android's backup): say so, offer the fix
+        Engine eng = Store.engine(this);
+        if (Store.checkMedia(this, eng) > 0) {
+            java.util.Set<String> decks = new java.util.LinkedHashSet<>();
+            for (Card c : eng.cards) if (eng.hidden.contains(c.id)) decks.add(c.deck);
+            LinearLayout mp = Ui.panel(this);
+            mp.setBackground(Ui.outline(Ui.WARN_BG, Ui.WARN, dp(1), dp(14)));
+            mp.addView(Ui.text(this, "Pictures missing for " + eng.hidden.size() + (eng.hidden.size() == 1 ? " card" : " cards"), 15, Ui.TEXT, Ui.MEDIUM));
+            Ui.add(mp, Ui.muted(this, "From " + android.text.TextUtils.join(", ", decks) + ". This happens after moving to a new phone: Android doesn't back up "
+                    + "pictures. Open the same Anki file again to bring them back. Until then, those cards are kept out of your feed."), 4);
+            Button again = Ui.button(this, "Open the Anki file", true);
+            again.setOnClickListener(go(new Runnable() { @Override public void run() { pickApkg(); } }));
+            Ui.add(mp, again, 10);
+            Ui.add(col, mp, 12);
         }
 
         // status
@@ -913,7 +1000,7 @@ public final class MainActivity extends Activity {
         boolean paused = engine.settings.pausedUntil > now;
         LinearLayout status = Ui.panel(this);
         if (!on) {
-            status.setBackground(Ui.outline(0xFF2A1A20, Ui.BAD, dp(1), dp(16)));
+            status.setBackground(Ui.outline(Ui.BAD_BG, Ui.BAD, dp(1), dp(16)));
             status.addView(Ui.text(this, "Cards are off", 17, Ui.TEXT, Ui.DISPLAY));
             Ui.add(status, Ui.text(this, "Switch on Reelcards in Accessibility settings so cards can appear between reels.", 14, Ui.MUTED, Ui.BODY), 4);
             Button fix = Ui.button(this, "Switch on", true);
@@ -925,10 +1012,10 @@ public final class MainActivity extends Activity {
             resume.setOnClickListener(go(new Runnable() { @Override public void run() { engine.settings.pausedUntil = 0; Store.saveNow(MainActivity.this); showDashboard(); } }));
             Ui.add(status, resume, 12);
         } else {
-            status.setBackground(Ui.outline(0xFF14261E, Ui.GOOD, dp(1), dp(16)));
+            status.setBackground(Ui.outline(Ui.GOOD_BG, Ui.GOOD, dp(1), dp(16)));
             status.addView(Ui.text(this, "On", 17, Ui.GOOD, Ui.DISPLAY));
             String quiet = engine.snoozeUntil > now ? " Quiet mode for a few minutes after lots of fast skips." : "";
-            Ui.add(status, Ui.text(this, "Cards appear in TikTok, Instagram, YouTube Shorts, Snapchat and Facebook. " + Settings_label() + "." + quiet, 14, Ui.MUTED, Ui.BODY), 4);
+            Ui.add(status, Ui.text(this, "Cards appear in TikTok, Instagram, YouTube Shorts, Snapchat, Facebook, X, Reddit and Pinterest. " + Settings_label() + "." + quiet, 14, Ui.MUTED, Ui.BODY), 4);
         }
         Ui.add(col, status, 16);
 
@@ -967,7 +1054,7 @@ public final class MainActivity extends Activity {
 
         // chart
         LinearLayout cp = Ui.panel(this);
-        cp.addView(Ui.label(this, "Last 14 days · yellow = reviewed, grey = skipped"));
+        cp.addView(Ui.label(this, "Last 14 days · dark = reviewed, light = skipped"));
         BarChartView chart = new BarChartView(this);
         int n = 14;
         int[] rev = new int[n], sk = new int[n];

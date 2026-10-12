@@ -6,7 +6,7 @@ import android.graphics.Paint;
 import android.graphics.RectF;
 import android.view.View;
 
-/** Cards reviewed (yellow) and skipped (grey) per day for the last 14 days. */
+/** Cards reviewed (ink) and skipped (grey) per day for the last 14 days. */
 final class BarChartView extends View {
     private int[] reviews = new int[0], skips = new int[0];
     private String[] labels = new String[0];

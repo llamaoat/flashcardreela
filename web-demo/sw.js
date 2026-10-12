@@ -1,7 +1,7 @@
 /* Lets the home-screen Reelcards open with no signal. The page is one file, so this keeps a copy of
    it (and the icons and Google's fonts once they've loaded) and serves that when the network fails.
    Pages are network first, so a new version shows as soon as there's a connection. */
-const CACHE = "reelcards-v1";
+const CACHE = "reelcards-v2";
 const FILES = ["./", "./index.html", "./manifest.webmanifest", "./icons/icon-192.png", "./icons/icon-512.png", "./icons/apple-touch-icon.png"];
 
 self.addEventListener("install", e => {

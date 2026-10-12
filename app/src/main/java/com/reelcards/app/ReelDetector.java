@@ -34,6 +34,10 @@ final class ReelDetector {
         APPS.put("com.google.android.youtube", "YouTube");
         APPS.put("com.snapchat.android", "Snapchat");
         APPS.put("com.facebook.katana", "Facebook");
+        // more vertical video feeds: full-screen pagers, caught by the same rules (detection names to confirm on a phone)
+        APPS.put("com.twitter.android", "X");
+        APPS.put("com.reddit.frontpage", "Reddit");
+        APPS.put("com.pinterest", "Pinterest");
     }
 
     /** Parts of view ids that mean "this is the reels / shorts viewer". */

@@ -23,7 +23,7 @@ async function importApkg(bytes, name, src){
   const cards = r.cards.map(c => {
     const m = makeCard(c.id, c.deck, c.f, c.b, c.x);
     m.img = c.img ? urls[c.img] : null; m.aimg = c.aimg ? urls[c.aimg] : null; m.io = c.io || null; m.cloze = !!c.cloze;
-    m.snd = c.snd ? sounds[c.snd] : null; m.asnd = c.asnd ? sounds[c.asnd] : null; m.src = src;
+    const spoken = n => n && n.startsWith("tts:") ? n : null; m.snd = c.snd ? spoken(c.snd) || sounds[c.snd] : null; m.asnd = c.asnd ? spoken(c.asnd) || sounds[c.asnd] : null; m.src = src;
     Object.assign(m, {imgW: c.imgW || 0, imgH: c.imgH || 0, aimgW: c.aimgW || 0, aimgH: c.aimgH || 0});
     if (c.state === "review") Object.assign(m, {state: REVIEW, s: c.s, d: c.d, due: c.due, last: c.last, reps: c.reps, lapses: c.lapses});
     return m;
@@ -57,8 +57,16 @@ function installOffer(){
   if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
   const ios = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
   if (ios) {
-    box.innerHTML = '<p><b>Put it on your home screen:</b> tap Share <span aria-hidden="true">(the square with an arrow)</span>, then <b>Add to Home Screen</b>. It opens full screen, like an app, and works without signal.</p>';
+    const link = location.origin + location.pathname + "?app=1&card=1";
+    box.innerHTML = '<p><b>Put it on your home screen:</b> tap Share <span aria-hidden="true">(the square with an arrow)</span>, then <b>Add to Home Screen</b>. It opens full screen, like an app, and works without signal.</p>'+
+      '<p><b>Cards while you scroll, on an iPhone:</b> iPhones don\'t let any app draw over TikTok or Instagram, so a card can\'t slip in by itself like it does on Android. A Shortcut can get you one in a tap:</p>'+
+      '<ol><li>Set up your decks here in Safari first. A home-screen copy keeps its own separate cards, so use one or the other.</li>'+
+      '<li>Open the <b>Shortcuts</b> app, tap <b>+</b>, then <b>Add Action</b> and choose <b>Open URLs</b>. Paste this link:<br><input type="text" readonly id="cardLink" value="'+link+'"> <button class="btn" id="copyLink">Copy link</button></li>'+
+      '<li>Name it <b>Reelcards</b>, then tap the shortcut\'s name at the top and choose <b>Add to Home Screen</b>. In Settings you can also put it on the Action Button or Back Tap.</li>'+
+      '<li>Tap it whenever you want a card. It opens straight on one. Answer it, then go back to your reels.</li></ol>'+
+      '<p><b>Optional nudge:</b> in Shortcuts, open the <b>Automation</b> tab, tap <b>+</b>, choose <b>App</b>, pick TikTok (or Instagram or YouTube) and <b>Is Opened</b>, then <b>Run Immediately</b>. Add <b>Wait</b> for 5 minutes, then the same <b>Open URLs</b> action. It\'s worth a try, but I haven\'t been able to test it on an iPhone yet.</p>';
     box.hidden = false;
+    $("copyLink").onclick = () => { const f = $("cardLink"); f.select(); try { navigator.clipboard.writeText(link); } catch (e) { document.execCommand("copy"); } $("copyLink").textContent = "Copied"; };
     return;
   }
   let ask = null;
@@ -108,7 +116,7 @@ function save(){
     controls:{mins:$("mins").value, night:$("night").value, tint:$("tint").checked, voice:$("voice").checked, persona:$("persona").value},
     ui:{screen:UI.screen==="dash"?"dash":"feed", exam:UI.exam, intensity:UI.intensity, vibes:[...UI.vibes], host:UI.host, firstDay:UI.firstDay,
       coachLeft:UI.coachLeft, reelN:UI.reelN, lastHue:UI.lastHue},
-    engine:{cards:E.cards.map(c => { const o = Object.assign({}, c); MEDIA.forEach(k => { if (o[k]) o[k] = true; }); return o; }), // blob: links die with the page
+    engine:{cards:E.cards.map(c => { const o = Object.assign({}, c); MEDIA.forEach(k => { if (o[k] && !String(o[k]).startsWith("tts:")) o[k] = true; }); return o; }), // blob: links die with the page (spoken tts: sounds are kept as they are)
       settings:E.settings, stats:E.stats, bandit:E.bandit, calibration:E.calibration, rhythm:E.rhythm, personalScale:E.fsrs.personalScale, newShown:[...E.newShown]}};
   ENGINE_FIELDS.forEach(k => { st.engine[k] = E[k]; });
   try { localStorage.setItem(SAVE_KEY, JSON.stringify(st)); } catch (err) {}
@@ -178,7 +186,7 @@ function hush(){ try { window.speechSynthesis && speechSynthesis.cancel(); } cat
 /* ---------------- phone screens ---------------- */
 const stepbar = n => '<div class="steplbl">Step '+n+' of 4</div><div class="stepbar">'+[1,2,3,4].map(i=>'<i class="'+(i<=n?"on":"")+'"></i>').join("")+'</div>';
 const choice = (act,val,title,sub,on,dis) => '<button class="choice'+(on?" on":"")+'" data-act="'+act+'" data-v="'+esc(val)+'"'+(dis?" disabled":"")+'><span class="t"><b>'+esc(title)+'</b>'+(sub?'<small>'+esc(sub)+'</small>':'')+'</span><span class="m">'+(on?"✓":"")+'</span></button>';
-const tabs = () => UI.onboarded ? '<div class="tabs"><button data-act="tab" data-v="dash" class="'+(UI.screen==="dash"?"on":"")+'">Reelcards</button><button data-act="tab" data-v="feed" class="'+(UI.screen==="feed"?"on":"")+'">For You</button></div>' : "";
+const tabs = () => UI.onboarded ? '<div class="tabs'+(UI.screen==="dash"?" ondash":"")+'"><button data-act="tab" data-v="dash" class="'+(UI.screen==="dash"?"on":"")+'">Reelcards</button><button data-act="tab" data-v="feed" class="'+(UI.screen==="feed"?"on":"")+'">For You</button></div>' : "";
 let timers = [];
 const clearTimers = () => { timers.forEach(clearTimeout); timers = []; };
 
@@ -187,8 +195,7 @@ function renderPhone(anim){
   const scr = $("screen"); let h = "";
   switch (UI.screen) {
     case "welcome":
-      h = '<div class="app"><div class="steplbl">Reelcards</div><h3>Revise without trying</h3><p>Your flashcards slip in between your TikTok, Instagram and YouTube Shorts reels, looking just like another reel. Double-tap if you know it. Swipe if you don\'t.</p>'+
-        '<div class="box"><b>How it feels</b><span class="muted" style="font-size:13px">Reel, reel, reel, <span style="color:var(--accent)">flashcard</span>, reel… Each card is styled for the app you\'re in and the things you watch, so it doesn\'t feel like homework.</span></div>'+
+      h = '<div class="app"><div class="brand">Reelcards</div><div class="hero" data-motion="welcome"></div><h3>Revise without trying<span>between your reels</span></h3><p class="muted">Your flashcards slip in between TikTok, Instagram and YouTube Shorts, looking just like another reel. Double-tap if you know it. Swipe if you don\'t.</p>'+
         '<button class="abtn" data-act="go" data-v="decks">Set up in 1 minute</button><p class="muted" style="font-size:12px">Free. Works offline. Nothing you watch is saved or sent anywhere.</p></div>'; break;
     case "decks": {
       const have = n => E.cards.some(c=>c.deck===n);
@@ -228,7 +235,7 @@ function renderPhone(anim){
         '<p class="muted" style="font-size:12px">It then learns your rhythm: fewer cards if you skip them, more if you answer.</p><button class="abtn" data-act="examNext">Next</button></div>'; break; }
     case "permission":
       h = '<div class="app">'+stepbar(3)+'<h3>Switch it on</h3><p class="muted">Reelcards needs to notice when you swipe to a new reel and draw a card on top. Android calls this an accessibility permission. It\'s the only one it asks for.</p>'+
-        '<div class="box"><b>What it can and can\'t do</b><span class="muted" style="font-size:13px">It only reacts to swipes in TikTok, Instagram, YouTube, Snapchat and Facebook. It never reads your messages, never saves what you watch, and nothing leaves your phone.</span></div>'+
+        '<div class="box"><b>What it can and can\'t do</b><span class="muted" style="font-size:13px">It only reacts to swipes in TikTok, Instagram, YouTube, Snapchat, Facebook, X, Reddit and Pinterest. It never reads your messages, never saves what you watch, and nothing leaves your phone.</span></div>'+
         ['Tap “Open settings” below','Find Reelcards (often under “Installed apps”)','Turn it on, then tap Allow','Come back here. The app notices'].map((s,i)=>'<div class="num"><i>'+(i+1)+'</i><span>'+s+'</span></div>').join("")+
         '<button class="abtn" data-act="openSettings">Open settings</button><div class="box"><b>Switch greyed out?</b><span class="muted" style="font-size:13px">Android blocks this for apps installed from a file: App info → ⋮ → “Allow restricted settings”, then try again.</span></div></div>'+
         (UI.settingsOpen?'<div class="settings-sim"><div class="lbl">Simulated phone settings · Accessibility</div><div class="lbl" style="margin-top:8px">Installed apps</div><div class="row2"><span><b>Reelcards</b><br><small style="color:#6b6b75">'+(UI.permission?"On":"Off")+'</small></span><button class="switch'+(UI.permission?" on":"")+'" data-act="toggleSwitch" role="switch" aria-checked="'+UI.permission+'" aria-label="Reelcards accessibility switch"></button></div>'+
@@ -240,6 +247,7 @@ function renderPhone(anim){
     case "dash": h = dashHTML(); break;
   }
   scr.innerHTML = h;
+  scr.querySelectorAll("[data-motion]").forEach(el => motion(el, el.dataset.motion));
   fitCards(scr);
   $("phone").classList.toggle("feedmode", UI.screen==="feed");
   if (anim) { scr.classList.remove("enter"); void scr.offsetWidth; scr.classList.add("enter"); }
@@ -283,6 +291,71 @@ function startCardTimers(){
   if (it.count > 0) timers.push(setTimeout(()=>{ if (UI.current===it && !it.revealed) { it.count--; const r = $("screen").querySelector(".ring"); if (r) r.textContent = it.count>0 ? it.count : "?"; startCardTimers(); } }, 1000));
 }
 
+/* The moving hero on the welcome screen and dashboard: a sea of short dashes drifting on a slow current,
+   a small orange swimmer they turn towards, and waves of white foam rolling across (the feed washing past
+   you), with a wheel of words rolling along a curve over it, the middle one bracketed with a grey note.
+   Mirrors MotionView.java. Stops when its element leaves the page; with "reduce motion" on it draws one
+   still frame. */
+const TOPICS = [["Osmosis","12 due"],["Photosynthesis","8 due"],["Respiration","5 due"],["Enzymes","9 due"],["Mitosis","3 due"],["Ionic bonds","7 due"],["Electrolysis","4 due"],["Moles","6 due"],["Acids","11 due"],["Forces","2 due"],["Waves","5 due"],["El tiempo","8 due"],["La familia","6 due"],["Diffusion","3 due"],["DNA","9 due"],["Alkenes","4 due"],["Momentum","7 due"],["Circuits","5 due"]];
+function motionWords(kind){
+  if (kind !== "decks") return TOPICS;
+  const t = now(), k = E.dk(t), d = E.day(k), rr = E.recallRate(k,7);
+  const out = [...new Set(E.cards.map(c=>c.deck))].map(dk => { const cs = E.cards.filter(c=>c.deck===dk);
+    const due = cs.filter(c=>c.state!==NEW&&c.due<=t).length, nw = cs.filter(c=>c.state===NEW).length;
+    return [RC.deckLabel(dk), due ? due+" due" : nw ? nw+" new" : "all done"]; });
+  const all = E.cards.filter(c=>c.state!==NEW&&c.due<=t).length;
+  out.push(["Today", d.reviews+(d.reviews===1?" card":" cards")], ["Streak", E.streak(k)+(E.streak(k)===1?" day":" days")], ["Due now", all+(all===1?" card":" cards")]);
+  if (rr >= 0) out.push(["Remembered", Math.round(rr*100)+"%"]);
+  let w = out.slice(); while (w.length < 12) w = w.concat(out);
+  return w;
+}
+function motion(el, kind){
+  const words = motionWords(kind); if (!words.length) return;
+  const small = el.classList.contains("small"), cv = document.createElement("canvas"); el.appendChild(cv);
+  const W = el.clientWidth || 390, H = el.clientHeight || 300, dpr = Math.min(2, window.devicePixelRatio || 1);
+  cv.width = W*dpr; cv.height = H*dpr; const g = cv.getContext("2d"); g.scale(dpr, dpr);
+  const els = words.map(() => { const d = document.createElement("div"); d.className = "w"; el.appendChild(d); return d; });
+  const N = words.length, STEP = small ? 27 : 30, R = small ? 260 : 320, BX = W*.42, still = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  let seed = 7; const rnd = () => (seed = (seed*16807) % 2147483647) / 2147483647;
+  const G = 9, pts = []; for (let y=-G; y<H+G; y+=G) for (let x=-G; x<W+G; x+=G) pts.push([x+rnd()*G*.8, y+rnd()*G*.8, 4+rnd()*4, rnd(), rnd()*6.28]);
+  const sx = W*.2, sy = H*.5;
+  function frame(t){
+    if (!el.isConnected) return;
+    sea(g, pts, W, H, sx, sy, t);
+    const off = (t/1400) % N;
+    els.forEach((e,i) => { let k = ((i-off)%N+N)%N; if (k > N/2) k -= N; const y = k*STEP, a = Math.asin(Math.max(-1, Math.min(1, y/R)));
+      e.style.transform = "translate("+(BX + R*(1-Math.cos(a)))+"px,"+(H/2+y-12)+"px) rotate("+(a*.8)+"rad)";
+      e.style.opacity = Math.max(0, 1-Math.abs(k)/(H/STEP/2+.5));
+      const sel = Math.abs(k) < .5;
+      e.innerHTML = sel ? '<i>[ </i>'+esc(words[i][0])+'<i>]</i><em>'+esc(words[i][1])+'</em>' : esc(words[i][0]);
+      e.style.marginLeft = sel ? "-13px" : "0"; });
+    if (!still) requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+}
+function sea(g, pts, W, H, sx, sy, t){
+  g.fillStyle = "#0B2140"; g.fillRect(0,0,W,H); g.lineCap = "round";
+  const front = ((t*.06) % (W+520)) - 160;
+  for (const p of pts) {
+    let a = -.6 + Math.sin(p[1]*.009+t*.00035)*.22 + Math.cos(p[0]*.007-t*.00025)*.18;
+    const dx = p[0]-sx, dy = p[1]-sy, d = Math.hypot(dx,dy), pull = Math.max(0, 1-d/120);
+    if (pull > 0) a = a*(1-pull) + Math.atan2(dy,dx)*pull;
+    if (d < 14) continue;
+    const dr = Math.sin(t*.0016+p[4])*1.4, x = p[0]+Math.cos(a)*dr, y = p[1]+Math.sin(a)*dr;
+    const k = x - (front + Math.sin(y*.02+t*.0009)*30 + Math.sin(y*.066)*10);
+    let len = p[2]*(1-pull*.5), w = .9, col = "rgba(150,188,220,"+(.4+p[3]*.3).toFixed(2)+")";
+    if (k < 0 && k > -22) { len = 1+p[3]*1.5; w = 1.7+p[3]; col = "rgba(255,255,255,.95)"; }
+    else if (k <= -22 && k > -300) { if (p[3] < .3) continue; len = 2.5+p[3]*4; w = 2.5; col = "rgba(255,255,255,.9)"; a *= .4; }
+    const ca = Math.cos(a)*len/2, sa = Math.sin(a)*len/2; g.strokeStyle = col; g.lineWidth = w;
+    g.beginPath(); g.moveTo(x-ca,y-sa); g.lineTo(x+ca,y+sa); g.stroke();
+  }
+  // the swimmer
+  const s = Math.sin(t*.006); g.save(); g.translate(sx, sy); g.rotate(-.35); g.fillStyle = g.strokeStyle = "#EE8A63"; g.lineWidth = 3;
+  g.beginPath(); g.ellipse(0,0,8,4.5,0,0,7); g.fill(); g.beginPath(); g.arc(9.5,-.5,3.5,0,7); g.fill();
+  g.beginPath(); g.moveTo(4,-3); g.quadraticCurveTo(10,-9,15+s*2.5,-6+s*4); g.moveTo(4,3); g.quadraticCurveTo(10,8,14-s*2.5,9-s*3);
+  g.moveTo(-7,-2); g.lineTo(-16,-4+s*2); g.moveTo(-7,2); g.lineTo(-16,4.5-s*2); g.stroke(); g.restore();
+}
+
 function dashHTML(){
   const t = now(), k = E.dk(t), d = E.day(k), rr = E.recallRate(k,7), f = E.forecast(t);
   let fs = "At "+f.mins+" min of reels a day you'll see about "+f.perDay+" cards a day"+(f.capped?" (your daily limit)":"")+": about "+f.minsOnCards+" min of revision you barely notice.";
@@ -290,17 +363,17 @@ function dashHTML(){
   else if (E.cards.length) fs += " You've seen every card. Now it's all reviews.";
   const n = 14; let max = 1; const vals = [];
   for (let i=0;i<n;i++){ const x = E.stats.days[k-(n-1-i)]; const v = x?[x.reviews,x.skips]:[0,0]; vals.push(v); max = Math.max(max, v[0]+v[1]); }
-  const bars = vals.map((v,i)=>'<div><i style="height:'+(v[1]/max*64)+'px;background:#4a4c5a"></i><i style="height:'+(v[0]/max*64)+'px;background:var(--accent)"></i>'+((i%2===(n-1)%2)?'<span>'+new Date(t-(n-1-i)*DAY).getDate()+'</span>':'')+'</div>').join("");
+  const bars = vals.map((v,i)=>'<div><i style="height:'+(v[1]/max*64)+'px;background:var(--bar2)"></i><i style="height:'+(v[0]/max*64)+'px;background:var(--accent)"></i>'+((i%2===(n-1)%2)?'<span>'+new Date(t-(n-1-i)*DAY).getDate()+'</span>':'')+'</div>').join("");
   const decks = [...new Set(E.cards.map(c=>c.deck))].map(dk=>{ const cs = E.cards.filter(c=>c.deck===dk); const nw = cs.filter(c=>c.state===NEW).length, ld = cs.filter(c=>c.state===REVIEW).length, lg = cs.length-nw-ld, due = cs.filter(c=>c.state!==NEW&&c.due<=t).length;
     return '<div class="mini2"><b>'+esc(dk)+'</b><br><span class="muted">'+ld+' learned · '+lg+' learning · '+nw+' new · '+due+' due now</span></div>'; }).join("");
   const saved = E.cards.filter(c=>c.saved);
   const favs = RC.DIMS.map(dm=>{ const fv = E.bandit.favourite(dm); if (!fv) return ""; return '<div style="font-size:13px">'+RC.DIMLABEL[dm]+': <b>'+esc(LABEL[fv])+'</b> <span class="muted">('+Math.round(E.bandit.mean(dm,fv)*100)+'% held)</span></div>'; }).join("");
   const quiet = E.snoozeUntil > t ? " Quiet mode for a few minutes after lots of fast skips." : "";
-  return tabs()+'<div class="app" style="padding-top:52px"><div class="status"><b>On</b><div class="muted" style="font-size:12.5px">Cards appear in TikTok, Instagram, YouTube Shorts, Snapchat and Facebook.'+quiet+'</div></div>'+
+  return tabs()+'<div class="app" style="padding-top:52px">'+(E.cards.length?'<div class="hero small" data-motion="decks"></div>':'')+'<div class="status"><b>On</b><div class="muted" style="font-size:12.5px">Cards appear in TikTok, Instagram, YouTube Shorts, Snapchat, Facebook, X, Reddit and Pinterest.'+quiet+'</div></div>'+
     '<div class="sec">Today</div><div class="tiles"><div class="tile"><b>'+d.reviews+'</b><small>cards done</small></div><div class="tile"><b>'+d.skips+'</b><small>skipped</small></div><div class="tile"><b>'+(rr<0?"–":Math.round(rr*100)+"%")+'</b><small>remembered, last 7 days</small></div><div class="tile"><b>'+E.streak(k)+'</b><small>day streak</small></div></div>'+
     '<div class="box"><span class="steplbl">Forecast</span><span style="font-size:13px">'+esc(fs)+'</span></div>'+
     '<div class="box"><span class="steplbl">Rhythm</span><span style="font-size:13px">'+esc(E.rhythmText())+'</span>'+(E.calibration.describe()?'<span class="steplbl" style="margin-top:4px">Your memory</span><span style="font-size:13px">'+esc(E.calibration.describe())+'</span>':'')+'</div>'+
-    '<div class="box"><span class="steplbl">Last 14 days · yellow = reviewed, grey = skipped</span><div class="bars">'+bars+'</div></div>'+
+    '<div class="box"><span class="steplbl">Last 14 days · dark = reviewed, light = skipped</span><div class="bars">'+bars+'</div></div>'+
     (saved.length?'<div class="box"><span class="steplbl">Saved ('+saved.length+')</span>'+saved.slice(0,5).map(c=>'<div class="mini2">'+esc(c.f)+'</div>').join("")+'</div>':'')+
     '<div class="box"><span class="steplbl">Your cards</span>'+(decks||'<span class="muted">No cards yet.</span>')+'<button class="abtn ghost" data-act="addCards">Add cards</button></div>'+
     '<div class="box"><span class="steplbl">How often</span><div class="seg">'+["chill","normal","cram","demo"].map(m=>'<button data-act="setIntensity" data-v="'+m+'" class="'+(E.settings.intensity===m?"on":"")+'">'+m[0].toUpperCase()+m.slice(1)+'</button>').join("")+'</div>'+
@@ -335,7 +408,7 @@ function renderSide(){
   const base = E.I().gap, arms = RC.MULT.map((m,i)=>{ const a=E.rhythm.a[i]||1,b=E.rhythm.b[i]||1; return {gap:Math.max(E.isDemo()?1:2,Math.round(base*m)), v:a/(a+b)/(base*m+1), on:i===E.rhythm.arm}; });
   const mx = Math.max(...arms.map(a=>a.v), .0001);
   $("arms").innerHTML = arms.map(a=>'<div class="'+(a.on?"on":"")+'" title="1 card every '+a.gap+' reels"><i style="height:'+Math.round(a.v/mx*70)+'px"></i><span>1/'+a.gap+'</span></div>').join("");
-  $("rhythmText").innerHTML = esc(E.rhythmText())+'<br><span class="muted">Bars: expected answered cards per reel scrolled at each rhythm (Thompson sampling). Yellow = the rhythm in use.</span>';
+  $("rhythmText").innerHTML = esc(E.rhythmText())+'<br><span class="muted">Bars: expected answered cards per reel scrolled at each rhythm (Thompson sampling). dark = the rhythm in use.</span>';
   const cal = E.calibration.describe();
   $("memText").innerHTML = 'Scheduler: <b>FSRS-6</b> with its 21 default parameters (the algorithm Anki uses). Target recall 90%, rising to 92% three weeks before the exam and 95% in the final week.<br>'+
     'Personal calibration: '+(cal?esc(cal)+' (×'+E.calibration.scale+')':'waits for 100 long-term reviews ('+E.calibration.log.length+' so far) before adjusting.')+'<br>Grading uses response time: a fast “knew it” is Easy, a slow one Good, a hint caps it at Hard.';
@@ -404,6 +477,10 @@ let playing = null;
 function playSound(url){
   if (playing) { playing.pause(); playing = null; }
   if (!url) return;
+  if (url.startsWith("tts:")) { // Anki text-to-speech: the browser's own voice, in the card's language
+    try { const i = url.indexOf(":", 4), u = new SpeechSynthesisUtterance(url.slice(i + 1)); u.lang = url.slice(4, i).replace("_", "-"); speechSynthesis.cancel(); speechSynthesis.speak(u); } catch (e) {}
+    return;
+  }
   playing = new Audio(url);
   playing.play().catch(() => {}); // a browser may refuse until the page has been tapped
 }
@@ -593,4 +670,6 @@ $("labFile").addEventListener("change", e => {
 window.addEventListener("resize", fitLab);
 
 if (!restore()) fresh(); render(true); if (!APP) renderLab(); installOffer();
+// ?card=1 (the iPhone Shortcut's link): open straight on a card, once setup is done
+if (/[?&]card=1\b/.test(location.search) && UI.onboarded && E.cards.length) testCard();
 })();

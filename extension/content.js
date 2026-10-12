@@ -20,12 +20,12 @@ function inFeed(){
   return true; // TikTok is all short videos; on X any video that plays counts
 }
 
-let E = null, meta = null, cur = null, lastKey = null, paused = [], host = null, root = null, timers = [], dirty = false;
+let E = null, meta = null, cur = null, lastKey = null, paused = [], host = null, root = null, timers = [];
 const now = () => Date.now();
 RCState.load().then(r => { E = r.E; meta = r.meta; });
-RCState.onChange(() => { if (!cur && !dirty) RCState.load().then(r => { if (!cur) { E = r.E; meta = r.meta; } }); });
-let saveTimer = null;
-function persist(){ dirty = true; clearTimeout(saveTimer); saveTimer = setTimeout(() => { RCState.save(E, meta).then(() => { dirty = false; }); }, 800); }
+RCState.onChange(() => { if (!cur) RCState.load().then(r => { if (!cur) { E = r.E; meta = r.meta; } }); });
+/* every change goes through RCState.update: the newest save, changed, saved at once (no stale copies between tabs) */
+function change(fn){ return RCState.update(fn).then(r => { E = r.E; meta = r.meta; return r.out; }); }
 
 /* ---------------- which video is being watched ---------------- */
 const ids = new WeakMap(); let nextId = 1;
@@ -51,13 +51,11 @@ function watch(){
   lastKey = k; nextVideo();
 }
 setInterval(watch, 600);
-addEventListener("pagehide", () => { if (dirty) RCState.save(E, meta); });
 addEventListener("scroll", () => setTimeout(watch, 250), {passive:true, capture:true});
 
 function nextVideo(){
   if (!E || !meta || !meta.onboarded || !E.cards.length) return;
-  const sh = E.onReelSwipe(now(), SITE); persist();
-  if (sh) show(sh);
+  change(E2 => E2.onReelSwipe(now(), SITE)).then(sh => { if (sh && !cur) show(sh); });
 }
 
 /* ---------------- the card overlay ---------------- */
@@ -86,12 +84,13 @@ function show(sh){
   if (keys.length && !sh.mediaReady) { RCState.media(keys).then(m => { RCState.MEDIA.forEach(k => { if (sh.s[k]) sh.s[k] = m[sh.s[k]] || null; }); sh.mediaReady = true; show(sh); }); return; }
   pauseVideos();
   cur = Object.assign({kind:"card", revealed:false, liked:false, likedBefore:false, pick:-1, saved:false, hinted:false, beat:0, count:null, got:[], moreOpen:false, settled:false, shownAt:performance.now()}, sh);
-  if (meta.coachLeft > 0) { cur.coach = true; meta.coachLeft--; }
+  if (meta.coachLeft > 0) cur.coach = true; // counted down when the card is finished
   mount(); draw();
   if (cur.s.snd) play(cur.s.snd);
 }
 let sound = null;
-function play(url){ if (sound) sound.pause(); sound = null; if (!url) return; sound = new Audio(url); sound.play().catch(() => {}); }
+function play(url){ if (sound) sound.pause(); sound = null; if (!url) return;
+  if (url.startsWith("tts:")) { try { const i = url.indexOf(":", 4), u = new SpeechSynthesisUtterance(url.slice(i + 1)); u.lang = url.slice(4, i).replace("_", "-"); speechSynthesis.cancel(); speechSynthesis.speak(u); } catch (e) {} return; } sound = new Audio(url); sound.play().catch(() => {}); }
 function draw(){
   if (!root || !cur) return;
   clearTimers();
@@ -103,9 +102,10 @@ function draw(){
 function done(){
   if (!cur) return;
   const it = cur; cur = null; clearTimers();
-  E.onCardFinished(it, {revealed:it.revealed, liked:it.liked, likedBefore:it.likedBefore, pick:it.pick, likeAt:it.likeAt||0, pickAt:it.pickAt||0, hintAt:it.hintAt||0,
-    saved:!!it.saved, shared:!!it.shared, got:(it.got||[]).filter(Boolean).length, dwell:performance.now()-it.shownAt}, now());
-  clearTimeout(saveTimer); RCState.save(E, meta).then(() => { dirty = false; }); // straight away: the tab may close next
+  const outcome = {revealed:it.revealed, liked:it.liked, likedBefore:it.likedBefore, pick:it.pick, likeAt:it.likeAt||0, pickAt:it.pickAt||0, hintAt:it.hintAt||0,
+    saved:!!it.saved, shared:!!it.shared, got:(it.got||[]).filter(Boolean).length, dwell:performance.now()-it.shownAt}, coach = !!it.coach;
+  // grade the newest saved copy of this card (another tab may have changed others meanwhile)
+  change((E2, m2) => { const c = E2.cards.find(x => x.id === it.card.id); if (coach && m2.coachLeft > 0) m2.coachLeft--; if (c) { it.card = c; E2.onCardFinished(it, outcome, now()); } });
   if (sound) { sound.pause(); sound = null; }
   unmount(); resumeVideos();
 }
@@ -204,8 +204,7 @@ chrome.runtime.onMessage.addListener((msg, sender, reply) => {
     E = r.E; meta = r.meta;
     if (!E.cards.length) { reply({ok:false, why:"Add some cards first."}); return; }
     if (cur) done();
-    const sh = E.forceShow(now(), SITE); persist(); if (sh) show(sh);
-    reply({ok:!!sh});
+    change(E2 => E2.forceShow(now(), SITE)).then(sh => { if (sh) show(sh); reply({ok:!!sh}); });
   });
   return true;
 });
@@ -217,7 +216,7 @@ const OVERLAY_CSS = `
 .frame{--k:1;width:calc(360px * var(--k));height:calc(740px * var(--k));position:relative;pointer-events:auto;border-radius:calc(22px * var(--k));overflow:hidden;box-shadow:0 30px 80px -20px #000}
 .stage{position:absolute;left:0;top:0;width:360px;height:740px;transform:scale(var(--k));transform-origin:0 0}
 .bar{pointer-events:auto;display:flex;gap:10px;align-items:center;font:600 12px/1.3 system-ui,sans-serif;color:#ddd;max-width:92vw;flex-wrap:wrap;justify-content:center}
-.bar button{font:700 12px system-ui,sans-serif;border:0;border-radius:999px;padding:8px 14px;cursor:pointer;background:#ffe14d;color:#141208}
+.bar button{font:700 12px system-ui,sans-serif;border:0;border-radius:999px;padding:8px 14px;cursor:pointer;background:#fff;color:#111}
 .bar button[data-x=pause]{background:#2a2a30;color:#eee}
 `;
 })();

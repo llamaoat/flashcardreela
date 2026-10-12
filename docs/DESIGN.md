@@ -224,3 +224,15 @@ All bundled under the SIL Open Font License, with licence files in
 [`app/src/main/assets/fonts`](../app/src/main/assets/fonts): TikTok Sans
 ([announcement](https://developers.tiktok.com/blog/tiktok-sans-open-source)), Anton, Fraunces and Caveat.
 They're cut down to Latin characters and the weights the cards use (about 430 KB in total).
+
+The app's own screens (setup, dashboard, the extension popup and the web demo's app) use **Inter**
+(OFL, three weights cut to Latin, about 240 KB). They're quiet and light by day and dark when the
+phone or browser is: off-white or near-black ground, ink pill buttons, and headings as a black line
+over a grey one. The tokens are the same in `Ui.java`, `.app` in `head.html` and `popup.html`. The
+welcome screen and dashboard have a moving hero (`MotionView.java`, `motion()` and `sea()` in
+`app.js`): a navy sea of short dashes drifting on a slow current, a small orange swimmer they turn
+towards, and waves of white foam rolling past (the feed washing over you). A wheel of topics rolls
+along a curve over it, the middle one bracketed with a grey note ("[ Enzymes ] 9 due"). On the dashboard the wheel shows your decks and today's numbers. It
+stops when the phone's animations are off (reduce motion). Cards keep their host-matched faces so
+they still pass as reels. The widget uses the system font: launchers draw it, and custom fonts there
+need Android 12+.

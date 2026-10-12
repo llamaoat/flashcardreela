@@ -14,6 +14,6 @@ for (const r of JSON.parse(fs.readFileSync(process.argv[2], "utf8"))) {
   out += a.kind + " | " + a.points.join(" ¦ ") + " | over=" + sp.over.join(" ¦ ") + " | ctx=" + a.ctx + " | main=" + a.qMain +
     " | a2=" + a.a2 + " | more=" + a.more + " | starts=" + (a.multi ? RC.starts(a.points).join(",") : "") +
     " | layouts=" + RC.layoutsFor(a, true).slice().sort().join(",") + " | like=" + RC.likeness(RC.plainText(r[0]), RC.plainText(r[1])) +
-    " | case=" + RC.caseMatters(RC.plainText(r[0])) + " | deck=" + RC.deckLabel(r[2]) + "\n";
+    " | case=" + RC.caseMatters(RC.plainText(r[0])) + " | deck=" + RC.deckLabel(r[2]) + " | kin=" + RC.kin(RC.plainText(r[0]), RC.plainText(r[2])) + "\n";
 }
 process.stdout.write(out);

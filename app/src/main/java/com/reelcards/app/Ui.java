@@ -4,6 +4,7 @@ import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
+import android.content.res.Configuration;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
 import android.graphics.drawable.RippleDrawable;
@@ -24,22 +25,45 @@ import java.util.concurrent.Executors;
 
 /** Small helpers so every screen is built in code with one consistent look (no layout XML needed). */
 final class Ui {
-    static final int BG = 0xFF0F1014;
-    static final int SURFACE = 0xFF17181E;
-    static final int SURFACE2 = 0xFF1E1F27;
-    static final int LINE = 0xFF2A2C37;
-    static final int TEXT = 0xFFECEBE6;
-    static final int MUTED = 0xFF9C9CA9;
-    static final int ACCENT = 0xFFFFE14D;
-    static final int ON_ACCENT = 0xFF141208;
-    static final int GOOD = 0xFF3ECF8E;
-    static final int BAD = 0xFFFF5A76;
-    static final int WARN = 0xFFFFB547;
+    // The app's own screens: quiet and light by day, dark when the phone is (theme()). Ink buttons, a
+    // black line over a grey line for headings, Inter throughout. Same tokens as .app in
+    // web-demo/src/head.html and the extension popup. Cards keep their host-matched faces (Fonts).
+    static int BG, SURFACE, SURFACE2, LINE, TEXT, MUTED, ACCENT, ON_ACCENT, GOOD, BAD, WARN, GOOD_BG, BAD_BG, WARN_BG;
+    static boolean dark;
+    static { colours(false); }
 
-    static final Typeface DISPLAY = Typeface.create("sans-serif-black", Typeface.NORMAL);
-    static final Typeface BODY = Typeface.create("sans-serif", Typeface.NORMAL);
-    static final Typeface MEDIUM = Typeface.create("sans-serif-medium", Typeface.NORMAL);
+    static Typeface DISPLAY = Typeface.create("sans-serif-medium", Typeface.NORMAL);
+    static Typeface BODY = Typeface.create("sans-serif", Typeface.NORMAL);
+    static Typeface MEDIUM = Typeface.create("sans-serif-medium", Typeface.NORMAL);
     static final Typeface MONO = Typeface.create("monospace", Typeface.NORMAL);
+
+    /** Picks light or dark from the phone's setting and loads the fonts. Call before building a screen. */
+    static void theme(Context c) {
+        colours((c.getResources().getConfiguration().uiMode & Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES);
+        BODY = face(c, "Inter-Regular.ttf", BODY);
+        MEDIUM = face(c, "Inter-Medium.ttf", MEDIUM);
+        DISPLAY = face(c, "Inter-SemiBold.ttf", DISPLAY);
+    }
+
+    private static void colours(boolean night) {
+        dark = night;
+        if (night) {
+            BG = 0xFF0E0E0D; SURFACE = 0xFF181816; SURFACE2 = 0xFF20201E; LINE = 0xFF2B2B28;
+            TEXT = 0xFFF2F1EC; MUTED = 0xFF8E8D87; ACCENT = 0xFFF2F1EC; ON_ACCENT = 0xFF111111;
+            GOOD = 0xFF3ECF8E; BAD = 0xFFFF6B80; WARN = 0xFFFFB547;
+            GOOD_BG = 0xFF142019; BAD_BG = 0xFF2A1A1E; WARN_BG = 0xFF2A2410;
+        } else {
+            BG = 0xFFFAFAF8; SURFACE = 0xFFFFFFFF; SURFACE2 = 0xFFF2F2EF; LINE = 0xFFE6E5E0;
+            TEXT = 0xFF111111; MUTED = 0xFF8A8A85; ACCENT = 0xFF111111; ON_ACCENT = 0xFFFFFFFF;
+            GOOD = 0xFF1F9D63; BAD = 0xFFD93A50; WARN = 0xFFB86E00;
+            GOOD_BG = 0xFFEAF6EF; BAD_BG = 0xFFFCEDEF; WARN_BG = 0xFFFFF4E0;
+        }
+    }
+
+    private static Typeface face(Context c, String file, Typeface fallback) {
+        try { return Typeface.createFromAsset(c.getAssets(), "fonts/" + file); }
+        catch (RuntimeException e) { return fallback; }
+    }
 
     interface PictureLoaded { void loaded(Bitmap b); }
 
@@ -106,10 +130,18 @@ final class Ui {
         return t;
     }
 
-    static TextView title(Context c, String s) {
-        TextView t = text(c, s.toUpperCase(java.util.Locale.UK), 30, TEXT, DISPLAY);
-        t.setLetterSpacing(0.01f);
-        t.setLineSpacing(0, 1.0f);
+    static TextView title(Context c, String s) { return title(c, s, null); }
+
+    /** A heading, with an optional second line in grey ("Revise without trying / between your reels"). */
+    static TextView title(Context c, String s, String sub) {
+        TextView t = text(c, s, 26, TEXT, DISPLAY);
+        if (sub != null) {
+            android.text.SpannableStringBuilder b = new android.text.SpannableStringBuilder(s + "\n" + sub);
+            b.setSpan(new android.text.style.ForegroundColorSpan(MUTED), s.length() + 1, b.length(), 0);
+            t.setText(b);
+        }
+        t.setLetterSpacing(-0.025f);
+        t.setLineSpacing(0, 1.12f);
         return t;
     }
 
@@ -118,8 +150,7 @@ final class Ui {
     static TextView muted(Context c, String s) { return text(c, s, 13, MUTED, BODY); }
 
     static TextView label(Context c, String s) {
-        TextView t = text(c, s.toUpperCase(java.util.Locale.UK), 11, MUTED, MEDIUM);
-        t.setLetterSpacing(0.08f);
+        TextView t = text(c, s, 13, MUTED, MEDIUM);
         return t;
     }
 
@@ -140,20 +171,21 @@ final class Ui {
         Button b = new Button(c);
         b.setText(s);
         b.setAllCaps(false);
-        b.setTextSize(TypedValue.COMPLEX_UNIT_SP, 16);
-        b.setTypeface(primary ? DISPLAY : MEDIUM);
+        b.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
+        b.setTypeface(MEDIUM);
         b.setTextColor(primary ? ON_ACCENT : TEXT);
         b.setMinHeight(dp(c, 52));
         b.setMinimumHeight(dp(c, 52));
         b.setStateListAnimator(null);
-        GradientDrawable shape = primary ? round(ACCENT, dp(c, 14)) : outline(SURFACE2, LINE, dp(c, 1), dp(c, 14));
-        b.setBackground(new RippleDrawable(ColorStateList.valueOf(0x33FFFFFF), shape, null));
+        GradientDrawable shape = primary ? round(ACCENT, dp(c, 26)) : outline(SURFACE, LINE, dp(c, 1), dp(c, 26));
+        b.setBackground(new RippleDrawable(ColorStateList.valueOf(dark == primary ? 0x22000000 : 0x33FFFFFF), shape, null));
         b.setPadding(dp(c, 18), 0, dp(c, 18), 0);
         return b;
     }
 
     static TextView linkButton(Context c, String s) {
-        TextView t = text(c, s, 14, ACCENT, MEDIUM);
+        TextView t = text(c, s, 14, TEXT, MEDIUM);
+        t.setPaintFlags(t.getPaintFlags() | android.graphics.Paint.UNDERLINE_TEXT_FLAG);
         t.setPadding(0, dp(c, 12), 0, dp(c, 12));
         t.setMinHeight(dp(c, 44));
         t.setGravity(Gravity.CENTER_VERTICAL);

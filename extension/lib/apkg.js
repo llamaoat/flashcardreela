@@ -535,7 +535,9 @@ function renderTpl(tpl, F, ctx){
       else if (f === "cloze-only") { const got = []; clozeText(clozeParse(v), ctx.cloze, "a", got); v = got.join(", "); }
       else if (f === "text") v = clean(v);
       else if (f === "type") v = ctx.side === "q" ? "" : v;
-      else if (f === "tts" || f === "tts-voices") v = "";
+      // Anki text-to-speech, {{tts en_US:Front}}: a sound to speak, "tts:en_US:the text" (players speak it in that language)
+      else if (f === "tts" || f.startsWith("tts ")) { const lang = f.split(/\s+/)[1] || ""; const say = clean(v).replace(/[\[\]\n]+/g, " ").trim(); v = say ? "[sound:tts:" + lang + ":" + say + "]" : ""; }
+      else if (f === "tts-voices") v = "";
       else if (f === "furigana" || f === "kanji") v = v.replace(/\[[^\]]*\]/g, "");
       else if (f === "kana") v = v.replace(/[^\s\[\]]+\[([^\]]*)\]/g, "$1");
     }
@@ -651,6 +653,7 @@ async function read(buf, opts){
   const cards = [], imgs = {}, snds = {}, soundRefs = {};
   async function sound(name){ // saved once, shared by every card that plays it
     if (!name) return null;
+    if (name.startsWith("tts:")) return name; // spoken, not a file
     if (name in soundRefs) return soundRefs[name];
     const d = await media(name), t = audioType(d);
     let ref = null;
@@ -725,7 +728,11 @@ async function read(buf, opts){
           bHtml = a;
         }
         const qPic = await picture(images(qHtml)[0]), aPic = await picture(images(bHtml)[0]);
-        const qSnd = await sound(sounds(qHtml)[0]), aSnd = await sound(sounds(bHtml)[0]);
+        let aSounds = sounds(bHtml);
+        if (!aSounds.length) { // text-to-speech written in the answer template, not the field: {{tts en_GB:Back}}
+          const qs = sounds(qHtml); aSounds = sounds(renderTpl(t.a, F, Object.assign({side: "a", front: ""}, ctx))).filter(n => n.startsWith("tts:") && qs.indexOf(n) < 0).slice(0, 1);
+        }
+        const qSnd = await sound(sounds(qHtml)[0]), aSnd = await sound(aSounds[0]);
         const f = clean(qHtml), b = clean(bHtml);
         // something to ask (words, a picture or a sound) and an answer (words or a picture, or a sound with a written or pictured question)
         if ((f || qPic || qSnd) && (b || aPic || (aSnd && (f || qPic)))) card = {f: f || (qPic ? "What's this?" : LISTEN), b: b || "", x: xText, img: qPic ? qPic.name : null, imgW: qPic ? qPic.w : 0, imgH: qPic ? qPic.h : 0,

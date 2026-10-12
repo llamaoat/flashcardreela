@@ -4,32 +4,32 @@ Reelcards engine: 30 simulated students per row, 30 days,
 
 Persona        Min/day Engine    Cards/day   Skipped Engaged/day   Learned Exam recall
 quiz fan            60 baseline         32       68%          11        8%          8%
-quiz fan            60 +looks           36       57%          16       12%         11%
+quiz fan            60 +looks           36       57%          16       12%         12%
 quiz fan            60 full             36       53%          18       14%         13%
 quiz fan           210 baseline        102       69%          34       25%         23%
 quiz fan           210 +looks          116       57%          53       41%         39%
-quiz fan           210 full            113       50%          58       47%         43%
+quiz fan           210 full            113       50%          58       47%         44%
 chat fan            60 baseline         33       66%          12        9%          8%
 chat fan            60 +looks           36       53%          18       13%         13%
-chat fan            60 full             37       47%          20       14%         14%
+chat fan            60 full             37       47%          21       14%         14%
 chat fan           210 baseline        107       66%          39       27%         26%
 chat fan           210 +looks          120       52%          61       44%         42%
-chat fan           210 full            115       42%          68       49%         47%
-gamer               60 baseline         31       69%          10        8%          7%
+chat fan           210 full            114       42%          68       49%         47%
+gamer               60 baseline         32       69%          10        8%          7%
 gamer               60 +looks           37       54%          18       13%         12%
-gamer               60 full             37       50%          19       14%         13%
-gamer              210 baseline        102       69%          33       24%         23%
-gamer              210 +looks          120       53%          59       44%         41%
-gamer              210 full            116       46%          64       48%         45%
+gamer               60 full             37       49%          19       14%         13%
+gamer              210 baseline        101       69%          33       24%         23%
+gamer              210 +looks          120       53%          59       44%         42%
+gamer              210 full            116       47%          63       48%         45%
 no preference       60 baseline         34       63%          13       10%          9%
 no preference       60 +looks           34       63%          13       10%          9%
-no preference       60 full             33       60%          14       10%          9%
+no preference       60 full             33       60%          14       10%         10%
 no preference      210 baseline        109       63%          42       31%         29%
-no preference      210 +looks          109       63%          42       31%         30%
-no preference      210 full            107       59%          45       33%         31%
+no preference      210 +looks          110       63%          42       31%         30%
+no preference      210 full            107       59%          45       32%         31%
 
 baseline  average:   66% skipped,   24 engaged cards a day,  17% modelled exam-day recall
-+looks    average:   57% skipped,   35 engaged cards a day,  25% modelled exam-day recall
++looks    average:   56% skipped,   35 engaged cards a day,  25% modelled exam-day recall
 full      average:   51% skipped,   38 engaged cards a day,  27% modelled exam-day recall
-Memory calibration: recall predictions on 124139 later reviews, log-loss 0.393 with calibration vs 0.393 without (lower is better).
+Memory calibration: recall predictions on 123469 later reviews, log-loss 0.394 with calibration vs 0.393 without (lower is better).
 "Engaged" = cards answered, liked or read (not swiped away). "Learned" = graduated to review. "Exam recall" = modelled chance of recalling each deck card on exam day.

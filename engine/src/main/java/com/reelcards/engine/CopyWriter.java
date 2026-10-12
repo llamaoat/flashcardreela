@@ -209,7 +209,7 @@ public class CopyWriter {
 
     /** A believable wrong answer: another card's answer from the same deck, similar length, and as alike in look as any (likeness). */
     public static String distractor(Card c, List<Card> pool, Random rnd) {
-        List<String> same = new ArrayList<>(), any = new ArrayList<>();
+        List<Card> same = new ArrayList<>(), any = new ArrayList<>();
         String mine = norm(c.back), q = AnswerShape.plainText(c.front).toLowerCase(Locale.UK);
         for (Card o : pool) {
             if (o == c || o.back == null || o.back.isEmpty()) continue;
@@ -217,21 +217,39 @@ public class CopyWriter {
             if (ob.equals(mine) || q.contains(ob) || !AnswerShape.isShort(o.back)) continue; // not one the question already shows (a sibling cloze's answer)
             double ratio = (o.back.length() + 4.0) / (c.back.length() + 4.0);
             if (ratio < 0.4 || ratio > 2.5) continue;
-            if (c.deck != null && c.deck.equals(o.deck)) same.add(o.back); else any.add(o.back);
+            if (c.deck != null && c.deck.equals(o.deck)) same.add(o); else any.add(o);
         }
-        List<String> src = same.isEmpty() ? any : same;
+        List<Card> src = same.isEmpty() ? any : same;
         if (src.isEmpty()) return null;
-        String me = AnswerShape.plainText(c.back);
+        String me = AnswerShape.plainText(c.back), cq = AnswerShape.plainText(c.front);
         int[] sc = new int[src.size()];
         int top = Integer.MIN_VALUE;
         for (int i = 0; i < sc.length; i++) {
-            String b = src.get(i);
-            sc[i] = likeness(me, b.indexOf('<') >= 0 || b.indexOf('&') >= 0 ? AnswerShape.plainText(b) : b);
+            String b = src.get(i).back;
+            sc[i] = likeness(me, b.indexOf('<') >= 0 || b.indexOf('&') >= 0 ? AnswerShape.plainText(b) : b) + 3 * kin(cq, AnswerShape.plainText(src.get(i).front));
             top = Math.max(top, sc[i]);
         }
         List<String> best = new ArrayList<>();
-        for (int i = 0; i < sc.length; i++) if (sc[i] == top) best.add(src.get(i));
+        for (int i = 0; i < sc.length; i++) if (sc[i] == top) best.add(src.get(i).back);
         return best.get(rnd.nextInt(best.size()));
+    }
+
+    /**
+     * How many opening words two questions share (up to 3). "Antidote for heparin?" and "Antidote for
+     * acetaminophen overdose?" share 2, so their answers are the same kind of thing (two drugs) and one
+     * makes a believable wrong answer for the other. Mirrors kin() in engine.js.
+     */
+    public static int kin(String a, String b) {
+        List<String> wa = words(a), wb = words(b);
+        int n = 0;
+        while (n < 3 && n < wa.size() && n < wb.size() && wa.get(n).equals(wb.get(n))) n++;
+        return n;
+    }
+
+    private static List<String> words(String t) {
+        List<String> out = new ArrayList<>();
+        for (String w : t.toLowerCase(Locale.UK).split("[^\\p{L}\\p{N}]+")) if (!w.isEmpty()) out.add(w);
+        return out;
     }
 
     /**

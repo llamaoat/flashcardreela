@@ -51,7 +51,7 @@ The popup shows what you've done today and what's due, and *Reset everything* cl
   change at any time. It has been tested on stand-in pages that behave like each feed, not on the live
   sites (this project's test machines can't reach them), so try it and report what breaks.
 - Not in the Chrome Web Store yet: install it as above. Firefox and Safari need small changes.
-- Two tabs open at once share one save; the last to finish a card wins.
+- Tabs share one save. Every change takes a lock in `background.js`, re-reads the newest save, changes it and saves, so tabs never undo each other's progress.
 
 ## Privacy
 

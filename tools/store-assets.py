@@ -35,10 +35,10 @@ SHOTS = [
 ]
 
 ICON_SVG = """<svg xmlns="http://www.w3.org/2000/svg" viewBox="12 12 84 84" width="512" height="512">
-<rect x="0" y="0" width="108" height="108" fill="#0F1014"/>
-<g transform="rotate(-10 54 54)"><path fill="#3A3C4A" d="M40,30 L68,30 Q72,30 72,34 L72,76 Q72,80 68,80 L40,80 Q36,80 36,76 L36,34 Q36,30 40,30 Z"/></g>
-<g transform="rotate(6 54 54)"><path fill="#FFE14D" d="M42,28 L70,28 Q74,28 74,32 L74,76 Q74,80 70,80 L42,80 Q38,80 38,76 L38,32 Q38,28 42,28 Z"/>
-<path fill="#0F1014" d="M50,43 L66,54 L50,65 Z"/></g></svg>"""
+<rect x="0" y="0" width="108" height="108" fill="#0B2140"/>
+<g transform="rotate(-10 54 54)"><path fill="#1D3A66" d="M40,30 L68,30 Q72,30 72,34 L72,76 Q72,80 68,80 L40,80 Q36,80 36,76 L36,34 Q36,30 40,30 Z"/></g>
+<g transform="rotate(6 54 54)"><path fill="#EE8A63" d="M42,28 L70,28 Q74,28 74,32 L74,76 Q74,80 70,80 L42,80 Q38,80 38,76 L38,32 Q38,28 42,28 Z"/>
+<path fill="#0B2140" d="M50,43 L66,54 L50,65 Z"/></g></svg>"""
 
 
 def opaque_png(png_bytes, path):

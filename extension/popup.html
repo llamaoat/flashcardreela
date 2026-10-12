@@ -4,27 +4,32 @@
 <meta charset="utf-8">
 <title>Reelcards</title>
 <style>
-:root{color-scheme:dark;--bg:#0f1014;--panel:#17181e;--line:#2a2c37;--text:#ecebe6;--muted:#9c9ca9;--acc:#ffe14d}
-body{margin:0;width:360px;background:var(--bg);color:var(--text);font:14px/1.4 system-ui,-apple-system,"Segoe UI",sans-serif}
+/* Same tokens as the app's own screens (Ui.java, .app in web-demo/src/head.html): light by day, dark with the system. */
+:root{color-scheme:light;--bg:#FAFAF8;--panel:#FFFFFF;--panel2:#F2F2EF;--line:#E6E5E0;--text:#111111;--muted:#8A8A85;--acc:#111111;--onacc:#FFFFFF;--good:#1F9D63}
+@media (prefers-color-scheme:dark){:root{color-scheme:dark;--bg:#0E0E0D;--panel:#181816;--panel2:#20201E;--line:#2B2B28;--text:#F2F1EC;--muted:#8E8D87;--acc:#F2F1EC;--onacc:#111111;--good:#3ECF8E}}
+@font-face{font-family:"Inter";font-weight:400;src:url(fonts/Inter-Regular.ttf)}
+@font-face{font-family:"Inter";font-weight:500;src:url(fonts/Inter-Medium.ttf)}
+@font-face{font-family:"Inter";font-weight:600 900;src:url(fonts/Inter-SemiBold.ttf)}
+body{margin:0;width:360px;background:var(--bg);color:var(--text);font:14px/1.45 "Inter",system-ui,sans-serif;letter-spacing:-.1px;-webkit-font-smoothing:antialiased}
 body.tab{width:auto;max-width:520px;margin:0 auto}
-main{padding:14px 16px 18px;display:flex;flex-direction:column;gap:12px}
-h1{margin:0;font-size:20px;letter-spacing:.2px}h1 span{color:var(--acc)}
-h2{margin:0 0 6px;font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
-section{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px 12px}
-.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;text-align:center}
-.stats b{display:block;font-size:18px}.stats small{color:var(--muted);font-size:11px}
+main{padding:18px 16px 20px;display:flex;flex-direction:column;gap:12px}
+h1{margin:0;font-weight:600;font-size:16px;letter-spacing:-.3px}h1 span{color:inherit}
+h2{margin:0 0 8px;font-size:12px;font-weight:500;color:var(--muted)}
+section{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:12px 14px}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;text-align:left}
+.stats b{display:block;font-size:22px;font-weight:600;letter-spacing:-.6px;font-variant-numeric:tabular-nums}.stats small{color:var(--muted);font-size:11.5px}
 label.row{display:flex;gap:8px;align-items:center;padding:3px 0}
-select,textarea,input[type=text]{width:100%;box-sizing:border-box;background:#0f1014;color:var(--text);border:1px solid var(--line);border-radius:8px;padding:6px 8px;font:inherit}
+select,textarea,input[type=text]{width:100%;box-sizing:border-box;background:var(--panel2);color:var(--text);border:1px solid var(--line);border-radius:12px;padding:8px 10px;font:inherit}
 textarea{height:80px;resize:vertical}
-button{font:700 13px system-ui,sans-serif;border:0;border-radius:999px;padding:8px 14px;cursor:pointer;background:#2a2a30;color:var(--text)}
-button.primary{background:var(--acc);color:#141208}
+button{font:500 13px "Inter",system-ui,sans-serif;border:1px solid var(--line);border-radius:999px;padding:8px 14px;cursor:pointer;background:var(--panel);color:var(--text)}
+button.primary{background:var(--acc);color:var(--onacc);border-color:var(--acc)}
 .btns{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
 .chips{display:flex;flex-wrap:wrap;gap:6px}
-.chips label{border:1px solid var(--line);border-radius:999px;padding:4px 10px;font-size:12.5px;cursor:pointer}
-.chips input{display:none}.chips label:has(input:checked){background:var(--acc);color:#141208;border-color:var(--acc)}
+.chips label{border:1px solid var(--line);border-radius:999px;padding:5px 11px;font-size:12.5px;cursor:pointer}
+.chips input{display:none}.chips label:has(input:checked){background:var(--acc);color:var(--onacc);border-color:var(--acc)}
 .muted{color:var(--muted);font-size:12.5px;margin:4px 0 0}
-.msg{font-size:12.5px;color:var(--acc);min-height:1em;margin:6px 0 0}
-a{color:var(--acc)}
+.msg{font-size:12.5px;color:var(--text);min-height:1em;margin:6px 0 0}
+a{color:var(--text);text-underline-offset:3px}
 </style>
 </head>
 <body>

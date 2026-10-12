@@ -32,7 +32,7 @@
 
 **On a computer:** the browser extension in [`extension/`](extension/) puts your cards between videos on TikTok, Instagram Reels, YouTube Shorts and X in Chrome or Edge ([how to install it](extension/README.md)).
 
-**On an iPhone (or any phone):** open the web demo from GitHub Pages and add it to the home screen (Safari: Share → *Add to Home Screen*; Chrome on Android offers an *Add to home screen* button on the page). It then opens full screen as just the phone part, with no demo panels, and works without signal. It can't put cards between real TikTok reels (only the Android app can), and it keeps your cards and progress in the browser on that device (nothing is sent anywhere; *Reset everything* clears it).
+**On an iPhone (or any phone):** open the web demo from GitHub Pages and add it to the home screen (Safari: Share → *Add to Home Screen*; Chrome on Android offers an *Add to home screen* button on the page). It then opens full screen as just the phone part, with no demo panels, and works without signal. It can't put cards between real TikTok reels (only the Android app can), but on an iPhone the page shows how to make a Shortcut that opens straight onto a card in one tap (`?app=1&card=1`), with an optional automation that does it after you open TikTok, and it keeps your cards and progress in the browser on that device (nothing is sent anywhere; *Reset everything* clears it).
 
 **No permission? No problem.** The **Practice feed** inside the app is a pretend reel feed that uses the exact same engine, cards and designs. Good for demos with no Wi-Fi and no TikTok.
 
@@ -116,14 +116,14 @@ More, including screenshots for each app: **[docs/DESIGN.md](docs/DESIGN.md)**.
 
 ## Proof it works
 
-**Engine checks:** 124 plain-Java checks, including FSRS-6 against `py-fsrs`, gesture and response-time grading, rhythm learning, skipping, quiet mode, format learning, calibration, notes parsing (and chatbot replies), long answers and part marks, reading all three Anki file formats (cloze, image occlusion, pictures, kept progress), decks exported by Anki itself compared card by card with how Anki shows them, a dense USMLE Step 1-style deck (vignettes, tables, long cloze notes), AnkiDroid notes, forecasting, and the hint, save and share buttons. Output: [`engine/results/checks.txt`](engine/results/checks.txt).
+**Engine checks:** 128 plain-Java checks, including FSRS-6 against `py-fsrs`, gesture and response-time grading, rhythm learning, skipping, quiet mode, format learning, calibration, notes parsing (and chatbot replies), long answers and part marks, reading all three Anki file formats (cloze, image occlusion, pictures, kept progress), decks exported by Anki itself compared card by card with how Anki shows them, a dense USMLE Step 1-style deck (vignettes, tables, long cloze notes), AnkiDroid notes, forecasting, and the hint, save and share buttons. Output: [`engine/results/checks.txt`](engine/results/checks.txt).
 
 **30-day simulation:** 30 simulated students per row, a 600-card deck (70 real GCSE cards and 530 synthetic ones), with the exam on day 30. This is a *model*, not user data. Each simulated student has a hidden memory, a taste for some card looks, and a tolerance for how often cards appear. Output: [`engine/results/simulation.txt`](engine/results/simulation.txt).
 
 | Engine version | Cards skipped | Cards engaged with per day | Modelled exam-day recall |
 |---|---|---|---|
 | Baseline: random looks, fixed rhythm | 66% | 24 | 17% |
-| + adaptive looks | 57% | 35 | 25% |
+| + adaptive looks | 56% | 35 | 25% |
 | Full: + learned rhythm and natural breaks | **51%** | **38** | **27%** |
 
 These are averages over four student types at 1 hour and 3.5 hours of reels a day. For a heavy scroller (3.5 h a day) with a taste in formats, the full engine gets 58–68 cards engaged with per day and 43–47% modelled exam-day recall on the whole 600-card deck. For a student with no format preference, adaptive looks make almost no difference, as expected.
@@ -131,7 +131,7 @@ These are averages over four student types at 1 hour and 3.5 hours of reels a da
 Run them yourself:
 
 ```
-./gradlew :engine:engineChecks          # 124 passed, 0 failed
+./gradlew :engine:engineChecks          # 128 passed, 0 failed
 ./gradlew :engine:simulate              # about 2 minutes
 ```
 
@@ -156,7 +156,7 @@ Debug builds are signed with the shared debug key in `tools/`, so any teammate's
 
 TikTok, Instagram and YouTube rename their internal views from time to time. Dashboard → **Reel detection log** shows every scroll the watcher saw, whether it counted as a reel swipe, and the view names. If an app stops being detected, add the new view name to `REEL_IDS` in [`ReelDetector.java`](app/src/main/java/com/reelcards/app/ReelDetector.java).
 
-Current rules: any full-screen vertical pager in TikTok. In Instagram, YouTube, Snapchat and Facebook, the known reel viewers (`clips_viewer…`, `reel_…`, `shorts`, `spotlight`) or any full-screen vertical feed whose top item changes.
+Current rules: any full-screen vertical pager in TikTok. In Instagram, YouTube, Snapchat, Facebook, X, Reddit and Pinterest, the known reel viewers (`clips_viewer…`, `reel_…`, `shorts`, `spotlight`) or any full-screen vertical feed whose top item changes.
 
 ---
 
@@ -219,7 +219,7 @@ Reelcards is free software under the [GNU GPL v3](LICENSE). The code stays open,
 
 - **Not yet tested on a physical phone.** The APK builds in CI, the engine is tested, and the Android code runs under Robolectric on Android 14 and 16, but it hasn't run on a device or emulator. [docs/PHONE-TESTS.md](docs/PHONE-TESTS.md) is the checklist for 2–3 real phones.
 - **Anki files:** a one-way import. Sounds play, but cards that are only sounds (nothing to read) and Anki's text-to-speech fields are left out. The reader is checked against decks Anki itself exported (`tools/real-anki-decks.py`: the default format, "support older Anki versions" and a collection package), compared card by card with how Anki shows them, and against decks written to each file format by `tools/make-test-decks.py`. Shared decks from AnkiWeb and the old Image Occlusion Enhanced add-on haven't been tried as real files yet, so please send any deck that doesn't open.
-- **Android only.** iPhones don't let apps detect individual reels; an iOS version would use Screen Time to trigger a card every few minutes instead.
+- **Android only.** iPhones don't let apps detect individual reels. iPhone users get the web demo plus a Shortcut that opens a card in one tap (not tested on a real iPhone yet); an iOS app would use Screen Time to trigger a card every few minutes instead.
 - **Play Store:** the app targets API 36, shows Google's prominent disclosure before the accessibility settings, signs release bundles with your own upload key, and has a privacy policy page and listing graphics. What's left needs a Play Console account: [docs/PLAY-STORE.md](docs/PLAY-STORE.md). Google reviews non-accessibility uses of the AccessibilityService API closely, so approval isn't guaranteed.
 - **Backgrounds** are drawn in code as stand-ins for looping footage, to keep the app tiny and offline.
 - **Copy is templated.** *Make cards with AI* uses a chatbot the student already has, outside the app. On-device AI (Gemini Nano via ML Kit's GenAI APIs) would need Google's ML Kit library, which the no-third-party-libraries rule doesn't allow yet; `CopyWriter` is the plug-in point.

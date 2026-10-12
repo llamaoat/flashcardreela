@@ -33,10 +33,10 @@ hasn't run on a real phone yet.
 
 ## Next
 
-4. **Pictures after moving phones.** Imported pictures are kept out of Android's backup (which stops
-   altogether past 25 MB), so a restored phone has the cards but not their pictures, and image
-   occlusion cards show "Picture not found". Decide whether to warn and offer to re-open the file, or
-   to back up small decks' pictures.
+4. **Pictures after moving phones: done.** Pictures are kept out of Android's backup (it stops at
+   25 MB). On a new or restored phone, cards whose pictures or sounds are missing are held back
+   (`Store.checkMedia`, `Engine.hidden`), and the dashboard says which decks and offers to open the Anki
+   file again, which brings them back. Not yet tried on a real phone restore.
 5. **On-device AI** for the copy (hooks, hints, captions) and for messy notes → cards. This would use
    Gemini Nano through ML Kit's GenAI APIs, on phones that have it, with today's templates as the
    fallback. `CopyWriter` is the plug-in point. **Needs a decision first:** ML Kit is a Google library
@@ -52,15 +52,20 @@ hasn't run on a real phone yet.
 7. **iPhone.** iOS doesn't let apps detect individual reels.
    - **Options:** cards timed with Screen Time (every few minutes of TikTok), home-screen and
      lock-screen widgets, and a Shortcuts automation that opens a card when TikTok opens.
-   - **Today:** the web demo can be added to an iPhone's home screen, where it opens full screen and
+   - **Today:** an iPhone Shortcut (steps shown on the web page when opened in iOS Safari) opens the web
+     demo's `?app=1&card=1` link, which goes straight to a card once setup is done. The timed
+     automation (open TikTok, wait, open the link) is untested. Safari and a home-screen copy keep
+     separate saves, so the guide says to use one. The web demo can be added to an iPhone's home screen, where it opens full screen and
      works offline (`manifest.webmanifest`, `sw.js`, the `appmode` view). It keeps progress in the
      browser (localStorage, plus IndexedDB for Anki files with pictures).
    - **Needs:** a Mac with Xcode (none in this project's cloud sessions), and Apple's Family Controls
      entitlement for the Screen Time APIs, which Apple has to approve.
 8. **Audio, the rest.** Anki's sound files now come across from `.apkg` files and play (a question
-   that's only a sound asks "Listen: what's this?"). Still missing: Anki's `{{tts:…}}` fields
-   (text-to-speech in the deck's language), and sounds on AnkiDroid cards (other apps can't read
-   AnkiDroid's media, as with pictures).
+   that's only a sound asks "Listen: what's this?"), and `{{tts …}}` fields are spoken in their
+   language, from `.apkg` files and AnkiDroid alike. Still missing: recorded sound files on AnkiDroid
+   cards. AnkiDroid keeps them in its own storage, which Android doesn't let other apps read (the same
+   reason its pictures can't come across), and its API has no way to fetch them. Until it does, an
+   `.apkg` export of the deck brings them.
 9. **Real footage** for the looping backgrounds, instead of the ones drawn in code. This has to stay
     small, offline and free to use.
 10. **A pilot with real students** to replace the simulation's modelled numbers with measured ones:

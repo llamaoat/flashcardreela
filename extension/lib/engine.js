@@ -254,7 +254,10 @@ function beats(q){const raw=q.trim().split(/\s+/),words=[],out=[],hl=[];let cur=
   for(let i=0;i<raw.length;i++){let w=raw[i];if(w.indexOf("[")>=0&&w.indexOf("]")<0)while(i+1<raw.length&&w.indexOf("]")<0)w+=" "+raw[++i];words.push(w);} // a cloze [gap] stays in one beat
   words.forEach((w,i)=>{cur.push(w);if(cur.length>=3||/[,?]$/.test(w)||i===words.length-1){let hi=-1,len=0;cur.forEach((x,k)=>{const b=x.replace(/[^\p{L}\p{N}]/gu,"");if(b.length>len&&b.length>=5){len=b.length;hi=k;}});out.push(cur.join(" "));hl.push(hi);cur=[];}});return{beats:out,hl};}
 /* not an answer the question already shows (a sibling cloze's answer is in the sentence) */
-function distractor(c,pool,rnd){const mine=c.b.trim().toLowerCase(),qt=plainText(c.f).toLowerCase(),same=[],any=[];for(const o of pool){if(o===c||!o.b)continue;const ob=o.b.trim().toLowerCase();if(!ob||ob===mine||qt.includes(ob)||!isShort(o.b))continue;const r=(o.b.length+4)/(c.b.length+4);if(r<.4||r>2.5)continue;(o.deck===c.deck?same:any).push(o.b);}const src=same.length?same:any;if(!src.length)return null;const me=plainText(c.b),sc=src.map(b=>likeness(me,/[<&]/.test(b)?plainText(b):b)),top=Math.max(...sc);return pickOf(rnd,src.filter((_,i)=>sc[i]===top));}
+function distractor(c,pool,rnd){const mine=c.b.trim().toLowerCase(),qt=plainText(c.f).toLowerCase(),same=[],any=[];for(const o of pool){if(o===c||!o.b)continue;const ob=o.b.trim().toLowerCase();if(!ob||ob===mine||qt.includes(ob)||!isShort(o.b))continue;const r=(o.b.length+4)/(c.b.length+4);if(r<.4||r>2.5)continue;(o.deck===c.deck?same:any).push(o);}const src=same.length?same:any;if(!src.length)return null;const me=plainText(c.b),q=plainText(c.f),sc=src.map(o=>likeness(me,/[<&]/.test(o.b)?plainText(o.b):o.b)+3*kin(q,plainText(o.f))),top=Math.max(...sc);return pickOf(rnd,src.filter((_,i)=>sc[i]===top)).b;}
+/* how many opening words two questions share (up to 3): "Antidote for heparin?" and "Antidote for acetaminophen overdose?"
+   share 2, so their answers are the same kind of thing (two drugs) and one makes a believable wrong answer for the other */
+function kin(a,b){const wa=a.toLowerCase().split(/[^\p{L}\p{N}]+/u).filter(w=>w),wb=b.toLowerCase().split(/[^\p{L}\p{N}]+/u).filter(w=>w);let n=0;while(n<3&&n<wa.length&&n<wb.length&&wa[n]===wb[n])n++;return n;}
 /* how alike two answers look, 0-5: the same pattern of capitals ("Streptococcus pneumoniae" and
    "Staphylococcus aureus" are both Aa), word count, digits or none, and ending ("-ase", "-ine") */
 function wordsOf(t){return t.split(/\s+/).map(w=>w.match(/[\p{L}\p{Nd}]/u)).filter(m=>m).map(m=>/\p{Lu}/u.test(m[0])?"A":/\p{Nd}/u.test(m[0])?"9":"a");}
@@ -324,7 +327,7 @@ function Engine(seed){
   this.bandit=new Bandit();this.fsrs=new Fsrs(rnd);this.calibration=new Calibration();this.rhythm=new Rhythm();this.adaptiveRhythm=true;
   this.stats={days:{},avgReel:12,avgCard:6,reelN:0,cardN:0,layout:{}};
   this.sessionId=0;this.sessionReels=0;this.reelsSinceCard=0;this.cardsToday=0;this.newToday=0;this.postponed=0;this.lastSwipeAt=0;this.snoozeUntil=0;this.dayKey=null;
-  this.rhythmArm=-1;this.lastHost=null;this.lastDeck=null;this.recentFast=[];this.recentReel=[];this.requeue=[];this.newShown=new Set();this.lastDecision=null;this.log=[];this.anki=[];this.tzOffsetMin=null;
+  this.rhythmArm=-1;this.lastHost=null;this.lastDeck=null;this.recentFast=[];this.recentReel=[];this.requeue=[];this.newShown=new Set();this.hidden=new Set();this.lastDecision=null;this.log=[];this.anki=[];this.tzOffsetMin=null;
 }
 Engine.prototype={
   I(){return INT[this.settings.intensity];}, isDemo(){return this.settings.intensity==="demo";},
@@ -334,7 +337,7 @@ Engine.prototype={
   addCards(list){const have=new Set(this.cards.map(c=>c.id));let n=0;for(const c of list){if(have.has(c.id))continue;this.cards.push(c);have.add(c.id);n++;}return n;},
   find(id){return this.cards.find(c=>c.id===id);},
   setVibes(vs){const added=vs.filter(v=>!this.settings.vibes.includes(v));this.settings.vibes=vs.slice();this.bandit.applyVibes(added);},
-  buried(c){return c.buriedUntil>=this.sessionId;}, inRequeue(c){return this.requeue.some(r=>r.id===c.id);},
+  buried(c){return c.buriedUntil>=this.sessionId||this.hidden.has(c.id);} /* hidden: held back, e.g. a missing picture (not saved) */, inRequeue(c){return this.requeue.some(r=>r.id===c.id);},
   dueCount(t){return this.cards.filter(c=>c.state!==NEW&&c.due<=t&&!this.buried(c)).length;},
   newRemaining(){return this.cards.filter(c=>c.state===NEW).length;}, learnedCount(){return this.cards.filter(c=>c.state===REVIEW).length;},
   rollDay(t){const k=this.dk(t);if(k!==this.dayKey){this.dayKey=k;this.cardsToday=0;this.newToday=0;this.newShown=new Set();}},
@@ -398,6 +401,12 @@ Engine.prototype={
     const d=this.decide(t);this.lastDecision=d;if(!d.show)return null;return this.makeShow(t,d,false);
   },
   forceShow(t,host){this.rollDay(t);if(!this.lastSwipeAt){this.lastSwipeAt=t;this.sessionId++;}if(host)this.lastHost=host;return this.makeShow(t,{show:true,gap:this.currentGap(t),reasons:["Requested now (test card)"]},true);},
+  /* the home-screen widget's card (Android): the one a reel would show now, without counting as a reel (mirrors Engine.pickForWidget) */
+  pickForWidget(t){this.rollDay(t);const p=this.pickCard(t,true);return p?p.card:null;},
+  /* the widget's answer, g = 3 (knew it) or 1 (again): scheduled like a reel card, looks and rhythm untouched (mirrors Engine.gradeOutside) */
+  gradeOutside(c,g,t){this.rollDay(t);const dd=this.day(this.dayKey);dd.reviews++;dd[GL[g]]++;if(c.state===NEW&&!this.newShown.has(c.id)){this.newShown.add(c.id);this.newToday++;dd.newSeen++;}c.bounces=0;
+    if(c.state===REVIEW&&c.last)this.calibration.add((t-c.last)/DAY,c.s,g!==1);const ivl=this.fsrs.review(c,g,t,this.settings.examDate);this.calibration.maybeRefit(this.fsrs);
+    const summary="Graded "+GL[g][0].toUpperCase()+GL[g].slice(1)+" on the widget → next in "+human(ivl);this.log.unshift(summary);this.log.length=Math.min(this.log.length,40);return{grade:g,ivl,summary};},
   makeShow(t,d,force){
     const p=this.pickCard(t,force);if(!p)return null;const c=p.card;
     const allowed=layoutsFor(analyse(c),!!distractor(c,this.cards,()=>0));
@@ -460,5 +469,5 @@ function spokenGaps(q){ return q.replace(/\[([^\]]{0,40})\]/g, (m, h) => { h = h
 function makeCard(id,deck,f,b,x){return{id,deck,f,b,x:x||"",img:null,aimg:null,io:null,cloze:false,snd:null,asnd:null,state:NEW,step:0,s:0,d:0,due:0,last:0,reps:0,lapses:0,skips:0,bounces:0,buriedUntil:-1,grade:null,layout:null,saved:false};}
 
 return{MIN,DAY,NEW,LEARNING,REVIEW,RELEARNING,STATE,DIMS,PIECES,VIBES,LABEL,DIMLABEL,INT,MULT,Engine,Fsrs,makeCard,human,write,hint,gradeOf,fastSkip,engaged,reward,beta,fkey,
-  analyse,splitPoints,splitQuestion,plainText,layoutsFor,readingMs,starts,distractor,likeness,inline,caseMatters,deckLabel};
+  analyse,splitPoints,splitQuestion,plainText,layoutsFor,readingMs,starts,distractor,likeness,kin,inline,caseMatters,deckLabel};
 })();

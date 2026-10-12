@@ -1,4 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="icon_bg">#0F1014</color>
+    <color name="icon_bg">#0B2140</color>
+    <!-- the widget: the app's own light and dark colours (Ui.java) -->
+    <color name="widget_bg">#F2FAFAF8</color>
+    <color name="widget_text">#FF111111</color>
+    <color name="widget_muted">#FF8A8A85</color>
+    <color name="widget_ink">#FF111111</color>
+    <color name="widget_on_ink">#FFFFFFFF</color>
+    <color name="widget_panel">#FFF2F2EF</color>
 </resources>

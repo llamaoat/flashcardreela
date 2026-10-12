@@ -1,5 +1,6 @@
 import com.reelcards.engine.*;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
@@ -237,6 +238,27 @@ public class EngineChecks {
             check("...in a different layout (" + layout + " -> " + (back == null ? "-" : back.format.layout) + ")", back != null && !back.format.layout.equals(layout));
             t += 500; e.onCardFinished(back, skip(500), t);
             check("skipped twice in a session -> saved for the next session", e.find(id).buriedUntilSession == e.sessionId);
+        }
+        {
+            // a card whose picture is missing (a new phone: pictures aren't backed up) is held back until it's restored
+            Engine e = fresh(8);
+            long t = T0;
+            for (Card c : e.cards) if (!c.id.equals(e.cards.get(0).id)) e.hidden.add(c.id);
+            String only = e.cards.get(0).id;
+            boolean held = true; int shown = 0;
+            for (int i = 0; i < 300; i++) { t += 12_000; Show sh = e.onReelSwipe(t, "tiktok"); if (sh != null) { shown++; if (!sh.card.id.equals(only)) held = false; t += 2_000; e.onCardFinished(sh, skip(2_000), t); } }
+            check("cards waiting for a missing picture are never shown (" + shown + " cards, all the one that's fine)", held && shown > 0);
+        }
+        {
+            // the home-screen widget: shows the card a reel would, and grading it schedules it without counting a reel
+            Engine e = fresh(9);
+            long t = T0;
+            Card w = e.pickForWidget(t);
+            int reels = e.reelsSinceCard, before = e.stats.day(e.dayKey(t)).cards;
+            Engine.Result r = w == null ? null : e.gradeOutside(w, Grade.GOOD, t);
+            check("widget: picks a card, and Knew it schedules it (" + (r == null ? "-" : r.summary) + ") without counting a reel or a card shown",
+                    w != null && r != null && w.due > t && w.reps == 1 && e.stats.day(e.dayKey(t)).reviews == 1
+                    && e.reelsSinceCard == reels && e.stats.day(e.dayKey(t)).cards == before && e.pickForWidget(t) != w);
         }
         {
             Engine e = fresh(7);
@@ -552,6 +574,12 @@ public class EngineChecks {
         boolean alike = true;
         for (int i = 0; i < 50; i++) if (!"Staphylococcus aureus".equals(CopyWriter.distractor(cap, pool, new Random(i)))) alike = false;
         check("a quiz's wrong answer looks like the right one (a species for a species, not \"positive inotropy\")", alike);
+        Card hep = new Card("h", "Pharm", "Antidote for heparin?", "Protamine sulfate", "");
+        List<Card> drugs = Arrays.asList(hep, new Card("a", "Pharm", "Antidote for acetaminophen overdose?", "N-acetylcysteine", ""),
+                new Card("m", "Pharm", "Mechanism of metformin", "Gluconeogenesis down", ""), new Card("w", "Pharm", "Target of warfarin", "Vitamin K reductase", ""));
+        boolean kind = true;
+        for (int i = 0; i < 50; i++) if (!"N-acetylcysteine".equals(CopyWriter.distractor(hep, drugs, new Random(i)))) kind = false;
+        check("a quiz's wrong answer answers the same kind of question (an antidote for an antidote)", kind);
 
         AnswerShape g = AnswerShape.of("Causes of anion gap metabolic acidosis: […]", "GOLDMARK", "Causes of anion gap metabolic acidosis: GOLDMARK\nGlycols\nOxoproline\nL-lactate");
         check("an extra's lines stay apart when shown on one line (\"GOLDMARK; Glycols; Oxoproline…\")", (g.inlineExplanation + g.more).contains("GOLDMARK; Glycols; Oxoproline; L-lactate"));
@@ -739,6 +767,12 @@ public class EngineChecks {
         check("cloze from AnkiDroid: the gap is a blank and the answer is just the deletion (\"" + (cz.card == null ? "" : cz.card.front) + "\")",
                 cz.card != null && cz.card.cloze && cz.card.front.equals("Mitochondria are the site of [type of respiration].") && cz.card.back.equals("aerobic respiration")
                 && cz.card.extra.equals("Mitochondria are the site of aerobic respiration.\nThey have a folded inner membrane."));
+        List<String[]> ttsT = new ArrayList<>();
+        ttsT.add(new String[]{"Card 1", "{{Front}}{{tts es_ES:Front}}", "{{FrontSide}}<hr id=answer>{{Back}}{{tts en_GB:Back}}"});
+        com.reelcards.engine.anki.AnkiPackage.NoteCard tc = com.reelcards.engine.anki.AnkiPackage.noteCard("Spanish TTS", false, list("Front", "Back"), ttsT,
+                "hola\u001fhello", "", "Spanish", "Spanish", 0);
+        check("Anki text-to-speech ({{tts es_ES:Front}}) is spoken in its language, not shown as text (\"" + (tc.card == null ? "" : tc.card.audio) + "\")",
+                tc.card != null && "tts:es_ES:hola".equals(tc.card.audio) && "tts:en_GB:hello".equals(tc.card.answerAudio) && tc.card.front.equals("hola") && tc.card.back.equals("hello"));
         check("line breaks from AnkiDroid stay separate points (4 stages, not one run-on line)", br.card != null && AnswerShape.of(br.card).points.size() == 4);
         com.reelcards.engine.anki.AnkiPackage.NoteCard pic = com.reelcards.engine.anki.AnkiPackage.noteCard("Basic", false, list("Front", "Back"), basicT,
                 "Which organelle is this?<br><img src=\"organelle.png\">\u001fA mitochondrion", "", "Biology", "Biology", 0);
