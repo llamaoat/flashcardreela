@@ -48,10 +48,10 @@ final class Ui {
     private static void colours(boolean night) {
         dark = night;
         if (night) {
-            BG = 0xFF0E0E0D; SURFACE = 0xFF181816; SURFACE2 = 0xFF20201E; LINE = 0xFF2B2B28;
-            TEXT = 0xFFF2F1EC; MUTED = 0xFF8E8D87; ACCENT = 0xFFF2F1EC; ON_ACCENT = 0xFF111111;
+            BG = 0xFF0B2140; SURFACE = 0xFF12294D; SURFACE2 = 0xFF1A3560; LINE = 0xFF24406D;  // the sea's navy, so dark mode is one world
+            TEXT = 0xFFEEF2F8; MUTED = 0xFF8FA3C4; ACCENT = 0xFFFFFFFF; ON_ACCENT = 0xFF0B2140;
             GOOD = 0xFF3ECF8E; BAD = 0xFFFF6B80; WARN = 0xFFFFB547;
-            GOOD_BG = 0xFF142019; BAD_BG = 0xFF2A1A1E; WARN_BG = 0xFF2A2410;
+            GOOD_BG = 0xFF0F3B3A; BAD_BG = 0xFF3A1F33; WARN_BG = 0xFF3A2E14;
         } else {
             BG = 0xFFFAFAF8; SURFACE = 0xFFFFFFFF; SURFACE2 = 0xFFF2F2EF; LINE = 0xFFE6E5E0;
             TEXT = 0xFF111111; MUTED = 0xFF8A8A85; ACCENT = 0xFF111111; ON_ACCENT = 0xFFFFFFFF;

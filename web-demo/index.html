@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Reelcards Engine</title>
 <meta name="theme-color" content="#FAFAF8" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#0E0E0D" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#0B2140" media="(prefers-color-scheme: dark)">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/png" href="icons/icon-192.png">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
@@ -30,8 +30,8 @@
   --f-youtube:'Roboto', system-ui, sans-serif;
   --f-instagram: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
 }
-@media (prefers-color-scheme:dark){:root{--ground:#0E0E0D;--panel:#181816;--panel2:#20201E;--line:#2B2B28;--text:#F2F1EC;--muted:#8E8D87;--accent:#F2F1EC;--onaccent:#111111;
-  --good:#3ECF8E;--bad:#FF6B80;--warn:#FFB547;--chipgood:#123A2A;--chipblue:#12303A;--chipbad:#3A1520;--chipwarn:#3A2E10;--frame:#2B2B28}}
+@media (prefers-color-scheme:dark){:root{--ground:#0B2140;--panel:#12294D;--panel2:#1A3560;--line:#24406D;--text:#EEF2F8;--muted:#8FA3C4;--accent:#FFFFFF;--onaccent:#0B2140;
+  --good:#3ECF8E;--bad:#FF6B80;--warn:#FFB547;--chipgood:#0F3B3A;--chipblue:#16365E;--chipbad:#3A1F33;--chipwarn:#3A2E14;--frame:#24406D}}
 html,body{background:var(--ground);color:var(--text)}
 body{font-family:var(--body);font-size:14px;line-height:1.45;padding-inline:16px;padding-block:20px 40px}
 .wrap{max-width:1280px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
@@ -124,8 +124,8 @@ select{min-height:40px;border-radius:10px;border:1px solid var(--line);backgroun
    a black line over a grey line for headings. Same tokens as Ui.java. */
 .app,.tabs.ondash{--ground:#FAFAF8;--panel:#FFFFFF;--panel2:#F2F2EF;--line:#E6E5E0;--text:#111111;--muted:#8A8A85;--accent:#111111;--onaccent:#FFFFFF;
   --good:#1F9D63;--bad:#D93A50;--goodbg:#EAF6EF;--selbg:#F2F2EF;--bar2:#D9D8D3;color-scheme:light;color:var(--text)}
-@media (prefers-color-scheme:dark){.app,.tabs.ondash{--ground:#0E0E0D;--panel:#181816;--panel2:#20201E;--line:#2B2B28;--text:#F2F1EC;--muted:#8E8D87;--accent:#F2F1EC;--onaccent:#111111;
-  --good:#3ECF8E;--bad:#FF6B80;--goodbg:#142019;--selbg:#22221F;--bar2:#3A3A36;color-scheme:dark}}
+@media (prefers-color-scheme:dark){.app,.tabs.ondash{--ground:#0B2140;--panel:#12294D;--panel2:#1A3560;--line:#24406D;--text:#EEF2F8;--muted:#8FA3C4;--accent:#FFFFFF;--onaccent:#0B2140;
+  --good:#3ECF8E;--bad:#FF6B80;--goodbg:#0F3B3A;--selbg:#17315A;--bar2:#2F4B78;color-scheme:dark}}
 .app{position:absolute;inset:0;background:var(--ground);overflow-y:auto;padding:30px 20px 26px;display:flex;flex-direction:column;gap:10px;scrollbar-width:none;font-family:var(--body);letter-spacing:-.1px}
 .app::-webkit-scrollbar{display:none}
 .app h3{font-family:var(--body);font-weight:600;font-size:24px;line-height:1.2;letter-spacing:-.6px;margin:6px 0 0}
