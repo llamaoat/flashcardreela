@@ -22,7 +22,8 @@ FONTS = ROOT / "app" / "src" / "main" / "assets" / "fonts"
 FACES = [("TikTok Sans", "TikTokSans-Regular.ttf", 400, "normal"), ("TikTok Sans", "TikTokSans-Bold.ttf", 700, "normal"),
          ("TikTok Sans", "TikTokSans-Black.ttf", 900, "normal"), ("Anton", "Anton-Regular.ttf", 400, "normal"),
          ("Caveat", "Caveat-Bold.ttf", 700, "normal"), ("Fraunces", "Fraunces-Bold.ttf", 700, "normal"),
-         ("Fraunces", "Fraunces-BoldItalic.ttf", 700, "italic")]
+         ("Fraunces", "Fraunces-BoldItalic.ttf", 700, "italic"),
+         ("Inter", "Inter-Regular.ttf", 400, "normal"), ("Inter", "Inter-Medium.ttf", 500, "normal"), ("Inter", "Inter-SemiBold.ttf", 700, "normal")]
 FONT_CSS = "".join("@font-face{font-family:'%s';src:url('https://fonts.local/%s');font-weight:%d;font-style:%s}\n" % f for f in FACES)
 
 # caption, then the design lab's settings: cards, app, state, which card (0-7), night
@@ -59,7 +60,7 @@ async def main():
         sys.exit("web-demo/index.html is missing: run python3 tools/build-web-demo.py first")
     OUT.mkdir(parents=True, exist_ok=True)
     async with async_playwright() as p:
-        browser = await p.chromium.launch()
+        browser = await p.chromium.launch(executable_path=os.environ.get("CHROMIUM") or None)
         ctx = await browser.new_context(viewport={"width": 1100, "height": 1000}, device_scale_factor=3)
 
         async def route(r):
@@ -97,9 +98,9 @@ async def main():
         await shot.route("https://**/*", route)
         for n, ((caption, *_), png) in enumerate(zip(SHOTS, cards), 1):
             await shot.set_content("""<!doctype html><html><head><style>%s
-                html,body{margin:0;width:360px;height:640px;overflow:hidden;background:linear-gradient(170deg,#1b1c26,#0f1014 60%%)}
-                h1{font:900 23px/1.15 'TikTok Sans',sans-serif;color:#ecebe6;text-align:center;margin:0;padding:26px 26px 0;letter-spacing:-.2px}
-                img{display:block;margin:18px auto 0;height:530px;border-radius:22px;box-shadow:0 16px 40px rgba(0,0,0,.55),0 0 0 4px #25262e}
+                html,body{margin:0;width:360px;height:640px;overflow:hidden;background:linear-gradient(170deg,#18356A,#0B2140 62%%)}
+                h1{font:700 23px/1.15 'Inter',sans-serif;color:#EEF2F8;text-align:center;margin:0;padding:26px 26px 0;letter-spacing:-.2px}
+                img{display:block;margin:18px auto 0;height:530px;border-radius:22px;box-shadow:0 16px 40px rgba(0,0,0,.55),0 0 0 4px #24406D}
                 </style></head><body><h1>%s</h1><img src="%s"></body></html>""" % (FONT_CSS, caption, data_url(png)))
             await shot.wait_for_timeout(300)
             opaque_png(await shot.screenshot(), OUT / ("phone-%d.png" % n))
@@ -109,11 +110,11 @@ async def main():
         await feat.route("https://**/*", route)
         imgs = "".join('<img class="c%d" src="%s">' % (i, data_url(cards[k])) for i, k in enumerate((3, 0, 2)))
         await feat.set_content("""<!doctype html><html><head><style>%s
-            html,body{margin:0;width:1024px;height:500px;overflow:hidden;background:radial-gradient(circle at 78%% 50%%,#2a2b38,#0f1014 62%%);font-family:'TikTok Sans',sans-serif;color:#ecebe6}
+            html,body{margin:0;width:1024px;height:500px;overflow:hidden;background:radial-gradient(circle at 78%% 50%%,#1C3F78,#0B2140 64%%);font-family:'Inter',sans-serif;color:#EEF2F8}
             .icon{position:absolute;left:64px;top:92px;width:120px;height:120px;border-radius:28px;overflow:hidden}
-            h1{position:absolute;left:64px;top:228px;margin:0;font:900 72px/1 'TikTok Sans';letter-spacing:-1.5px}
-            p{position:absolute;left:66px;top:318px;margin:0;width:470px;font:700 26px/1.25 'TikTok Sans';color:#ffe14d}
-            img{position:absolute;height:420px;border-radius:16px;box-shadow:0 12px 30px rgba(0,0,0,.6),0 0 0 3px #25262e}
+            h1{position:absolute;left:64px;top:228px;margin:0;font:700 72px/1 'Inter';letter-spacing:-2.5px}
+            p{position:absolute;left:66px;top:318px;margin:0;width:470px;font:500 26px/1.3 'Inter';color:#EE8A63}
+            img{position:absolute;height:420px;border-radius:16px;box-shadow:0 12px 30px rgba(0,0,0,.6),0 0 0 3px #24406D}
             .c0{left:600px;top:70px;transform:rotate(-7deg)} .c1{left:730px;top:40px;transform:rotate(2deg);z-index:2} .c2{left:858px;top:72px;transform:rotate(9deg)}
             </style></head><body><div class="icon">%s</div><h1>Reelcards</h1><p>Revise without trying: flashcards between your reels</p>%s</body></html>"""
             % (FONT_CSS, ICON_SVG.replace('width="512" height="512"', 'width="120" height="120"'), imgs))
