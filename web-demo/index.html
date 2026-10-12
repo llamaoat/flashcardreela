@@ -4,21 +4,25 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Reelcards Engine</title>
-<meta name="theme-color" content="#0f1014">
+<meta name="theme-color" content="#FAFAF8" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0E0E0D" media="(prefers-color-scheme: dark)">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/png" href="icons/icon-192.png">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Reelcards">
-<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;500;600&family=Caveat:wght@600;700&family=Fraunces:opsz,wght@9..144,500;9..144,700&family=JetBrains+Mono:wght@400;600&family=Roboto:wght@400;500;700;900&family=TikTok+Sans:wght@400;600;800;900&display=swap">
 <style>
 :root{
-  color-scheme: dark;
-  --ground:#0f1014; --panel:#17181e; --panel2:#1e1f27; --line:#2a2c37;
-  --text:#ecebe6; --muted:#9c9ca9; --accent:#ffe14d; --good:#3ecf8e; --bad:#ff5a76; --warn:#ffb547;
+  /* The page around the phone uses the app's own colours: off-white and ink by day, near-black and
+     off-white when the system is dark. Same tokens as .app below, Ui.java and the extension popup. */
+  color-scheme: light dark;
+  --ground:#FAFAF8; --panel:#FFFFFF; --panel2:#F2F2EF; --line:#E6E5E0;
+  --text:#111111; --muted:#8A8A85; --accent:#111111; --onaccent:#FFFFFF; --good:#1F9D63; --bad:#D93A50; --warn:#B86E00;
+  --chipgood:#EAF6EF; --chipblue:#E8F1FA; --chipbad:#FCEDEF; --chipwarn:#FFF4E0; --frame:#D9D8D3;
   --display:'Anton', Impact, 'Arial Narrow', sans-serif;
   --body:'Inter', system-ui, sans-serif;
   --mono:'JetBrains Mono', ui-monospace, Menlo, monospace;
@@ -26,25 +30,27 @@
   --f-youtube:'Roboto', system-ui, sans-serif;
   --f-instagram: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
 }
+@media (prefers-color-scheme:dark){:root{--ground:#0E0E0D;--panel:#181816;--panel2:#20201E;--line:#2B2B28;--text:#F2F1EC;--muted:#8E8D87;--accent:#F2F1EC;--onaccent:#111111;
+  --good:#3ECF8E;--bad:#FF6B80;--warn:#FFB547;--chipgood:#123A2A;--chipblue:#12303A;--chipbad:#3A1520;--chipwarn:#3A2E10;--frame:#2B2B28}}
 html,body{background:var(--ground);color:var(--text)}
 body{font-family:var(--body);font-size:14px;line-height:1.45;padding-inline:16px;padding-block:20px 40px}
 .wrap{max-width:1280px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
 header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px}
-h1{font-family:var(--serif);font-weight:500;font-size:42px;line-height:1;letter-spacing:-.5px;margin:0}
-h1 span{color:var(--accent)}
+h1{font-family:var(--body);font-weight:600;font-size:34px;line-height:1.1;letter-spacing:-1px;margin:0}
+h1 span{color:var(--muted);font-weight:500}
 .sub{color:var(--muted);max-width:68ch;margin:6px 0 0}
 .stats{display:flex;flex-wrap:wrap;gap:8px}
-.stat{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:8px 12px;min-width:88px}
+.stat{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:8px 12px;min-width:88px}
 .stat b{display:block;font-family:var(--mono);font-size:18px;font-variant-numeric:tabular-nums}
-.stat small{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.06em}
+.stat small{color:var(--muted);font-size:11.5px}
 .main{display:grid;grid-template-columns:380px minmax(0,1fr);gap:22px;align-items:start}
 @media (max-width:940px){.main{grid-template-columns:minmax(0,1fr)}}
 .phonecol{display:flex;flex-direction:column;gap:10px;align-items:center;position:sticky;top:12px}
 @media (max-width:940px){.phonecol{position:static}}
 .hostbar{display:flex;gap:6px;flex-wrap:wrap;justify-content:center}
 .hostbar button,.chipbtn{min-height:34px;padding:4px 12px;border-radius:999px;border:1px solid var(--line);background:var(--panel2);color:var(--text);font-size:12.5px;font-weight:600}
-.hostbar button.on,.chipbtn.on{background:var(--accent);border-color:var(--accent);color:#141208}
-.phone{width:360px;max-width:100%;aspect-ratio:360/740;border-radius:42px;border:8px solid #25262e;background:#000;position:relative;overflow:hidden;user-select:none;-webkit-user-select:none;box-shadow:0 30px 60px -30px #000}
+.hostbar button.on,.chipbtn.on{background:var(--accent);border-color:var(--accent);color:var(--onaccent)}
+.phone{width:360px;max-width:100%;aspect-ratio:360/740;border-radius:42px;border:8px solid var(--frame);background:#000;position:relative;overflow:hidden;user-select:none;-webkit-user-select:none;box-shadow:0 30px 60px -30px rgba(0,0,0,.35)}
 .phone.feedmode{touch-action:none}
 .screen{position:absolute;inset:0;overflow:hidden;container-type:size}
 .screen.enter{animation:up .3s cubic-bezier(.2,.8,.2,1)}
@@ -52,15 +58,15 @@ h1 span{color:var(--accent)}
 .row{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
 button{font-family:var(--body);cursor:pointer}
 button:focus-visible,select:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
-.btn{min-height:44px;padding:10px 16px;border-radius:12px;border:1px solid var(--line);background:var(--panel2);color:var(--text);font-weight:600;font-size:14px}
-.btn.primary{background:var(--accent);color:#141208;border-color:var(--accent);font-weight:800}
+.btn{min-height:44px;padding:10px 18px;border-radius:999px;border:1px solid var(--line);background:var(--panel);color:var(--text);font-weight:500;font-size:14px}
+.btn.primary{background:var(--accent);color:var(--onaccent);border-color:var(--accent);font-weight:500}
 .btn:disabled{opacity:.5;cursor:default}
 .hint{color:var(--muted);font-size:12px;text-align:center;max-width:360px;margin:0}
 .panels{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
 @media (max-width:1140px){.panels{grid-template-columns:minmax(0,1fr)}}
-.panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px 16px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:14px 16px;display:flex;flex-direction:column;gap:10px;min-width:0}
 .panel.wide{grid-column:1/-1}
-.panel > h2{margin:0;font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:800}
+.panel > h2{margin:0;font-size:13px;color:var(--muted);font-weight:500}
 .panel > h2 .note{text-transform:none;letter-spacing:0;font-weight:400}
 .why{display:flex;flex-direction:column;gap:8px;margin:0}
 .why div{display:grid;grid-template-columns:62px minmax(0,1fr);gap:8px}
@@ -83,8 +89,8 @@ th{text-align:left;color:var(--muted);font-weight:600;font-size:11px;text-transf
 td{padding:6px 8px;border-bottom:1px solid var(--line);vertical-align:top}
 td.num{font-family:var(--mono);font-variant-numeric:tabular-nums;white-space:nowrap}
 .chip{display:inline-block;padding:1px 8px;border-radius:999px;font-size:11px;font-weight:600;background:var(--panel2);color:var(--muted)}
-.chip.easy{background:#123a2a;color:var(--good)}.chip.good{background:#12303a;color:#6fd3ff}.chip.again{background:#3a1520;color:var(--bad)}.chip.hard{background:#3a2e10;color:var(--warn)}
-.chip.due{background:#3a2e10;color:var(--warn)}
+.chip.easy{background:var(--chipgood);color:var(--good)}.chip.good{background:var(--chipblue);color:#2D7FC1}.chip.again{background:var(--chipbad);color:var(--bad)}.chip.hard{background:var(--chipwarn);color:var(--warn)}
+.chip.due{background:var(--chipwarn);color:var(--warn)}
 .log{font-family:var(--mono);font-size:11.5px;display:flex;flex-direction:column;gap:3px;max-height:160px;overflow:auto}
 .controls{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
 @media (max-width:560px){.controls{grid-template-columns:minmax(0,1fr)}}
@@ -107,7 +113,7 @@ select{min-height:40px;border-radius:10px;border:1px solid var(--line);backgroun
 /* ---------- design lab ---------- */
 .lab{display:grid;grid-template-columns:repeat(auto-fill,minmax(196px,1fr));gap:14px}
 .lab figure{margin:0;display:flex;flex-direction:column;gap:6px}
-.lab .mini{width:100%;aspect-ratio:360/740;border-radius:22px;border:5px solid #25262e;position:relative;overflow:hidden;background:#000}
+.lab .mini{width:100%;aspect-ratio:360/740;border-radius:22px;border:5px solid var(--frame);position:relative;overflow:hidden;background:#000}
 .lab .mini .scaler{position:absolute;left:0;top:0;width:360px;height:740px;transform-origin:0 0}
 .lab figcaption{font-size:11.5px;color:var(--muted);line-height:1.35}
 .lab figcaption b{color:var(--text);font-weight:600}
@@ -546,7 +552,7 @@ html.appmode .phone{width:100%;max-width:none;height:100%;aspect-ratio:auto;bord
       </section>
 
       <section class="panel wide" aria-labelledby="h-fmt">
-        <h2 id="h-fmt">Format scores <span class="note">· bar = how well each piece holds attention · yellow = used on the last card · per-app favourites below</span></h2>
+        <h2 id="h-fmt">Format scores <span class="note">· bar = how well each piece holds attention · dark = used on the last card · per-app favourites below</span></h2>
         <div class="dims" id="dims"></div>
         <div class="mono muted" id="perapp"></div>
       </section>
@@ -2659,7 +2665,7 @@ function renderSide(){
   const base = E.I().gap, arms = RC.MULT.map((m,i)=>{ const a=E.rhythm.a[i]||1,b=E.rhythm.b[i]||1; return {gap:Math.max(E.isDemo()?1:2,Math.round(base*m)), v:a/(a+b)/(base*m+1), on:i===E.rhythm.arm}; });
   const mx = Math.max(...arms.map(a=>a.v), .0001);
   $("arms").innerHTML = arms.map(a=>'<div class="'+(a.on?"on":"")+'" title="1 card every '+a.gap+' reels"><i style="height:'+Math.round(a.v/mx*70)+'px"></i><span>1/'+a.gap+'</span></div>').join("");
-  $("rhythmText").innerHTML = esc(E.rhythmText())+'<br><span class="muted">Bars: expected answered cards per reel scrolled at each rhythm (Thompson sampling). Yellow = the rhythm in use.</span>';
+  $("rhythmText").innerHTML = esc(E.rhythmText())+'<br><span class="muted">Bars: expected answered cards per reel scrolled at each rhythm (Thompson sampling). dark = the rhythm in use.</span>';
   const cal = E.calibration.describe();
   $("memText").innerHTML = 'Scheduler: <b>FSRS-6</b> with its 21 default parameters (the algorithm Anki uses). Target recall 90%, rising to 92% three weeks before the exam and 95% in the final week.<br>'+
     'Personal calibration: '+(cal?esc(cal)+' (×'+E.calibration.scale+')':'waits for 100 long-term reviews ('+E.calibration.log.length+' so far) before adjusting.')+'<br>Grading uses response time: a fast “knew it” is Easy, a slow one Good, a hint caps it at Hard.';

@@ -1054,7 +1054,7 @@ public final class MainActivity extends Activity {
 
         // chart
         LinearLayout cp = Ui.panel(this);
-        cp.addView(Ui.label(this, "Last 14 days · yellow = reviewed, grey = skipped"));
+        cp.addView(Ui.label(this, "Last 14 days · dark = reviewed, light = skipped"));
         BarChartView chart = new BarChartView(this);
         int n = 14;
         int[] rev = new int[n], sk = new int[n];

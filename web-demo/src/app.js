@@ -408,7 +408,7 @@ function renderSide(){
   const base = E.I().gap, arms = RC.MULT.map((m,i)=>{ const a=E.rhythm.a[i]||1,b=E.rhythm.b[i]||1; return {gap:Math.max(E.isDemo()?1:2,Math.round(base*m)), v:a/(a+b)/(base*m+1), on:i===E.rhythm.arm}; });
   const mx = Math.max(...arms.map(a=>a.v), .0001);
   $("arms").innerHTML = arms.map(a=>'<div class="'+(a.on?"on":"")+'" title="1 card every '+a.gap+' reels"><i style="height:'+Math.round(a.v/mx*70)+'px"></i><span>1/'+a.gap+'</span></div>').join("");
-  $("rhythmText").innerHTML = esc(E.rhythmText())+'<br><span class="muted">Bars: expected answered cards per reel scrolled at each rhythm (Thompson sampling). Yellow = the rhythm in use.</span>';
+  $("rhythmText").innerHTML = esc(E.rhythmText())+'<br><span class="muted">Bars: expected answered cards per reel scrolled at each rhythm (Thompson sampling). dark = the rhythm in use.</span>';
   const cal = E.calibration.describe();
   $("memText").innerHTML = 'Scheduler: <b>FSRS-6</b> with its 21 default parameters (the algorithm Anki uses). Target recall 90%, rising to 92% three weeks before the exam and 95% in the final week.<br>'+
     'Personal calibration: '+(cal?esc(cal)+' (×'+E.calibration.scale+')':'waits for 100 long-term reviews ('+E.calibration.log.length+' so far) before adjusting.')+'<br>Grading uses response time: a fast “knew it” is Easy, a slow one Good, a hint caps it at Hard.';

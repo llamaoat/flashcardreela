@@ -15,9 +15,8 @@
         android:layout_height="wrap_content"
         android:singleLine="true"
         android:ellipsize="end"
-        android:textColor="#FF9C9CA9"
-        android:textSize="11sp"
-        android:textStyle="bold" />
+        android:textColor="@color/widget_muted"
+        android:textSize="12sp" />
 
     <TextView
         android:id="@+id/question"
@@ -27,8 +26,8 @@
         android:layout_marginTop="4dp"
         android:ellipsize="end"
         android:maxLines="4"
-        android:textColor="#FFECEBE6"
-        android:textSize="16sp"
+        android:textColor="@color/widget_text"
+        android:textSize="17sp"
         android:textStyle="bold" />
 
     <TextView
@@ -38,7 +37,7 @@
         android:layout_marginTop="4dp"
         android:ellipsize="end"
         android:maxLines="3"
-        android:textColor="#FFFFE14D"
+        android:textColor="@color/widget_text"
         android:textSize="14sp"
         android:visibility="gone" />
 

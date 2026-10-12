@@ -216,7 +216,7 @@ const OVERLAY_CSS = `
 .frame{--k:1;width:calc(360px * var(--k));height:calc(740px * var(--k));position:relative;pointer-events:auto;border-radius:calc(22px * var(--k));overflow:hidden;box-shadow:0 30px 80px -20px #000}
 .stage{position:absolute;left:0;top:0;width:360px;height:740px;transform:scale(var(--k));transform-origin:0 0}
 .bar{pointer-events:auto;display:flex;gap:10px;align-items:center;font:600 12px/1.3 system-ui,sans-serif;color:#ddd;max-width:92vw;flex-wrap:wrap;justify-content:center}
-.bar button{font:700 12px system-ui,sans-serif;border:0;border-radius:999px;padding:8px 14px;cursor:pointer;background:#ffe14d;color:#141208}
+.bar button{font:700 12px system-ui,sans-serif;border:0;border-radius:999px;padding:8px 14px;cursor:pointer;background:#fff;color:#111}
 .bar button[data-x=pause]{background:#2a2a30;color:#eee}
 `;
 })();

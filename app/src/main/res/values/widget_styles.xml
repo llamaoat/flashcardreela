@@ -8,12 +8,12 @@
         <item name="android:paddingStart">14dp</item>
         <item name="android:paddingEnd">14dp</item>
         <item name="android:background">@drawable/widget_button</item>
-        <item name="android:textColor">#FFECEBE6</item>
+        <item name="android:textColor">@color/widget_text</item>
         <item name="android:textSize">13sp</item>
-        <item name="android:textStyle">bold</item>
+        <item name="android:textStyle">normal</item>
     </style>
     <style name="WidgetButton.Main">
         <item name="android:background">@drawable/widget_button_main</item>
-        <item name="android:textColor">#FF141208</item>
+        <item name="android:textColor">@color/widget_on_ink</item>
     </style>
 </resources>
