@@ -45,7 +45,7 @@ jobs:
         run: |
           python3 tools/build-web-demo.py
           mkdir -p _site
-          cp -r web-demo/index.html web-demo/manifest.webmanifest web-demo/sw.js web-demo/icons _site/
+          cp -r web-demo/index.html web-demo/feed.html web-demo/manifest.webmanifest web-demo/sw.js web-demo/icons _site/
           python3 tools/build-privacy-page.py _site/privacy.html
           mkdir -p _pack/Reelcards-extension && cp -r extension/. _pack/Reelcards-extension/
           (cd _pack && zip -qr ../_site/Reelcards-extension.zip Reelcards-extension)

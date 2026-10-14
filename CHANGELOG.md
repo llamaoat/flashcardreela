@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+- **Reelcards Feed** (`feed.html`): a separate page that plays pasted YouTube and TikTok links with cards
+  between them, for browsers with no extension (Chrome on iPhone). Strict CSP, sandboxed embeds from
+  youtube-nocookie.com and tiktok.com only, consent first, one-tap delete. Not yet tested on the real sites.
+- `PRIVACY.md` covers the Feed; the security checklist is in `docs/SECURITY.md` and
+  `docs/security-checklist.json`. Privacy page headings now have anchors.
+
 ## 1.3.1: pictures full screen, a seamless sea
 
 - Behind the sea there's now a slowly shapeshifting colour field: four hues at once drifting and blending,

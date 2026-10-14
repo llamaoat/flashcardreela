@@ -29,7 +29,7 @@ def convert(md):
             flush(); continue
         h = re.match(r"^(#{1,3})\s+(.*)", line)
         if h:
-            flush(); n = len(h.group(1)); out.append("<h%d>%s</h%d>" % (n, inline(h.group(2)), n)); continue
+            flush(); n = len(h.group(1)); out.append('<h%d id="%s">%s</h%d>' % (n, re.sub(r"[^a-z0-9]+", "-", h.group(2).lower()).strip("-"), inline(h.group(2)), n)); continue
         if line.startswith("- "):
             if para: flush()
             items.append(line[2:].strip()); continue

@@ -1,11 +1,13 @@
 # Privacy
 
-*Last updated: 7 October 2026. Applies to the Reelcards Android app, the web demo and the browser extension.*
+*Last updated: 13 October 2026. Applies to the Reelcards Android app, the web demo, the Reelcards Feed page and the browser extension.*
 
 Reelcards is built for school students, so it's built to know as little as possible.
 
 **In short:** no account, no ads, no analytics, no tracking. The app doesn't even request Android's
 Internet permission, so it can't send anything anywhere. Everything stays in one file on your phone.
+The one exception is the separate [Reelcards Feed](#the-reelcards-feed) web page, which loads videos from
+YouTube or TikTok, asks you first, and says exactly what that means.
 
 ## What the accessibility permission is used for
 
@@ -49,7 +51,7 @@ or uninstalling deletes them. The Anki file itself is read from the copy you pic
 
 ## The web demo
 
-The web demo runs in your browser, with the same rules: no account, no analytics, and your cards and
+The web demo runs in your browser, with the same rules (the [Reelcards Feed](#the-reelcards-feed) page is the exception): no account, no analytics, and your cards and
 answers aren't sent anywhere. Once you finish setup, it keeps your cards, their schedule, your settings
 and the same daily counts in your browser's own storage on that device, so it carries on where you left
 off (including when it's added to your home screen). If you open an Anki file with pictures or sounds,
@@ -60,6 +62,34 @@ Loading the page itself does go over the internet: the site is hosted by GitHub 
 Google Fonts for its fonts, so like any website, they see your device's IP address when it loads. Neither
 sees your cards. After the first visit, the page can also open from a copy kept on your device, with no
 signal.
+
+## The Reelcards Feed
+
+The Reelcards Feed is a separate web page (`feed.html`, next to the web demo). You paste links to YouTube
+Shorts or TikTok videos, and it plays them one after another with your flashcards slipped in between. It
+exists for browsers where extensions can't run, such as Chrome on an iPhone. **It is the one part of
+Reelcards that connects to other companies**, so it's kept apart from the rest and it asks before it does.
+
+- **What it contacts:** to play a video, your browser loads it from YouTube's privacy-enhanced domain
+  (`youtube-nocookie.com`) or from TikTok's embedded player, inside a frame on the page. Those companies
+  can see your device's internet address, your browser's details and which video you asked for, and may set
+  or read their own cookies, under their own privacy policies. We don't control that, and we never receive
+  any of it. They act as their own data controllers, not on our behalf.
+- **What it doesn't do:** it doesn't send them your cards, answers, notes or settings, and doesn't send
+  anything to us, because we run no server. It has no analytics, no account and no ads of its own.
+- **Asking first:** before the page does anything, it explains the above and asks you to confirm you
+  understand and that you're 13 or over. Nothing is loaded from YouTube or TikTok until you've done that and
+  tapped *Start scrolling*. Only the video on screen is loaded, and it's removed when you scroll on.
+- **What it keeps on your device:** in your browser's own storage, your cards and their schedule, your
+  settings, the notes you pasted, the links you pasted, and the fact that you agreed (with the date). *Delete
+  everything this page keeps on this device* removes all of it, as does clearing the site's data in your
+  browser.
+- **Safety:** only links to YouTube and TikTok videos are accepted (other addresses are refused), the
+  video's id must match a strict pattern, and nothing else from a link is ever used. The page's Content
+  Security Policy lets it run only its own script and load frames only from those two hosts, and the frames
+  are sandboxed.
+- **Age:** this page is for people aged 13 or over. It's not for younger children, and nothing on it is
+  aimed at them.
 
 ## The browser extension
 
@@ -95,6 +125,11 @@ analytics. *Reset everything* in its popup, or removing the extension, deletes i
 
 Reelcards is made for students aged 13 and over, and collects no personal data from anyone, of any
 age: there's no account, and nothing leaves the phone.
+
+
+## Security
+
+How Reelcards handles security, and the rules it follows, is set out in [docs/SECURITY.md](https://github.com/llamaoat/flashcardreela/blob/main/docs/SECURITY.md). In short: no accounts, no server, no analytics, and your data stays on your device.
 
 ## Contact
 
