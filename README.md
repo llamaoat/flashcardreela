@@ -18,7 +18,7 @@
 
 ## Install it on a phone (students)
 
-**Quickest: open the [web page](https://llamaoat.github.io/flashcardreela/). Its "Get Reelcards" box has the download and steps for Android, iPhone and computer.** Testing it for us? See the [tester guide](docs/TESTERS.md).
+**Quickest: open the [web page](https://llamaoat.github.io/flashcardreela/). Its "Get Reelcards" box has the download and steps for Android, iPhone and computer.** Testing it for us? See the [tester guide](docs/TESTERS.md). No app? The [Reelcards Feed guide](docs/FEED.md) covers the browser page that plays YouTube and TikTok links with cards between them.
 
 1. Download **[`Reelcards.apk`](release/Reelcards.apk)** onto the Android phone (from the Releases page, this repo, or a USB cable).
 2. Open it. If Android asks, allow your browser or Files app to **install unknown apps**, then tap **Install**.

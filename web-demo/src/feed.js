@@ -81,6 +81,7 @@ function fromJSON(st){
 
 let E = null, meta = {coachLeft:2}, cfg = null;
 const app = $("app");
+seaBackdrop();
 
 /* ---------------- setup screen ---------------- */
 function setup(msg){

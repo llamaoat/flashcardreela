@@ -17,7 +17,7 @@ import base64
 sample = base64.b64encode((ROOT / "engine" / "src" / "test" / "resources" / "anki" / "sample.apkg").read_bytes()).decode()
 app = (read("app.js").replace("/*__DECKS__*/", read("decks.js")).replace("/*__NOTES__*/", read("notes.js"))
        .replace("/*__SAMPLE_APKG__*/", 'const SAMPLE_APKG = "' + sample + '"; // tools/make-test-decks.py'))
-scripts = "<script>\n" + read("engine.js") + "\n" + read("apkg.js") + "\n" + read("render.js") + "\n" + app + "\n</script>\n"
+scripts = "<script>\n" + read("engine.js") + "\n" + read("apkg.js") + "\n" + read("render.js") + "\n" + read("sea.js") + "\n" + app + "\n</script>\n"
 head = read("head.html")
 body = read("body.html")
 page = head + body + scripts + "</body>\n</html>\n"
@@ -32,7 +32,7 @@ def build_feed():
     root_vars = re.search(r":root\{(.*?)\n\}", head, re.S).group(1)
     css = ":root{" + root_vars + "}\n" + head[start:end]
     font_link = re.search(r'<link rel="stylesheet" href="https://fonts.googleapis.com/css2[^>]*>', head).group(0)
-    js = ("\"use strict\";\n" + read("engine.js") + "\n" + read("render.js") + "\nconst makeCard = RC.makeCard;\n" + read("decks.js") + "\n" + read("notes.js") + "\n" + read("feed.js") + "\n")
+    js = ("\"use strict\";\n" + read("engine.js") + "\n" + read("render.js") + "\nconst makeCard = RC.makeCard;\n" + read("decks.js") + "\n" + read("notes.js") + "\n" + read("sea.js") + "\n" + read("feed.js") + "\n")
     digest = base64.b64encode(hashlib.sha256(js.encode("utf-8")).digest()).decode()
     out = (feed_page.replace("/*__CARD_CSS__*/", css).replace("<!--__FONT_LINK__-->", font_link)
            .replace("__SCRIPT_HASH__", digest).replace("/*__SCRIPTS__*/", js))
