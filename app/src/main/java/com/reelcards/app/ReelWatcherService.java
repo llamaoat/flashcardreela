@@ -17,6 +17,7 @@ import android.view.WindowManager;
 import android.view.accessibility.AccessibilityEvent;
 
 import com.reelcards.engine.Engine;
+import com.reelcards.engine.Grade;
 import com.reelcards.engine.Outcome;
 import com.reelcards.engine.Show;
 
