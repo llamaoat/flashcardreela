@@ -420,6 +420,17 @@ public class EngineChecks {
         Engine.Result rsh = sk.onCardFinished(shown, sharedOnly, ts + 2500);
         check("sharing without answering isn't a skip: not graded, not counted, not re-queued (\"" + rsh.summary.replaceAll(" · look.*", "") + "\")",
                 rsh.grade == null && shown.card.skips == 0 && sk.stats.total("skips") == 0 && sk.requeue.isEmpty() && shown.card.reps == 0);
+        Engine bk = fresh(14);
+        long tb = T0;
+        Show skippedShow = null;
+        while (skippedShow == null) { tb += 12_000; skippedShow = bk.onReelSwipe(tb, "tiktok"); }
+        Outcome passed = new Outcome(); passed.dwellMs = 500;
+        bk.onCardFinished(skippedShow, passed, tb + 500);
+        boolean queued = bk.requeue.size() == 1;
+        Outcome later = new Outcome(); later.revealed = true; later.liked = true; later.revealAtMs = 2000; later.likeAtMs = 3000; later.dwellMs = 4000;
+        Engine.Result back = bk.onCardFinished(skippedShow, later, tb + 60_000);
+        bk.dropRequeue(skippedShow.card);
+        check("going back to a skipped card and answering it grades it and takes it out of the re-queue", queued && back.grade != null && bk.requeue.isEmpty());
     }
 
     // ------------------------------------------------------------------ long answers

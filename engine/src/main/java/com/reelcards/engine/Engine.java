@@ -180,6 +180,11 @@ public final class Engine {
 
     boolean buried(Card c) { return c.buriedUntilSession >= sessionId || hidden.contains(c.id); }
 
+    /** The student went back to a card they had swiped past and answered it: it needn't come round again in a few reels. */
+    public void dropRequeue(Card c) {
+        for (int i = requeue.size() - 1; i >= 0; i--) if (requeue.get(i).cardId.equals(c.id)) requeue.remove(i);
+    }
+
     boolean inRequeue(Card c) {
         for (Requeue r : requeue) if (r.cardId.equals(c.id)) return true;
         return false;

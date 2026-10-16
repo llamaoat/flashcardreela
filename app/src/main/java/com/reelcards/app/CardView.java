@@ -281,6 +281,22 @@ final class CardView extends FrameLayout {
     /** Opt-in "match my feed's colours": hue (0..360) of the reel just watched; NaN for none. Call before it's shown. */
     CardView withTint(float hue) { tintHue = hue; return this; }
 
+    /**
+     * The student swiped back to this card. A card they already did shows its answer with a note saying so
+     * (and isn't graded again); one they swiped past can be answered now. Call before it's shown.
+     */
+    CardView withRevisit(String note, Outcome before, boolean answered) {
+        revisitNote = note;
+        if (answered && before != null) {
+            outcome.revealed = true;
+            if (show.isQuiz()) outcome.quizPick = before.quizPick;
+            outcome.liked = before.liked;
+            if (before.pointsGot > 0) { outcome.pointsGot = before.pointsGot; java.util.Arrays.fill(got, true); settled = true; }
+        }
+        return this;
+    }
+    private String revisitNote;
+
     /** Show the one-line gesture tip (first cards only). Call before it's shown. */
     CardView withCoach(boolean on) { coach = on; return this; }
 
@@ -425,6 +441,7 @@ final class CardView extends FrameLayout {
         if ("captions".equals(layout)) scheduleBeat();
         startCountdown();
         if (coach) showCoach();
+        if (revisitNote != null) showRevisitNote();
     }
 
     private void addScrim() {
@@ -1834,6 +1851,18 @@ final class CardView extends FrameLayout {
 
     // ------------------------------------------------------------------ transient overlays
 
+    /** A note that stays on a card the student came back to, so it's obvious they've been here. */
+    private void showRevisitNote() {
+        TextView t = tv(revisitNote, 13, 0xFF111111, black());
+        t.setBackground(round(0xF5FFFFFF, u(16)));
+        t.setPadding(u(14), u(8), u(14), u(8));
+        t.setElevation(u(8));
+        t.setContentDescription(revisitNote);
+        LayoutParams lp = new LayoutParams(-2, -2, Gravity.TOP | Gravity.CENTER_HORIZONTAL);
+        lp.topMargin = st + u(44);
+        addView(t, lp);
+    }
+
     private void showCoach() {
         TextView t = tv(coachText(), 13, 0xFF111111, black());
         t.setBackground(round(0xF5FFFFFF, u(16)));
@@ -2067,9 +2096,12 @@ final class CardView extends FrameLayout {
     }
 
     /** Slide in from the bottom, like the next reel. */
-    void enter() {
-        setTranslationY(getResources().getDisplayMetrics().heightPixels);
-        animate().translationY(0).setDuration(300).setInterpolator(new DecelerateInterpolator(1.6f)).start();
+    void enter() { enter(false); }
+
+    /** @param fromTop true when the student swiped back: the card comes down from above, as the reel before would */
+    void enter(boolean fromTop) {
+        setTranslationY(fromTop ? -getResources().getDisplayMetrics().heightPixels : getResources().getDisplayMetrics().heightPixels);
+        animate().translationY(0).setDuration(300).setInterpolator(new DecelerateInterpolator(1.6f)).withLayer().start(); // withLayer: slide a cached copy, not a redraw each frame
     }
 
     /** Swipe away (animated) and report. */
@@ -2078,7 +2110,7 @@ final class CardView extends FrameLayout {
         finished = true;
         outcome.exit = exit;
         outcome.dwellMs = elapsed();
-        animate().translationY(-getHeight() - u(40)).setDuration(240).setInterpolator(new DecelerateInterpolator())
+        animate().translationY(getTranslationY() > 0 ? getHeight() + u(40) : -getHeight() - u(40)).setDuration(240).setInterpolator(new DecelerateInterpolator()).withLayer()
                 .withEndAction(new Runnable() { @Override public void run() { listener.onFinished(CardView.this, outcome); } }).start();
     }
 
@@ -2157,7 +2189,7 @@ final class CardView extends FrameLayout {
                 downY = ev.getRawY(); dragging = false; return false;
             case MotionEvent.ACTION_MOVE:
                 if (touchOnCaption) return false; // the open caption scrolls
-                if (!dragging && downY - ev.getRawY() > slop * 2) { dragging = true; return true; }
+                if (!dragging && (downY - ev.getRawY() > slop * 2 || (revisitNote != null && ev.getRawY() - downY > slop * 2))) { dragging = true; return true; }
                 return dragging;
             default:
                 return false;
@@ -2173,8 +2205,8 @@ final class CardView extends FrameLayout {
                 return true;
             case MotionEvent.ACTION_MOVE: {
                 float dy = ev.getRawY() - downY;
-                if (dy < -slop) dragging = true;
-                if (dragging) setTranslationY(Math.min(0, dy));
+                if (dy < -slop || (revisitNote != null && dy > slop)) dragging = true;
+                if (dragging) setTranslationY(revisitNote != null ? dy : Math.min(0, dy));
                 return true;
             }
             case MotionEvent.ACTION_UP:
@@ -2183,6 +2215,7 @@ final class CardView extends FrameLayout {
                 float vy = 0;
                 if (velocity != null) { velocity.computeCurrentVelocity(1000); vy = velocity.getYVelocity(); velocity.recycle(); velocity = null; }
                 if (dragging && (dy < -getHeight() * 0.2f || vy < -1400)) finish("swipe");
+                else if (dragging && revisitNote != null && (dy > getHeight() * 0.2f || vy > 1400)) finish("swipe");
                 else if (dragging) animate().translationY(0).setDuration(180).start();
                 dragging = false;
                 return true;

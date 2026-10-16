@@ -17,6 +17,7 @@ import android.view.WindowManager;
 import android.view.accessibility.AccessibilityEvent;
 
 import com.reelcards.engine.Engine;
+import com.reelcards.engine.Grade;
 import com.reelcards.engine.Outcome;
 import com.reelcards.engine.Show;
 
@@ -42,6 +43,22 @@ public final class ReelWatcherService extends AccessibilityService {
     private String cardPkg = "";   // the app the card is shown over
     private boolean sharing;       // the card has stepped aside for the share sheet
     private Runnable timeout;
+
+    /**
+     * Where the cards sat in the feed, so swiping back to one puts it on screen again. `pos` counts reels
+     * (+1 on, -1 back); a card shown on landing at reel p sits just before it, and going back from p to
+     * p-1 passes through its slot. Only the last few are kept, and it starts again when the app changes.
+     */
+    private static final class Slot {
+        final int pos; final Show show; Outcome out; Grade grade;
+        Slot(int pos, Show show) { this.pos = pos; this.show = show; }
+        boolean graded() { return grade != null; }
+        boolean shared() { return out != null && out.shared && grade == null; }
+    }
+    private final java.util.ArrayList<Slot> slots = new java.util.ArrayList<>();
+    private int pos;
+    private Slot current;      // the slot of the card on screen, null for a test card
+    private boolean revisiting;
 
     static boolean isRunning() { return instance != null; }
 
@@ -83,6 +100,7 @@ public final class ReelWatcherService extends AccessibilityService {
                 if (overlay != null && !ReelDetector.isReelApp(pkg) && !pkg.equals(currentPkg)) overlay.finishNow("left_app");
                 // just left AnkiDroid: cards answered there are dropped here, so they don't come up twice
                 if (AnkiBridge.PACKAGE.equals(currentPkg) && !pkg.equals(currentPkg)) AnkiBridge.refill(this, Store.engine(this), true);
+                if (!pkg.equals(currentPkg)) { slots.clear(); pos = 0; }
                 currentPkg = pkg;
             }
             return;
@@ -94,15 +112,21 @@ public final class ReelWatcherService extends AccessibilityService {
         int screenH = getResources().getDisplayMetrics().heightPixels;
         if (!detector.isSwipe(e, screenH)) return;
 
+        if (detector.direction < 0) { // back to the reel before: a reel isn't a new one, but it may have a card in between
+            pos--;
+            for (Slot sl : slots) if (sl.pos == pos + 1) { main.removeCallbacks(settledCapture); present(sl.show, pkg, sl); return; }
+            return;
+        }
+        pos++;
         Engine engine = Store.engine(this);
         AnkiBridge.refill(this, engine, false);
         final Show s = engine.onReelSwipe(System.currentTimeMillis(), ReelDetector.hostKey(pkg));
-        Store.saveSoon(this);
+        if (s == null) Store.saveSoon(this); // a card on its way saves when it's done: serialising everything while it slides in would drop frames
         main.removeCallbacks(settledCapture);
         if (s != null) {
             // let the swipe animation finish, then slide the card in where the next reel would be
             final String over = pkg;
-            main.postDelayed(new Runnable() { @Override public void run() { present(s, over); } }, 250);
+            main.postDelayed(new Runnable() { @Override public void run() { present(s, over, null); } }, 250);
         } else {
             // opt-in colour matching: note the colour of this reel once it has settled on screen,
             // so the next card can match the reel the student was actually watching
@@ -117,7 +141,7 @@ public final class ReelWatcherService extends AccessibilityService {
     private void showNow() {
         if (overlay != null) return;
         Show s = Store.engine(this).forceShow(System.currentTimeMillis(), ReelDetector.isReelApp(currentPkg) ? ReelDetector.hostKey(currentPkg) : "tiktok");
-        if (s != null) present(s, getPackageName()); // asked for from Reelcards' own screens
+        if (s != null) present(s, getPackageName(), null); // asked for from Reelcards' own screens
     }
 
     private float feedHue = Float.NaN;
@@ -157,20 +181,31 @@ public final class ReelWatcherService extends AccessibilityService {
         static void coverSystemBars(WindowManager.LayoutParams lp) { lp.setFitInsetsTypes(0); }
     }
 
-    private void present(Show s, String overPkg) {
+    private void present(Show s, String overPkg, Slot back) {
         if (overlay != null || wm == null) return;
-        final CardView v = new CardView(this, s, new CardView.Listener() {
+        CardView cv = new CardView(this, s, new CardView.Listener() {
             @Override public void onFinished(CardView view, Outcome o) { done(view, o); }
-        }).withTint(feedHue).withCoach(Store.takeCoachMark(this)).withShareHandler(new Runnable() {
+        }).withTint(feedHue).withShareHandler(new Runnable() {
             @Override public void run() { stepAside(); }
         });
+        if (back == null) cv.withCoach(Store.takeCoachMark(this));
+        else cv.withRevisit(revisitNote(back), back.out, back.graded() || back.shared());
+        final CardView v = cv;
+        revisiting = back != null;
+        if (back != null) current = back;
+        else if (overPkg.equals(getPackageName())) current = null; // a test card isn't part of the feed
+        else {
+            for (int i = slots.size() - 1; i >= 0; i--) if (slots.get(i).pos == pos) slots.remove(i); // a card shown here again replaces the old one
+            current = new Slot(pos, s); slots.add(current); while (slots.size() > 8) slots.remove(0);
+        }
         cardPkg = overPkg;
         sharing = false;
         WindowManager.LayoutParams lp = new WindowManager.LayoutParams(
                 WindowManager.LayoutParams.MATCH_PARENT,
                 WindowManager.LayoutParams.MATCH_PARENT,
                 WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
-                WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN | WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
+                WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN | WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
+                        | WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED, // overlay windows draw in software without this, which makes the slide-in choppy
                 PixelFormat.TRANSLUCENT);
         lp.gravity = Gravity.TOP | Gravity.START;
         if (Build.VERSION.SDK_INT >= 28) {
@@ -184,9 +219,9 @@ public final class ReelWatcherService extends AccessibilityService {
             return;
         }
         overlay = v;
-        v.enter();
+        v.enter(back != null);
         pauseReelAudio();
-        if (Store.engine(this).settings.voiceover && s.script.audio == null) Speaker.speak(s.script.voiceover); // a sound question speaks for itself
+        if (back == null && Store.engine(this).settings.voiceover && s.script.audio == null) Speaker.speak(s.script.voiceover); // a sound question speaks for itself
         timeout = new Runnable() { @Override public void run() { if (overlay == v) v.finishNow("timeout"); } };
         main.postDelayed(timeout, 90_000);
     }
@@ -228,12 +263,30 @@ public final class ReelWatcherService extends AccessibilityService {
         Speaker.stop();
         resumeReelAudio();
         Engine engine = Store.engine(this);
-        Engine.Result r = engine.onCardFinished(v.show, o, System.currentTimeMillis());
-        ReelDetector.log(getPackageName(), "", null, "card: " + r.summary);
+        Slot sl = current; current = null;
+        boolean looking = revisiting && sl != null && (sl.graded() || sl.shared()); // already done: just looking back
+        boolean answeredNow = o.revealed || o.liked || o.quizPick >= 0 || o.pointsGot > 0;
+        revisiting = false;
+        if (looking || (sl != null && sl.out != null && !answeredNow)) { // skipped again: not a second skip
+            ReelDetector.log(getPackageName(), "", null, "looked back at a card" + (looking ? " already done" : " skipped again"));
+        } else {
+            Engine.Result r = engine.onCardFinished(v.show, o, System.currentTimeMillis());
+            ReelDetector.log(getPackageName(), "", null, "card: " + r.summary);
+            if (sl != null) { sl.out = o; sl.grade = r.grade; if (r.grade != null) engine.dropRequeue(v.show.card); }
+        }
         Store.saveSoon(this);
         main.removeCallbacks(settledCapture);
         main.postDelayed(settledCapture, 700); // the reel that was under the card is now on screen
     }
+
+    /** The line shown on a card the student came back to. */
+    private static String revisitNote(Slot sl) {
+        if (sl.graded()) return "You did this card already · " + cap(sl.grade.label());
+        if (sl.shared()) return "You shared this card already";
+        return "You skipped this one. Have a go?";
+    }
+
+    private static String cap(String t) { return t.isEmpty() ? t : Character.toUpperCase(t.charAt(0)) + t.substring(1); }
 
     /** Most reel players pause when another app takes audio focus, and resume when it's given back. */
     private void pauseReelAudio() {

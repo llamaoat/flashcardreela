@@ -61,6 +61,8 @@ final class ReelDetector {
     private long lastCounted;
     static final LinkedList<String> LOG = new LinkedList<>();
     static int countedTotal;
+    /** Which way the last counted swipe went: 1 on to the next reel, -1 back to the one before. */
+    int direction = 1;
 
     boolean isSwipe(AccessibilityEvent e, int screenH) {
         String pkg = String.valueOf(e.getPackageName());
@@ -69,6 +71,9 @@ final class ReelDetector {
         int dy = Build.VERSION.SDK_INT >= 28 ? e.getScrollDeltaY() : 0;
         int dx = Build.VERSION.SDK_INT >= 28 ? e.getScrollDeltaX() : 0;
         if (Math.abs(dx) > Math.abs(dy)) return false; // sideways (tabs, carousels) is not a new reel
+        // a swipe was just counted: skip the rest. Reading the scrolled view costs the reel app a round trip
+        // per event, and a swipe fires dozens of them, so doing it for every one slows the app we sit over.
+        if (SystemClock.uptimeMillis() - lastCounted < 650) { lastIndex.clear(); travelled.clear(); return false; } // forget positions: the next event sets a fresh baseline
 
         String id = null;
         boolean big = false;
@@ -105,7 +110,8 @@ final class ReelDetector {
         if (now - lastCounted < 650) return false; // one swipe, one count
         lastCounted = now;
         countedTotal++;
-        log(pkg, cls, id, "REEL SWIPE" + (knownReel ? " (reel viewer)" : "") + (indexChanged ? " item " + prev + "→" + from : " distance"));
+        direction = indexChanged ? (from > prev ? 1 : -1) : (dy < 0 ? -1 : 1);
+        log(pkg, cls, id, "REEL SWIPE" + (knownReel ? " (reel viewer)" : "") + (direction < 0 ? " back" : "") + (indexChanged ? " item " + prev + "→" + from : " distance"));
         return true;
     }
 
