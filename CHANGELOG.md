@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.3.2: going back to a card, smoother cards
 
 - **Going back to a card (Android).** Swipe back in TikTok, Instagram or YouTube and the card that sat
   there comes back, sliding down from the top. A card you did shows its answer with "You did this card
