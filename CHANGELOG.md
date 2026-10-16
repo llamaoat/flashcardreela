@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- **Going back to a card (Android).** Swipe back in TikTok, Instagram or YouTube and the card that sat
+  there comes back, sliding down from the top. A card you did shows its answer with "You did this card
+  already · Good" and isn't graded twice. One you swiped past says "You skipped this one. Have a go?" and
+  counts when you answer it. Swiping back also no longer counts as a new reel, so it can't set off a fresh
+  card. Not yet run on a phone, and the web demo and extension don't do this yet.
 - Smoother cards on Android (not yet run on a phone): the card window is now hardware-accelerated and
   the slide in and out animates a cached layer, so it no longer redraws every frame. A card on its way
   no longer triggers a save mid-slide, and the swipe detector stops querying the reel app for the rest of a

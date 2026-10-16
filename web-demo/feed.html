@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-jIVOoRyTPUi7r65NJ0ZSb5EiEJJLXHfJUP1we7dflKs='; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; frame-src https://www.youtube-nocookie.com https://www.tiktok.com; connect-src 'none'; media-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-2XKeYkQYukVs/BSEw5boQh32CljCOe9Pd8J9XdFIrDI='; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; frame-src https://www.youtube-nocookie.com https://www.tiktok.com; connect-src 'none'; media-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="robots" content="noindex">
 <meta name="theme-color" content="#0B2140">
@@ -697,7 +697,7 @@ Engine.prototype={
   addCards(list){const have=new Set(this.cards.map(c=>c.id));let n=0;for(const c of list){if(have.has(c.id))continue;this.cards.push(c);have.add(c.id);n++;}return n;},
   find(id){return this.cards.find(c=>c.id===id);},
   setVibes(vs){const added=vs.filter(v=>!this.settings.vibes.includes(v));this.settings.vibes=vs.slice();this.bandit.applyVibes(added);},
-  buried(c){return c.buriedUntil>=this.sessionId||this.hidden.has(c.id);} /* hidden: held back, e.g. a missing picture (not saved) */, inRequeue(c){return this.requeue.some(r=>r.id===c.id);},
+  buried(c){return c.buriedUntil>=this.sessionId||this.hidden.has(c.id);} /* hidden: held back, e.g. a missing picture (not saved) */, inRequeue(c){return this.requeue.some(r=>r.id===c.id);}, dropRequeue(c){this.requeue=this.requeue.filter(r=>r.id!==c.id);},
   dueCount(t){return this.cards.filter(c=>c.state!==NEW&&c.due<=t&&!this.buried(c)).length;},
   newRemaining(){return this.cards.filter(c=>c.state===NEW).length;}, learnedCount(){return this.cards.filter(c=>c.state===REVIEW).length;},
   rollDay(t){const k=this.dk(t);if(k!==this.dayKey){this.dayKey=k;this.cardsToday=0;this.newToday=0;this.newShown=new Set();}},

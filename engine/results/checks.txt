@@ -55,6 +55,7 @@ Rail buttons: hint, save, share
   PASS  saving a card flags it and brings it back within a day (saved: back within a day)
   PASS  sharing counts as full engagement for the look, even with a quick exit
   PASS  sharing without answering isn't a skip: not graded, not counted, not re-queued ("Shared (not graded)")
+  PASS  going back to a skipped card and answering it grades it and takes it out of the re-queue
 Long answers and long questions
   PASS  semicolons -> 3 points: [The active site changes shape (the enzyme is denatured), The substrate no longer fits the active site, So the reaction stops]
   PASS  arrows -> 5 steps: [Receptor, Sensory neurone, Relay neurone, Motor neurone, Effector]
@@ -151,4 +152,4 @@ Forecast
         210 min/day -> 150 cards/day, 25 new/day, deck in 2 days
   PASS  3.5 h of reels ~ 150 cards a day at the default rhythm (the Normal cap)
 
-128 passed, 0 failed
+129 passed, 0 failed
