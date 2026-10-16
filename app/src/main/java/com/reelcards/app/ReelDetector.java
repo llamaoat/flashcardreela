@@ -69,6 +69,9 @@ final class ReelDetector {
         int dy = Build.VERSION.SDK_INT >= 28 ? e.getScrollDeltaY() : 0;
         int dx = Build.VERSION.SDK_INT >= 28 ? e.getScrollDeltaX() : 0;
         if (Math.abs(dx) > Math.abs(dy)) return false; // sideways (tabs, carousels) is not a new reel
+        // a swipe was just counted: skip the rest. Reading the scrolled view costs the reel app a round trip
+        // per event, and a swipe fires dozens of them, so doing it for every one slows the app we sit over.
+        if (SystemClock.uptimeMillis() - lastCounted < 650) { lastIndex.clear(); travelled.clear(); return false; } // forget positions: the next event sets a fresh baseline
 
         String id = null;
         boolean big = false;

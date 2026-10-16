@@ -2069,7 +2069,7 @@ final class CardView extends FrameLayout {
     /** Slide in from the bottom, like the next reel. */
     void enter() {
         setTranslationY(getResources().getDisplayMetrics().heightPixels);
-        animate().translationY(0).setDuration(300).setInterpolator(new DecelerateInterpolator(1.6f)).start();
+        animate().translationY(0).setDuration(300).setInterpolator(new DecelerateInterpolator(1.6f)).withLayer().start(); // withLayer: slide a cached copy, not a redraw each frame
     }
 
     /** Swipe away (animated) and report. */
@@ -2078,7 +2078,7 @@ final class CardView extends FrameLayout {
         finished = true;
         outcome.exit = exit;
         outcome.dwellMs = elapsed();
-        animate().translationY(-getHeight() - u(40)).setDuration(240).setInterpolator(new DecelerateInterpolator())
+        animate().translationY(-getHeight() - u(40)).setDuration(240).setInterpolator(new DecelerateInterpolator()).withLayer()
                 .withEndAction(new Runnable() { @Override public void run() { listener.onFinished(CardView.this, outcome); } }).start();
     }
 

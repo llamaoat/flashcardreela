@@ -97,7 +97,7 @@ public final class ReelWatcherService extends AccessibilityService {
         Engine engine = Store.engine(this);
         AnkiBridge.refill(this, engine, false);
         final Show s = engine.onReelSwipe(System.currentTimeMillis(), ReelDetector.hostKey(pkg));
-        Store.saveSoon(this);
+        if (s == null) Store.saveSoon(this); // a card on its way saves when it's done: serialising everything while it slides in would drop frames
         main.removeCallbacks(settledCapture);
         if (s != null) {
             // let the swipe animation finish, then slide the card in where the next reel would be
@@ -170,7 +170,8 @@ public final class ReelWatcherService extends AccessibilityService {
                 WindowManager.LayoutParams.MATCH_PARENT,
                 WindowManager.LayoutParams.MATCH_PARENT,
                 WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
-                WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN | WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
+                WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN | WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
+                        | WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED, // overlay windows draw in software without this, which makes the slide-in choppy
                 PixelFormat.TRANSLUCENT);
         lp.gravity = Gravity.TOP | Gravity.START;
         if (Build.VERSION.SDK_INT >= 28) {
