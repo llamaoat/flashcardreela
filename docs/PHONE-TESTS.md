@@ -29,6 +29,10 @@ phone.
 | Turn the phone while a deck is reading | The result still appears, on the same screen |
 | Step 3: *Switch it on* | The disclosure is shown first. *No thanks* goes back. *Agree and open settings* opens Accessibility. |
 | Switch Reelcards on (Android 13+ from a file: *Open app info* → ⋮ → *Allow restricted settings* first) | Back in the app, it moves on to *Try it* by itself |
+| Welcome screen: tap *Quick start* | Goes straight to *Switch it on* ("Quick start: one last step"), with the note about what it picked. The disclosure and *Agree* are still there. After the switch is on: *Quick start: all set*, then Done opens the dashboard with Biology and Chemistry. |
+| Android 13+, installed from a file: open *Switch it on* | "Installed from a file? Read this first" shows above the *Agree* button, with no *Open Accessibility* button yet |
+| Tap *Agree*, then come back from Settings without switching it on | The page shows "It didn't switch on" at the top, now with *Open app info* and *Open Accessibility* |
+| Dashboard, Reelcards on: *Switch Reelcards off* | Within a second the status says *Cards are off*, and Accessibility settings show Reelcards off. *Switch on* leads back to the setup page. |
 | Back gesture on every setup screen (Android 13+: watch for the back preview) | Goes one step back; on the welcome screen it leaves the app |
 
 ## 2. Reels

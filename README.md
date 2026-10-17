@@ -22,13 +22,15 @@
 
 1. Download **[`Reelcards.apk`](release/Reelcards.apk)** onto the Android phone (from the Releases page, this repo, or a USB cable).
 2. Open it. If Android asks, allow your browser or Files app to **install unknown apps**, then tap **Install**.
-3. Open **Reelcards** and follow the 4 short steps:
+3. Open **Reelcards**. In a hurry? Tap **Quick start** on the first screen: it picks GCSE Biology and Chemistry, "Normal" and no exam date, and goes straight to the switch (change any of it later on the dashboard). Or follow the 4 short steps:
    1. **Pick what you're revising:** a ready-made deck, paste your notes (*Copy the AI prompt* gets a chatbot you already use to turn them into cards), your Anki decks, or open an Anki file (.apkg).
    2. **Exam date, what you watch, how often:** pick your exam date, your interests (football, gaming, music…) and Chill (1 card every 8 reels), Normal (every 5) or Cram (every 3).
    3. **Switch it on:** tap *Open settings* → *Reelcards* → turn it on → *Allow*. It's the only permission.
    4. **Try it:** tap *Show me a test card*, then open TikTok, Instagram or YouTube Shorts and scroll.
 
-**Switch greyed out?** Android 13+ blocks accessibility for apps installed from a file. In Reelcards tap *Open app info* → **⋮** (top right) → **Allow restricted settings** → confirm, then turn the switch on. Installing from a computer with `adb install` avoids this.
+   To stop, tap **Switch Reelcards off** on the dashboard (or turn it off in Accessibility). Reelcards only ever uses that one setting, so there's nothing else to put back.
+
+**Switch greyed out?** Android 13+ blocks accessibility for apps installed from a file. Tap the switch once and press OK on the “Restricted setting” box. Then, in Reelcards, tap *Open app info* → **⋮** (top right) → **Allow restricted settings** → confirm, and turn the switch on. (If **⋮** has no such entry yet, do the first part again.) Installing from a computer with `adb install`, or from Google Play, avoids this.
 
 **No Android phone?** Open [`web-demo/index.html`](web-demo/index.html) in any browser (or turn on GitHub Pages; the workflow is included). It runs the same engine, ported to JavaScript, through the whole setup → feed → dashboard journey, with the engine's reasoning shown alongside and a design lab of every card style.
 

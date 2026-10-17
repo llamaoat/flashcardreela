@@ -62,6 +62,16 @@ public final class ReelWatcherService extends AccessibilityService {
 
     static boolean isRunning() { return instance != null; }
 
+    /**
+     * Switches the watcher off from inside the app, so the one setting Reelcards asks for can be put back with a
+     * tap. Android doesn't let an app switch itself on, so turning it on again is done in Accessibility settings.
+     */
+    static boolean switchOff() {
+        if (instance == null) return false;
+        instance.disableSelf();
+        return true;
+    }
+
     /** Setup wizard / dashboard: show a card right now over whatever is on screen. */
     static boolean showTestCard() {
         if (instance == null) return false;

@@ -549,7 +549,7 @@ html.appmode .phone{width:100%;max-width:none;height:100%;aspect-ratio:auto;bord
           <li>Tap the button. If the phone warns the file can harm your device, tap <b>Download anyway</b>.</li>
           <li>Open the file. If asked, allow your browser to <b>install unknown apps</b>, then tap <b>Install</b>. If Play Protect says it hasn't seen it, tap <b>More details</b>, then <b>Install anyway</b>.</li>
           <li>Open Reelcards and tap <b>Set up in 1 minute</b>. Pick a deck and your exam date.</li>
-          <li>Tap <b>Switch it on</b>, agree, and turn on <b>Reelcards</b> in Accessibility. <b>Switch greyed out?</b> Go back, tap <b>Open app info</b>, then <b>⋮</b>, then <b>Allow restricted settings</b>, and try again.</li>
+          <li>Tap <b>Switch it on</b>, agree, and turn on <b>Reelcards</b> in Accessibility. <b>Switch greyed out?</b> Tap it once and press OK on the “Restricted setting” box. Go back, tap <b>Open app info</b>, then <b>⋮</b>, then <b>Allow restricted settings</b>, and try again.</li>
           <li>Scroll TikTok, Instagram or YouTube Shorts. A card appears every few videos.</li>
         </ol>
         <p class="muted small">Early test version: it hasn't run on many phones yet. <a href="https://github.com/llamaoat/flashcardreela/releases">All versions</a></p>
@@ -2669,7 +2669,7 @@ function renderPhone(anim){
       h = '<div class="app">'+stepbar(3)+'<h3>Switch it on</h3><p class="muted">Reelcards needs to notice when you swipe to a new reel and draw a card on top. Android calls this an accessibility permission. It\'s the only one it asks for.</p>'+
         '<div class="box"><b>What it can and can\'t do</b><span class="muted" style="font-size:13px">It only reacts to swipes in TikTok, Instagram, YouTube, Snapchat, Facebook, X, Reddit and Pinterest. It never reads your messages, never saves what you watch, and nothing leaves your phone.</span></div>'+
         ['Tap “Open settings” below','Find Reelcards (often under “Installed apps”)','Turn it on, then tap Allow','Come back here. The app notices'].map((s,i)=>'<div class="num"><i>'+(i+1)+'</i><span>'+s+'</span></div>').join("")+
-        '<button class="abtn" data-act="openSettings">Open settings</button><div class="box"><b>Switch greyed out?</b><span class="muted" style="font-size:13px">Android blocks this for apps installed from a file: App info → ⋮ → “Allow restricted settings”, then try again.</span></div></div>'+
+        '<button class="abtn" data-act="openSettings">Open settings</button><div class="box"><b>Switch greyed out?</b><span class="muted" style="font-size:13px">Android blocks this for apps installed from a file: tap the switch once and press OK, then App info → ⋮ → “Allow restricted settings”, and try again.</span></div></div>'+
         (UI.settingsOpen?'<div class="settings-sim"><div class="lbl">Simulated phone settings · Accessibility</div><div class="lbl" style="margin-top:8px">Installed apps</div><div class="row2"><span><b>Reelcards</b><br><small style="color:#6b6b75">'+(UI.permission?"On":"Off")+'</small></span><button class="switch'+(UI.permission?" on":"")+'" data-act="toggleSwitch" role="switch" aria-checked="'+UI.permission+'" aria-label="Reelcards accessibility switch"></button></div>'+
         (UI.permission?'<button class="abtn" data-act="backFromSettings" style="background:#2f6bff;color:#fff">Back to Reelcards</button>':'<p style="font-size:12.5px;color:#6b6b75;margin:0">Tap the switch to turn Reelcards on.</p>')+'</div>':''); break;
     case "try":

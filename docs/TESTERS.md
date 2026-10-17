@@ -30,16 +30,20 @@ device highlighted. The rest of this page says the same in more detail.
 
 ## Set it up (about a minute)
 
-1. Tap **Set up in 1 minute**.
+1. Tap **Set up in 1 minute**, or tap **Quick start** to let Reelcards choose (GCSE Biology and
+   Chemistry, "Normal" cards, no exam date) and skip to step 4. You can change all of that later on
+   the dashboard.
 2. **Pick what you're revising:** a ready-made deck, your own notes, or an Anki file. Tap **Next**.
 3. Choose your exam date and how often you want cards. For testing, pick **Demo**, which shows a
    card every two videos.
 4. **Switch it on:** tap the button, read the note and tap **Agree and open settings**. In
    Accessibility, find **Reelcards** (it may be under *Installed apps* or *Downloaded apps*), turn it
    on and confirm.
-   - **The switch is greyed out?** Android 13 and newer block this for apps installed from a file. Go
-     back to Reelcards, tap **Open app info**, tap **⋮** (top right), choose **Allow restricted
-     settings**, confirm, then try the switch again.
+   - **The switch is greyed out?** Android 13 and newer block this for apps installed from a file.
+     Tap the switch once and press **OK** on the "Restricted setting" box. Go back to Reelcards, tap
+     **Open app info**, tap **⋮** (top right), choose **Allow restricted settings**, confirm, then try
+     the switch again. (If **⋮** has no such entry, do the first part again.) Reelcards also shows
+     these steps if it notices the switch didn't turn on.
 5. Tap **Show me a test card** to see what a card looks like.
 
 Reelcards only watches for you swiping to the next video. It does not read your messages, and it
@@ -85,7 +89,7 @@ Send it to whoever gave you this link.
 
 - **Cards never appear:** check that Reelcards is still switched on under Accessibility. Some phones
   switch it off to save battery; if so, switch it back on and set Reelcards to *unrestricted* battery.
-- **To stop:** turn Reelcards off under Accessibility, or uninstall it like any app. Your cards live
+- **To stop:** tap **Switch Reelcards off** on the dashboard, or turn it off under Accessibility, or uninstall it like any app. Your cards live
   only on your phone and go with it.
 
 ## iPhone or computer

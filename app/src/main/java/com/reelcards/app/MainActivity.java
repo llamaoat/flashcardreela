@@ -65,6 +65,9 @@ public final class MainActivity extends Activity {
     private Engine engine;
     private Runnable back;
     private String screen = "";
+    private boolean quick;          // set up with Quick start: the wizard was skipped, so its step labels are too
+    private boolean awaitingSwitch; // tapped "Agree and open settings": if the switch isn't on when they come back, say what to try
+    private boolean blockedHint;    // show the "didn't switch on" help at the top of the permission page, once
     private boolean addMode;      // "Add cards" from the dashboard instead of first-run setup
     private boolean examFromDashboard, permissionFromDashboard;
 
@@ -119,7 +122,8 @@ public final class MainActivity extends Activity {
     @Override
     protected void onResume() {
         super.onResume();
-        if ("permission".equals(screen) && accessibilityOn()) showTry();
+        if ("permission".equals(screen) && accessibilityOn()) { awaitingSwitch = false; showTry(); }
+        else if ("permission".equals(screen) && awaitingSwitch) { awaitingSwitch = false; blockedHint = true; showPermission(); }
         else if ("dashboard".equals(screen)) { AnkiBridge.refill(this, engine, false); showDashboard(); }
     }
 
@@ -301,6 +305,10 @@ public final class MainActivity extends Activity {
         Button go = primary(col, "Set up in 1 minute", go(new Runnable() { @Override public void run() { addMode = false; showDecks(); } }), 18);
         go.setTextColor(MotionView.SEA); // a white pill on the sea
         go.setBackground(new RippleDrawable(ColorStateList.valueOf(0x220B2140), Ui.round(white, dp(26)), null));
+        TextView quickStart = Ui.linkButton(this, "Quick start: choose for me");
+        quickStart.setTextColor(white);
+        quickStart.setOnClickListener(go(new Runnable() { @Override public void run() { quickStart(); } }));
+        Ui.add(col, quickStart, 2);
         Ui.add(col, Ui.text(this, "Free. Works offline. Nothing you watch is saved or sent anywhere.", 13, 0x99FFFFFF, Ui.BODY), 10);
     }
 
@@ -318,6 +326,20 @@ public final class MainActivity extends Activity {
             }
         }).withCoach(true);
         holder.addView(v, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+    }
+
+    /**
+     * One tap in place of the questions: GCSE Biology and Chemistry, "Normal", no exam date, straight to the switch.
+     * The disclosure and the Agree tap are still on that page. Everything here can be changed from the dashboard.
+     */
+    private void quickStart() {
+        if (engine.cards.isEmpty()) {
+            engine.addCards(SampleDecks.get(SampleDecks.BIOLOGY));
+            engine.addCards(SampleDecks.get(SampleDecks.CHEMISTRY));
+        }
+        quick = true;
+        Store.saveNow(this);
+        if (accessibilityOn()) showTry(); else showPermission();
     }
 
     // ------------------------------------------------------------------ step 1: decks
@@ -847,6 +869,30 @@ public final class MainActivity extends Activity {
 
     // ------------------------------------------------------------------ step 3: the one permission
 
+    /** Puts the one setting back as it was. Switching it on again means a trip to Accessibility settings (the "Switch on" button). */
+    private void switchOff() {
+        if (!ReelWatcherService.switchOff()) { openAccessibilitySettings(); return; } // it isn't running: show where the switch is
+        new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(new Runnable() {
+            @Override public void run() { if ("dashboard".equals(screen)) showDashboard(); }
+        }, 700); // give Android a moment to update the setting
+    }
+
+    /** Where the app was installed from (API 30+, kept in its own class so older phones never load it). */
+    private static final class Api30 {
+        static String installer(MainActivity a) {
+            try { return a.getPackageManager().getInstallSourceInfo(a.getPackageName()).getInstallingPackageName(); }
+            catch (Exception e) { return null; }
+        }
+    }
+
+    /**
+     * Android 13+ greys out the accessibility switch ("restricted settings") for an app that didn't come from a
+     * store, so a file install from GitHub hits it. True when that may happen here.
+     */
+    private boolean maybeRestricted() {
+        return Build.VERSION.SDK_INT >= 33 && !"com.android.vending".equals(Api30.installer(this));
+    }
+
     private boolean accessibilityOn() {
         if (ReelWatcherService.isRunning()) return true;
         String on = Settings.Secure.getString(getContentResolver(), Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES);
@@ -859,9 +905,14 @@ public final class MainActivity extends Activity {
         LinearLayout col = page("permission", new Runnable() {
             @Override public void run() { if (permissionFromDashboard) { permissionFromDashboard = false; showDashboard(); } else showExam(); }
         });
-        if (!permissionFromDashboard) steps(col, 3);
+        if (!permissionFromDashboard) { if (quick) Ui.add(col, Ui.label(this, "Quick start: one last step"), 0); else steps(col, 3); }
         Ui.add(col, Ui.title(this, "Switch it on"), permissionFromDashboard ? 0 : 18);
         Ui.add(col, Ui.body(this, "Reelcards needs to notice when you swipe to a new reel, and draw a card on top. Android calls this an accessibility service. It's the only permission we ask for."), 8);
+        if (quick && !permissionFromDashboard) Ui.add(col, Ui.muted(this, "Quick start picked GCSE Biology and Chemistry, no exam date and “Normal” cards. You can change all of that on the dashboard afterwards."), 8);
+        final boolean stuck = blockedHint; // came back from Settings and it isn't on: the likely reason goes first
+        blockedHint = false;
+        final boolean fromFile = !stuck && maybeRestricted();
+        if (stuck) Ui.add(col, restrictedPanel("It didn't switch on", true), 16);
 
         // Google Play's prominent disclosure: what the accessibility service sees, and what's done with it,
         // shown before Android's settings, with the student agreeing by tapping a button
@@ -880,22 +931,13 @@ public final class MainActivity extends Activity {
 
         Ui.add(col, Ui.label(this, "How"), 20);
         String[] how = {"Read what it does above, then tap “Agree and open settings”", "Find Reelcards (often under “Installed apps” or “Downloaded apps”)", "Turn it on, then tap Allow", "Come back here. We'll notice"};
-        for (int i = 0; i < how.length; i++) {
-            LinearLayout r = Ui.row(this);
-            TextView num = Ui.text(this, String.valueOf(i + 1), 14, Ui.ON_ACCENT, Ui.DISPLAY);
-            num.setGravity(Gravity.CENTER);
-            num.setBackground(Ui.round(Ui.ACCENT, dp(13)));
-            r.addView(num, new LinearLayout.LayoutParams(dp(26), dp(26)));
-            TextView t = Ui.body(this, how[i]);
-            LinearLayout.LayoutParams tl = Ui.weight(1);
-            tl.leftMargin = dp(12);
-            r.addView(t, tl);
-            Ui.add(col, r, 10);
-        }
+        numberedSteps(col, how);
+        if (fromFile) Ui.add(col, restrictedPanel("Installed from a file? Read this first", false), 16);
         Ui.add(col, Ui.muted(this, "Tapping “Agree” means you're happy for Reelcards to use the accessibility service as described above. You can switch it off any time in Settings."), 18);
         primary(col, "Agree and open settings", go(new Runnable() {
             @Override public void run() {
                 Store.prefs(MainActivity.this).edit().putLong("disclosure_agreed", System.currentTimeMillis()).apply();
+                awaitingSwitch = true;
                 openAccessibilitySettings();
             }
         }), 10);
@@ -903,17 +945,7 @@ public final class MainActivity extends Activity {
         no.setOnClickListener(go(new Runnable() { @Override public void run() { if (back != null) back.run(); } }));
         Ui.add(col, no, 4);
 
-        LinearLayout help = Ui.panel(this);
-        help.addView(Ui.text(this, "Switch greyed out?", 15, Ui.TEXT, Ui.DISPLAY));
-        Ui.add(help, Ui.text(this, "Android blocks this for apps installed from a file. Tap below, then tap ⋮ (top right) → “Allow restricted settings”, confirm, and try again.", 14, Ui.MUTED, Ui.BODY), 6);
-        Button info = Ui.button(this, "Open app info", false);
-        info.setOnClickListener(go(new Runnable() {
-            @Override public void run() {
-                startActivity(new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:" + getPackageName())));
-            }
-        }));
-        Ui.add(help, info, 10);
-        Ui.add(col, help, 18);
+        if (!stuck && !fromFile) Ui.add(col, restrictedPanel("Switch greyed out?", false), 18);
 
         TextView skip = Ui.linkButton(this, "Not now: try the practice feed instead");
         skip.setOnClickListener(go(new Runnable() { @Override public void run() { startActivity(new Intent(MainActivity.this, PracticeFeedActivity.class)); } }));
@@ -923,6 +955,51 @@ public final class MainActivity extends Activity {
             later.setOnClickListener(go(new Runnable() { @Override public void run() { finishSetup(); } }));
             Ui.add(col, later, 0);
         }
+    }
+
+    /** Numbered rows (a number in a coloured circle, then the words). */
+    private void numberedSteps(LinearLayout into, String[] lines) {
+        for (int i = 0; i < lines.length; i++) {
+            LinearLayout r = Ui.row(this);
+            TextView num = Ui.text(this, String.valueOf(i + 1), 14, Ui.ON_ACCENT, Ui.DISPLAY);
+            num.setGravity(Gravity.CENTER);
+            num.setBackground(Ui.round(Ui.ACCENT, dp(13)));
+            r.addView(num, new LinearLayout.LayoutParams(dp(26), dp(26)));
+            TextView t = Ui.body(this, lines[i]);
+            LinearLayout.LayoutParams tl = Ui.weight(1);
+            tl.leftMargin = dp(12);
+            r.addView(t, tl);
+            Ui.add(into, r, 10);
+        }
+    }
+
+    /**
+     * What to do when Android blocks the switch for a file install ("restricted settings", Android 13+). The
+     * "Allow restricted settings" entry can be missing until the switch has been tried once, so that comes first.
+     * @param agreed true once they've tapped "Agree and open settings": only then does this offer its own way into
+     *               Accessibility. Google Play needs the disclosure and that tap before Android's settings open.
+     */
+    private LinearLayout restrictedPanel(String title, boolean agreed) {
+        LinearLayout help = Ui.panel(this);
+        help.addView(Ui.text(this, title, 15, Ui.TEXT, Ui.DISPLAY));
+        Ui.add(help, Ui.text(this, "Android 13 and newer block this for apps installed from a file instead of the Play Store. You only need to do this once:", 14, Ui.MUTED, Ui.BODY), 6);
+        numberedSteps(help, new String[] {agreed ? "Open Accessibility and tap Reelcards. If a “Restricted setting” box appears, tap OK."
+                        : "Tap “Agree and open settings”, then tap Reelcards. If a “Restricted setting” box appears, tap OK.",
+                "Come back here and tap Open app info.", "Tap ⋮ (top right), choose Allow restricted settings, and confirm.",
+                "Open Accessibility again and switch Reelcards on."});
+        Button info = Ui.button(this, "Open app info", false);
+        info.setOnClickListener(go(new Runnable() {
+            @Override public void run() {
+                startActivity(new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:" + getPackageName())));
+            }
+        }));
+        Ui.add(help, info, 10);
+        if (agreed) {
+            Button acc = Ui.button(this, "Open Accessibility", false);
+            acc.setOnClickListener(go(new Runnable() { @Override public void run() { awaitingSwitch = true; openAccessibilitySettings(); } }));
+            Ui.add(help, acc, 8);
+        }
+        return help;
     }
 
     /** The prominent disclosure for Google Play: what the accessibility service sees, uses, keeps and never does. */
@@ -960,7 +1037,7 @@ public final class MainActivity extends Activity {
     private void showTry() {
         if (permissionFromDashboard) { permissionFromDashboard = false; showDashboard(); return; }
         LinearLayout col = page("try", new Runnable() { @Override public void run() { showExam(); } });
-        steps(col, 4);
+        if (quick) Ui.add(col, Ui.label(this, "Quick start: all set"), 0); else steps(col, 4);
         Ui.add(col, Ui.title(this, "It's on. Try it"), 18);
         Ui.add(col, Ui.body(this, "Tap below for a test card right here. Then open your usual app and scroll: after a short warm-up, a card slips in every " + engine.settings.baseGap() + " reels."), 8);
         primary(col, "Show me a test card", go(new Runnable() {
@@ -985,6 +1062,7 @@ public final class MainActivity extends Activity {
 
     private void finishSetup() {
         Store.prefs(this).edit().putBoolean("onboarded", true).apply();
+        quick = false;
         showDashboard();
     }
 
@@ -1042,6 +1120,12 @@ public final class MainActivity extends Activity {
             status.addView(Ui.text(this, "On", 17, Ui.GOOD, Ui.DISPLAY));
             String quiet = engine.snoozeUntil > now ? " Quiet mode for a few minutes after lots of fast skips." : "";
             Ui.add(status, Ui.text(this, "Cards appear in TikTok, Instagram, YouTube Shorts, Snapchat, Facebook, X, Reddit and Pinterest. " + Settings_label() + "." + quiet, 14, Ui.MUTED, Ui.BODY), 4);
+        }
+        if (on) {
+            TextView off = Ui.linkButton(this, "Switch Reelcards off");
+            off.setOnClickListener(go(new Runnable() { @Override public void run() { switchOff(); } }));
+            Ui.add(status, off, 4);
+            Ui.add(status, Ui.muted(this, "Reelcards only uses this one Android setting. Switching it off stops it completely, and uninstalling removes it."), 0);
         }
         Ui.add(col, status, 16);
 
