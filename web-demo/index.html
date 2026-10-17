@@ -3,9 +3,18 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Reelcards Engine</title>
-<meta name="theme-color" content="#FAFAF8" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#0B2140" media="(prefers-color-scheme: dark)">
+<title>Reelcards: revise between your reels</title>
+<meta name="description" content="Your flashcards slip in between TikTok, Instagram and YouTube Shorts, looking just like another reel. Free, no account, no ads, open source.">
+<meta property="og:title" content="Reelcards: revise between your reels">
+<meta property="og:description" content="Your flashcards slip in between TikTok, Instagram and YouTube Shorts, looking just like another reel. Free, no account, no ads.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://llamaoat.github.io/flashcardreela/">
+<meta property="og:image" content="https://llamaoat.github.io/flashcardreela/icons/og.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="An orca and her calf swimming in a sea of drifting dashes, beside the words Revise without trying, between your reels">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#0B2140">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/png" href="icons/icon-192.png">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
@@ -516,75 +525,198 @@ select{min-height:40px;border-radius:10px;border:1px solid var(--line);backgroun
 .install .btn{min-height:40px;padding:8px 14px}
 .install ol{margin:0;padding-left:20px;font-size:13px;flex:1 1 100%;display:flex;flex-direction:column;gap:6px}
 .install input[type=text]{width:100%;margin:6px 0;font-size:12px}
+/* ---------- the website: a deep-sea page around the demo. The home-screen app (html.appmode) shows only the phone, so
+   none of this applies there. The colours are the app's own navy; the sea behind comes from sea.js, the orcas from orca.js. ---------- */
+html:not(.appmode){color-scheme:dark;--ground:#0B2140;--panel:rgba(16,38,73,.9);--panel2:#1A3560;--line:#27447A;--text:#EEF2F8;--muted:#9DB0CE;--accent:#FFFFFF;--onaccent:#0B2140;
+  --good:#3ECF8E;--bad:#FF6B80;--warn:#FFB547;--chipgood:#0F3B3A;--chipblue:#16365E;--chipbad:#3A1F33;--chipwarn:#3A2E14;--frame:#2A4A7D}
+html:not(.appmode) body{margin:0;padding:0}
+html{scroll-behavior:smooth}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+.sitenav{position:sticky;top:0;z-index:40;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:10px max(16px,calc((100vw - 1200px)/2 + 20px));background:rgba(11,33,64,.5);backdrop-filter:blur(14px) saturate(1.3);-webkit-backdrop-filter:blur(14px) saturate(1.3);border-bottom:1px solid rgba(255,255,255,.07)}
+.nav-brand{display:flex;align-items:center;gap:10px;font-weight:600;font-size:17px;letter-spacing:-.4px;color:#fff;text-decoration:none}
+.nav-brand img{border-radius:8px}
+.navlinks{display:flex;align-items:center;gap:4px}
+.navlinks a{color:rgba(255,255,255,.8);text-decoration:none;font-size:14px;font-weight:500;padding:8px 12px;border-radius:999px}
+.navlinks a:hover{background:rgba(255,255,255,.1);color:#fff}
+.navlinks a.cta{background:#fff;color:#0B2140;margin-left:6px;font-weight:600}
+.navlinks a.cta:hover{background:#E6EEFF}
+@media (max-width:760px){.navlinks a:not(.cta){display:none}}
+.landing,.wrap,.sitefoot{position:relative;z-index:1}
+.landing{display:grid;grid-template-columns:minmax(0,1.14fr) minmax(0,.86fr);align-items:center;gap:12px;max-width:1200px;margin:0 auto;padding:clamp(20px,5vh,64px) 20px clamp(28px,6vh,72px);min-height:min(740px,calc(100svh - 58px));scroll-margin-top:60px}
+.landing::before{content:"";position:absolute;z-index:-1;left:-6%;top:6%;width:62%;bottom:6%;background:radial-gradient(ellipse at 38% 50%,rgba(6,20,46,.62),rgba(6,20,46,0) 72%);pointer-events:none}
+.eyebrow{margin:0 0 16px;display:inline-block;padding:6px 13px;border-radius:999px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.18);color:rgba(255,255,255,.88);font-size:13px;font-weight:500;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+.landing h1{margin:0;text-wrap:balance;font-size:clamp(38px,4.6vw,62px);line-height:1.02;letter-spacing:-.045em;font-weight:600;color:#fff;text-shadow:0 2px 30px rgba(5,15,40,.5)}
+.landing h1 span{display:block;color:rgba(255,255,255,.64);font-weight:500}
+.lead{margin:20px 0 0;max-width:46ch;font-size:clamp(16px,1.5vw,19px);line-height:1.55;color:rgba(238,242,248,.9);text-shadow:0 1px 18px rgba(5,15,40,.55)}
+.ctas{display:flex;flex-wrap:wrap;gap:12px;margin-top:28px}
+.btn.big{min-height:54px;padding:0 28px;font-size:16px;font-weight:600;text-decoration:none;display:inline-flex;align-items:center;justify-content:center}
+.btn.primary.big{background:#fff;color:#0B2140;border-color:#fff}
+.btn.primary.big:hover{background:#E6EEFF}
+.btn.ghost{background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.32);color:#fff;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+.btn.ghost:hover{background:rgba(255,255,255,.18)}
+.trust{list-style:none;margin:22px 0 0;padding:0;display:flex;flex-wrap:wrap;gap:6px 18px;font-size:13.5px;color:rgba(238,242,248,.82);text-shadow:0 1px 12px rgba(5,15,40,.6)}
+.trust li::before{content:"✓";margin-right:7px;color:#7EE0B0;font-weight:700}
+.landing .install{margin-top:16px}
+.orca{position:relative;width:100%;aspect-ratio:1/1;max-width:620px;justify-self:center}
+.orca canvas{position:absolute;inset:0;width:100%;height:100%}
+@media (max-width:880px){.landing{grid-template-columns:minmax(0,1fr);min-height:0;padding-top:8px}.orca{order:-1;width:min(84vw,400px)}}
+html:not(.appmode) .wrap{max-width:1200px;padding:8px 20px 72px;gap:84px}
+.sech{margin:0;font-size:clamp(28px,3.6vw,40px);font-weight:600;letter-spacing:-.035em;line-height:1.1;color:#fff}
+.sec-p{margin:10px 0 0;color:var(--muted);max-width:62ch;font-size:15.5px;line-height:1.55}
+.sec-p a{color:#fff}
+.how,.get,.demo{scroll-margin-top:70px}
+.how{display:flex;flex-direction:column;gap:22px}
+.how-steps{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+@media (max-width:860px){.how-steps{grid-template-columns:minmax(0,1fr)}}
+.how-step{background:var(--panel);border:1px solid var(--line);border-radius:22px;padding:22px}
+.how-step .how-num{display:grid;place-items:center;width:30px;height:30px;border-radius:50%;background:#fff;color:#0B2140;font-weight:700;font-size:14px}
+.how-step h3{margin:14px 0 6px;font-size:19px;font-weight:600;letter-spacing:-.4px}
+.how-step p{margin:0;color:var(--muted);font-size:14.5px;line-height:1.55}
+.facts{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:8px}
+.facts li{padding:8px 14px;border-radius:999px;background:rgba(255,255,255,.07);border:1px solid var(--line);font-size:13.5px;color:rgba(238,242,248,.9)}
+html:not(.appmode) .get{background:none;border:0;border-radius:0;padding:0;gap:14px}
+.gcard{background:var(--panel);border-radius:22px;padding:20px}
+.gcard.mine{border-color:rgba(255,255,255,.6);box-shadow:0 0 0 1px rgba(255,255,255,.22),0 24px 60px -28px rgba(0,0,0,.7)}
+.gcard h3{font-size:20px}
+.gcard input[type=text]{background:rgba(255,255,255,.06)}
+details.fold{border-top:1px solid var(--line);padding-top:8px}
+details.fold>.small{margin-top:10px}
+html:not(.appmode) .gets{align-items:start}
+details.fold>summary{cursor:pointer;font-weight:600;font-size:14px;list-style:none;display:flex;align-items:center;gap:8px;color:#fff;padding:6px 0}
+details.fold>summary::-webkit-details-marker{display:none}
+details.fold>summary::before{content:"▸";display:inline-block;transition:transform .15s}
+details.fold[open]>summary::before{transform:rotate(90deg)}
+details.fold>ol{margin-top:10px}
+.demo{display:flex;flex-direction:column;gap:22px}
+.sechead{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:16px}
+.deep{background:var(--panel);border:1px solid var(--line);border-radius:22px}
+.deep>summary{cursor:pointer;list-style:none;display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 14px;padding:18px 22px;font-size:16px;color:#fff}
+.deep>summary span{color:var(--muted);font-size:13.5px}
+.deep>summary::-webkit-details-marker{display:none}
+.deep>summary::after{content:"Show";margin-left:auto;align-self:center;font-size:13px;background:rgba(255,255,255,.12);padding:5px 12px;border-radius:999px}
+.deep[open]>summary::after{content:"Hide"}
+.deep[open]>summary{border-bottom:1px solid var(--line)}
+.deep>.panels{padding:16px}
+.deep .panel{background:rgba(255,255,255,.04)}
+html:not(.appmode) .phone{box-shadow:0 40px 80px -30px rgba(0,0,0,.65),0 0 0 1px rgba(255,255,255,.07)}
+html:not(.appmode) th{background:#152D54}
+.toggle{flex-direction:row}
+html:not(.appmode) .phonecol{top:76px}
+.labsec>h2{font-size:clamp(24px,3vw,32px);font-weight:600;letter-spacing:-.03em;color:#fff;display:flex;flex-direction:column;gap:6px}
+.labsec>h2 .note{font-size:14.5px;font-weight:400;letter-spacing:0;color:var(--muted);max-width:62ch}
+.sitefoot{max-width:1200px;margin:0 auto;padding:28px 20px 52px;border-top:1px solid rgba(255,255,255,.1);display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px 28px;color:var(--muted);font-size:13.5px}
+.sitefoot .foot1{display:flex;flex-direction:column;gap:2px}
+.sitefoot .foot1 b{color:#fff;font-size:16px}
+.sitefoot p{margin:0;max-width:44ch}
+.sitefoot nav{display:flex;flex-wrap:wrap;gap:6px 18px}
+.sitefoot a{color:rgba(255,255,255,.85)}
 html.appmode,html.appmode body{height:100%;overflow:hidden;overscroll-behavior:none}
 html.appmode body{margin:0;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
 html.appmode .wrap{max-width:none;height:100%;gap:0}
-html.appmode header,html.appmode .panels,html.appmode #h-lab,html.appmode .wrap>section,html.appmode .phonecol>:not(.phone):not(input){display:none}
+html.appmode header,html.appmode .sitenav,html.appmode .landing,html.appmode .sitefoot,html.appmode .panels,html.appmode #h-lab,html.appmode .wrap>section,html.appmode .demo>:not(.main),html.appmode .phonecol>:not(.phone):not(input){display:none}
+html.appmode .demo{height:100%;gap:0}
 html.appmode .main{display:block;height:100%}
 html.appmode .phonecol{position:static;height:100%;gap:0}
 html.appmode .phone{width:100%;max-width:none;height:100%;aspect-ratio:auto;border:0;border-radius:0;box-shadow:none}
 </style>
 </head>
 <body>
-<div class="wrap">
-  <header>
-    <div>
-      <h1>Reelcards <span>demo</span></h1>
-      <p class="sub">The whole student journey in a browser, running the same engine as the Android app. Set up on the phone, then scroll: flashcard reels slip in between normal reels, styled for the app you're in (TikTok, Instagram or YouTube) and the things you watch. The panels explain every decision. The design lab at the bottom shows every card style side by side.</p>
-      <div class="install" id="install" hidden></div>
-    </div>
-    <div class="stats" id="stats"></div>
-  </header>
+<nav class="sitenav" aria-label="Site">
+  <a class="nav-brand" href="#top"><img src="icons/icon-192.png" alt="" width="28" height="28">Reelcards</a>
+  <div class="navlinks">
+    <a href="#how">How it works</a>
+    <a href="#try">Try it</a>
+    <a href="https://github.com/llamaoat/flashcardreela">GitHub</a>
+    <a class="cta" href="#get">Get Reelcards</a>
+  </div>
+</nav>
 
-  <section class="get" id="get" aria-labelledby="h-get">
-    <h2 id="h-get">Get Reelcards</h2>
-    <p class="sub getlead">Pick your device. Each one takes about a minute. Not sure yet? Try it right here first: the phone below is the real thing, running in your browser.</p>
+<div class="landing" id="top">
+  <div class="herotext">
+    <p class="eyebrow">Free · Android · Open source</p>
+    <h1>Revise without trying<span>between your reels</span></h1>
+    <p class="lead">Your flashcards slip in between TikTok, Instagram and YouTube Shorts, looking just like another reel. Double-tap if you know it. Swipe if you don't.</p>
+    <div class="ctas">
+      <a class="btn primary big" href="#get">Get Reelcards</a>
+      <a class="btn ghost big" href="#try">Try it in your browser</a>
+    </div>
+    <ul class="trust"><li>No account</li><li>No ads</li><li>Nothing you watch is saved or sent</li></ul>
+    <div class="install" id="install" hidden></div>
+  </div>
+  <div class="orca" aria-hidden="true"><canvas id="orca"></canvas></div>
+</div>
+
+<div class="wrap">
+  <section class="how" id="how" aria-labelledby="h-how">
+    <h2 class="sech" id="h-how">How it works</h2>
+    <div class="how-steps">
+      <article class="how-step"><span class="how-num">1</span><h3>Scroll like normal</h3><p>Use TikTok, Instagram or YouTube Shorts the way you always do. Reelcards waits quietly in the background.</p></article>
+      <article class="how-step"><span class="how-num">2</span><h3>A card slips in</h3><p>Every few videos, one of your flashcards appears, drawn to look like the app you're in. It holds back while you're really into a video.</p></article>
+      <article class="how-step"><span class="how-num">3</span><h3>Double-tap or swipe</h3><p>Double-tap if you knew it, tap to see the answer, or swipe on. It learns what works for you and plans your reviews around your exam date.</p></article>
+    </div>
+    <ul class="facts">
+      <li>Spaced repetition (FSRS), the scheduler Anki offers</li>
+      <li>Works with your Anki decks and .apkg files</li>
+      <li>The Android app has no internet access</li>
+      <li>Free and open source</li>
+    </ul>
+  </section>
+
+<section class="get" id="get" aria-labelledby="h-get">
+    <h2 class="sech" id="h-get">Get Reelcards</h2>
+    <p class="sec-p">Pick your device. Each one takes about a minute. Not sure yet? <a href="#try">Try it in your browser first.</a></p>
     <div class="gets">
       <article class="gcard" id="g-android">
         <span class="badge" hidden>For your phone</span>
         <h3>Android phone</h3>
         <p class="muted">The full app. Cards slip in between your real videos in TikTok, Instagram, YouTube Shorts, Snapchat, Facebook, X, Reddit and Pinterest.</p>
         <a class="btn primary" id="apkLink" href="https://github.com/llamaoat/flashcardreela/releases/latest/download/Reelcards.apk">Download the app (.apk)</a>
-        <ol>
+        <details class="fold"><summary>Show the steps</summary><ol>
           <li>Tap the button. If the phone warns the file can harm your device, tap <b>Download anyway</b>.</li>
           <li>Open the file. If asked, allow your browser to <b>install unknown apps</b>, then tap <b>Install</b>. If Play Protect says it hasn't seen it, tap <b>More details</b>, then <b>Install anyway</b>.</li>
-          <li>Open Reelcards and tap <b>Set up in 1 minute</b>. Pick a deck and your exam date.</li>
+          <li>Open Reelcards and tap <b>Quick start</b>. It picks a deck for you, and you can change it later. (Or tap <b>Set up in 1 minute</b> to choose your own deck and exam date.)</li>
           <li>Tap <b>Switch it on</b>, agree, and turn on <b>Reelcards</b> in Accessibility. <b>Switch greyed out?</b> Tap it once and press OK on the “Restricted setting” box. Go back, tap <b>Open app info</b>, then <b>⋮</b>, then <b>Allow restricted settings</b>, and try again.</li>
           <li>Scroll TikTok, Instagram or YouTube Shorts. A card appears every few videos.</li>
-        </ol>
+        </ol></details>
         <p class="muted small">Early test version: it hasn't run on many phones yet. <a href="https://github.com/llamaoat/flashcardreela/releases">All versions</a></p>
       </article>
       <article class="gcard" id="g-iphone">
         <span class="badge" hidden>For your phone</span>
         <h3>iPhone</h3>
         <p class="muted">iPhones don't let any app draw over TikTok, so a card can't slip in by itself. This gives you the app and a one-tap card.</p>
-        <ol>
+        <details class="fold"><summary>Show the steps</summary><ol>
           <li>Open this page in <b>Safari</b>. Tap <b>Share</b>, then <b>Add to Home Screen</b>. Set up your decks in it.</li>
           <li>Open the <b>Shortcuts</b> app, tap <b>+</b>, <b>Add Action</b>, then <b>Open URLs</b>. Paste this link:
             <input type="text" readonly id="cardLink" aria-label="Link for the Shortcut"> <button class="btn" id="copyLink">Copy link</button></li>
           <li>Name it <b>Reelcards</b>, then add it to your Home Screen, Action Button or Back Tap. Tap it when you want a card.</li>
-        </ol>
-        <p class="muted small">Optional: in Shortcuts, Automation, <b>App</b>, pick TikTok and <b>Is Opened</b>, then <b>Run Immediately</b>, add <b>Wait</b> 5 minutes and the same <b>Open URLs</b>. Untested on a real iPhone. Use the home-screen copy or Safari for the app, not both: they keep separate cards.</p>
+        </ol><p class="muted small">Optional: in Shortcuts, Automation, <b>App</b>, pick TikTok and <b>Is Opened</b>, then <b>Run Immediately</b>, add <b>Wait</b> 5 minutes and the same <b>Open URLs</b>. Untested on a real iPhone. Use the home-screen copy or Safari for the app, not both: they keep separate cards.</p></details>
       </article>
       <article class="gcard" id="g-computer">
         <span class="badge" hidden>For your computer</span>
         <h3>Computer</h3>
         <p class="muted">A browser extension for Chrome, Edge, Brave and Opera. Cards slip in between videos on TikTok, Instagram Reels, YouTube Shorts and X.</p>
         <a class="btn primary" href="Reelcards-extension.zip" download>Download the extension (.zip)</a>
-        <ol>
+        <details class="fold"><summary>Show the steps</summary><ol>
           <li>Unzip the file. You get a folder called <b>Reelcards-extension</b>; keep it somewhere safe, because Chrome reads it from there.</li>
           <li>Open <b>chrome://extensions</b> (Edge: <b>edge://extensions</b>) and switch on <b>Developer mode</b>.</li>
           <li>Click <b>Load unpacked</b> and choose the unzipped folder.</li>
           <li>Pin Reelcards from the puzzle-piece menu, click it, pick a deck and open one of the sites.</li>
-        </ol>
+        </ol></details>
         <p class="muted small">Not in the Chrome Web Store yet, so it's installed this way.</p>
       </article>
     </div>
     <p class="muted small getlead">No app yet? <a href="feed.html">Reelcards Feed</a> is a separate page that plays YouTube and TikTok links you paste in, with cards between them. It works in any browser, including Chrome on iPhone.</p>
-    <p class="muted small getfoot">Free. No account, no ads, and nothing you watch is saved or sent anywhere. <a href="privacy.html">Privacy</a> · <a href="https://github.com/llamaoat/flashcardreela">Source code</a> · <a href="https://github.com/llamaoat/flashcardreela/blob/main/docs/TESTERS.md">Testing it? Read this</a></p>
   </section>
 
-  <div class="main">
+  <div class="demo" id="try">
+    <div class="sechead">
+      <div>
+        <h2 class="sech" id="h-try">Try it right here</h2>
+        <p class="sec-p">This is the real thing, running in your browser, with the same engine as the Android app. Set it up on the phone, then swipe up through the feed and watch cards slip in between normal reels. The panels beside it explain every decision.</p>
+      </div>
+      <div class="stats" id="stats"></div>
+    </div>
+    <div class="main">
     <div class="phonecol">
       <div class="hostbar" role="group" aria-label="App you're scrolling in" id="hostbar"></div>
       <input type="file" id="apkgFile" accept=".apkg,.colpkg" hidden>
@@ -596,7 +728,6 @@ html.appmode .phone{width:100%;max-width:none;height:100%;aspect-ratio:auto;bord
       <p class="hint" id="hint">Follow the setup on the phone, or <button class="alink" id="skipSetup" style="padding:0;min-height:0">skip straight to the feed</button>.</p>
       <p class="hint" id="gestures" hidden>On a card: tap = reveal · double-tap or heart = “knew it” · speech bubble = hint · bookmark = save · swipe or ↓ = next.</p>
     </div>
-
     <div class="panels">
       <section class="panel" aria-labelledby="h-why">
         <h2 id="h-why">Why this card</h2>
@@ -629,13 +760,11 @@ html.appmode .phone{width:100%;max-width:none;height:100%;aspect-ratio:auto;bord
         </div>
         <p class="muted" style="margin:0;font-size:12px">The simulated student has a taste in card styles and a tolerance for how often cards appear. Watch the format scores and the rhythm adapt to them.</p>
       </section>
-
       <section class="panel wide" aria-labelledby="h-fmt">
         <h2 id="h-fmt">Format scores <span class="note">· bar = how well each piece holds attention · dark = used on the last card · per-app favourites below</span></h2>
         <div class="dims" id="dims"></div>
         <div class="mono muted" id="perapp"></div>
       </section>
-
       <section class="panel" aria-labelledby="h-rhythm">
         <h2 id="h-rhythm">Rhythm <span class="note">· learned spacing between cards</span></h2>
         <div class="arms" id="arms"></div>
@@ -645,7 +774,11 @@ html.appmode .phone{width:100%;max-width:none;height:100%;aspect-ratio:auto;bord
         <h2 id="h-mem">Memory model</h2>
         <div id="memText" style="font-size:13px"></div>
       </section>
-
+    </div>
+    </div>
+    <details class="deep" id="deep">
+      <summary><b>More under the hood</b><span>progress and forecast, deck schedule, what goes to AnkiDroid</span></summary>
+      <div class="panels">
       <section class="panel wide" aria-labelledby="h-prog">
         <h2 id="h-prog">Progress, skips &amp; forecast</h2>
         <div class="kpis" id="kpis"></div>
@@ -655,21 +788,20 @@ html.appmode .phone{width:100%;max-width:none;height:100%;aspect-ratio:auto;bord
           <div><h3 style="margin:0 0 6px;font-size:13px">Most skipped cards</h3><div id="skipcards"></div></div>
         </div>
       </section>
-
       <section class="panel wide" aria-labelledby="h-deck">
         <h2 id="h-deck">Deck <span class="note">· FSRS-6 schedule: stability = days until recall drops to 90%</span></h2>
         <div class="tablewrap"><table><thead><tr><th>Card</th><th>Deck</th><th>State</th><th>Recall now</th><th>Stability</th><th>Next due</th><th>Last</th><th>Skips</th></tr></thead><tbody id="deck"></tbody></table></div>
       </section>
-
       <section class="panel wide" aria-labelledby="h-anki">
         <h2 id="h-anki">Sent to AnkiDroid <span class="note">· what the Android app sends through AnkiDroid's API for Anki decks (ease 1 = Again, 2 = Hard, 3 = Good, 4 = Easy)</span></h2>
         <div class="log" id="anki"><span class="muted">Nothing graded yet.</span></div>
       </section>
-    </div>
+      </div>
+    </details>
   </div>
 
-  <section class="panel wide" aria-labelledby="h-lab">
-    <h2 id="h-lab">Design lab <span class="note">· every layout, in the app and vibe you pick. These are the real card components the feed uses.</span></h2>
+  <section class="panel wide labsec" aria-labelledby="h-lab">
+    <h2 id="h-lab">Every card style <span class="note">Every layout, in the app and vibe you pick. These are the real card components the feed uses.</span></h2>
     <div class="labbar">
       <label for="labCards" style="flex-direction:row;align-items:center;gap:6px">Cards <select id="labCards"><option value="short">Short answers</option><option value="long" selected>Long answers &amp; questions</option><option value="anki">Anki: cloze &amp; image occlusion</option><option value="file" disabled id="labFileOpt">Your Anki file</option></select></label>
       <label for="labHost" style="flex-direction:row;align-items:center;gap:6px">App <select id="labHost"><option value="tiktok">TikTok</option><option value="instagram">Instagram Reels</option><option value="youtube">YouTube Shorts</option></select></label>
@@ -683,6 +815,12 @@ html.appmode .phone{width:100%;max-width:none;height:100%;aspect-ratio:auto;bord
     <div class="lab" id="lab"></div>
   </section>
 </div>
+
+<footer class="sitefoot">
+  <div class="foot1"><b>Reelcards</b><span>Revise without trying.</span></div>
+  <p>Free. No account, no ads, and nothing you watch is saved or sent anywhere.</p>
+  <nav aria-label="Links"><a href="privacy.html">Privacy</a><a href="https://github.com/llamaoat/flashcardreela">Source code</a><a href="https://github.com/llamaoat/flashcardreela/blob/main/docs/TESTERS.md">Testing it? Read this</a><a href="feed.html">Reelcards Feed</a></nav>
+</footer>
 <script>
 /* Reelcards engine, JavaScript port of engine/src/main/java/com/reelcards/engine (same rules, same numbers).
    Kept deliberately close to the Java so the browser demo and the Android app behave the same. */
@@ -2249,6 +2387,9 @@ function field(g, W, H, t, pal, still){
 function sea(g, pts, W, H, sx, sy, t, scrim){
   const pal = paletteAt(t); field(g, W, H, t, pal); g.lineCap = "round";
   const front = ((t*.06) % (W+520)) - 160;
+  // The dashes are gathered into a few batches of the same look and each batch is stroked once: about
+  // 4,800 separate strokes a frame is slow, and the eye can't tell 4 shades of white from 20.
+  const base = [[], [], [], []], wake = [[], [], []], foam = [];
   for (const p of pts) {
     let a = -.6 + Math.sin(p[1]*.009+t*.00035)*.22 + Math.cos(p[0]*.007-t*.00025)*.18;
     const dx = p[0]-sx, dy = p[1]-sy, d = Math.hypot(dx,dy), pull = Math.max(0, 1-d/120);
@@ -2256,12 +2397,21 @@ function sea(g, pts, W, H, sx, sy, t, scrim){
     if (d < 14) continue;
     const dr = Math.sin(t*.0016+p[4])*1.4, x = p[0]+Math.cos(a)*dr, y = p[1]+Math.sin(a)*dr;
     const k = x - (front + Math.sin(y*.02+t*.0009)*30 + Math.sin(y*.066)*10);
-    let len = p[2]*(1-pull*.5), w = 1.05, col = "rgba(240,248,255,"+(.46+p[3]*.3).toFixed(2)+")";
-    if (k < 0 && k > -22) { len = 1+p[3]*1.5; w = 1.7+p[3]; col = "rgba(255,255,255,.8)"; }
-    else if (k <= -22 && k > -300) { if (p[3] < .3) continue; len = 2.5+p[3]*4; w = 2.5; col = "rgba(255,255,255,.55)"; a *= .4; }
-    const ca = Math.cos(a)*len/2, sa = Math.sin(a)*len/2; g.strokeStyle = col; g.lineWidth = w;
-    g.beginPath(); g.moveTo(x-ca,y-sa); g.lineTo(x+ca,y+sa); g.stroke();
+    let len = p[2]*(1-pull*.5), into = base[Math.min(3, p[3]*4|0)];
+    if (k < 0 && k > -22) { len = 1+p[3]*1.5; into = wake[Math.min(2, p[3]*3|0)]; }
+    else if (k <= -22 && k > -300) { if (p[3] < .3) continue; len = 2.5+p[3]*4; a *= .4; into = foam; }
+    const ca = Math.cos(a)*len/2, sa = Math.sin(a)*len/2;
+    into.push(x-ca, y-sa, x+ca, y+sa);
   }
+  const stroke = (segs, col, w) => {
+    if (!segs.length) return;
+    g.strokeStyle = col; g.lineWidth = w; g.beginPath();
+    for (let i = 0; i < segs.length; i += 4) { g.moveTo(segs[i], segs[i+1]); g.lineTo(segs[i+2], segs[i+3]); }
+    g.stroke();
+  };
+  base.forEach((b, i) => stroke(b, "rgba(240,248,255," + (.46 + (i + .5)/4*.3).toFixed(2) + ")", 1.05));
+  stroke(foam, "rgba(255,255,255,.55)", 2.5);
+  wake.forEach((b, i) => stroke(b, "rgba(255,255,255,.8)", 1.7 + (i + .5)/3));
   if (scrim) { const sg = g.createLinearGradient(0,H,0,0); sg.addColorStop(0, rgb(pal.base)); sg.addColorStop(.3, rgb(pal.base,.9)); sg.addColorStop(.62, rgb(pal.base,0)); g.fillStyle = sg; g.fillRect(0,0,W,H); } // solid under the words
   // the swimmer
   const s = Math.sin(t*.006); g.save(); g.translate(sx, sy); g.rotate(-.35); g.fillStyle = g.strokeStyle = "#EE8A63"; g.lineWidth = 3;
@@ -2270,23 +2420,161 @@ function sea(g, pts, W, H, sx, sy, t, scrim){
   g.moveTo(-7,-2); g.lineTo(-16,-4+s*2); g.moveTo(-7,2); g.lineTo(-16,4.5-s*2); g.stroke(); g.restore();
 }
 
-/* The same sea as a full-screen backdrop for a page with no phone frame (the Reelcards Feed). It sits behind
-   everything, stops when it leaves the page, and with "reduce motion" on draws one still frame. */
-function seaBackdrop(){
+/* The same sea as a full-screen backdrop for a page with no phone frame (the Reelcards Feed, the website). It sits
+   behind everything, stops when it leaves the page, and with "reduce motion" on draws one still frame.
+   opt.veil: how dark the dim layer over the sea is, 0 to 1, or a function that says (the website lightens it at the
+   top of the page). opt.swimmer: false leaves the little swimmer out. opt.maxDpr: the sharpest it draws.
+   opt.slow: a function that says when to draw at about 30 frames a second instead of every frame (far down the page). */
+function seaBackdrop(opt){
+  opt = opt || {};
   const cv = document.createElement("canvas"); cv.setAttribute("aria-hidden", "true");
   cv.style.cssText = "position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events:none"; document.body.insertBefore(cv, document.body.firstChild);
   const g = cv.getContext("2d"), still = matchMedia("(prefers-reduced-motion: reduce)").matches;
-  let W = 0, H = 0, pts = [], sx = 0, sy = 0;
+  let W = 0, H = 0, pts = [], sx = 0, sy = 0, lastDraw = 0;
   function size(){
-    W = innerWidth; H = innerHeight; const dpr = Math.min(2, window.devicePixelRatio || 1); cv.width = W*dpr; cv.height = H*dpr; g.setTransform(dpr,0,0,dpr,0,0);
+    W = innerWidth; H = innerHeight; const dpr = Math.min(opt.maxDpr || 2, window.devicePixelRatio || 1); cv.width = W*dpr; cv.height = H*dpr; g.setTransform(dpr,0,0,dpr,0,0);
     const G = Math.max(9, Math.sqrt(W*H/4500)); let seed = 7; const rnd = () => (seed = (seed*16807) % 2147483647) / 2147483647;
     pts = []; for (let y=-G; y<H+G; y+=G) for (let x=-G; x<W+G; x+=G) pts.push([x+rnd()*G*.8, y+rnd()*G*.8, 4+rnd()*4, rnd(), rnd()*6.28]);
-    sx = W - Math.min(60, W*.15); sy = 64;
+    sx = opt.swimmer === false ? -1000 : W - Math.min(60, W*.15); sy = opt.swimmer === false ? -1000 : 64;
   }
   size(); addEventListener("resize", size);
-  function frame(t){ if (!cv.isConnected) return; sea(g, pts, W, H, sx, sy, t, false); g.fillStyle = rgb(paletteAt(t).base, .62); g.fillRect(0, 0, W, H); // a veil, so the words on top always read
+  function frame(t){ if (!cv.isConnected) return; if (opt.slow && opt.slow() && t - lastDraw < 30) { requestAnimationFrame(frame); return; } lastDraw = t; sea(g, pts, W, H, sx, sy, t, false); g.fillStyle = rgb(paletteAt(t).base, typeof opt.veil === "function" ? opt.veil() : opt.veil == null ? .62 : opt.veil); g.fillRect(0, 0, W, H); // a veil, so the words on top always read
     if (!still) requestAnimationFrame(frame); }
   requestAnimationFrame(frame);
+}
+
+/* An orca and her calf circling each other, drawn in code (no image files): black and white shapes over the sea,
+   a ring of dots turning slowly round them, and a few bubbles from their tails. The shapes are drawn for Reelcards,
+   not traced from anywhere. Used on the website's first screen, over the sea from sea.js. Draws one still frame
+   when "reduce motion" is on, and stops when it leaves the screen. Needs paletteAt() and rgb() from sea.js. */
+function orcaFamily(cv, opt){
+  opt = opt || {};
+  const g = cv.getContext("2d"), TAU = Math.PI*2, still = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  let W = 0, H = 0, S = 1, cx = 0, cy = 0, seed = 11;
+  const rnd = () => (seed = (seed*16807) % 2147483647) / 2147483647;
+  function size(){
+    const r = cv.getBoundingClientRect(), dpr = Math.min(2, window.devicePixelRatio || 1);
+    W = Math.max(2, r.width); H = Math.max(2, r.height); cv.width = Math.round(W*dpr); cv.height = Math.round(H*dpr);
+    g.setTransform(dpr,0,0,dpr,0,0); S = Math.min(W, H); cx = W/2; cy = H/2;
+  }
+  size();
+  if (!opt.manual) addEventListener("resize", size);
+
+  // R: radius of the circle the body lies along, len: body length, both as fractions of the canvas
+  const WHALES = [
+    {R:.3, len:.74, hw:.112, fin:.18, amp:.05, phase:0, beat:0, light:false},
+    {R:.185, len:.36, hw:.135, fin:.1, amp:.07, phase:Math.PI, beat:1.9, light:true}
+  ];
+  const DOTS = []; for (let i = 0; i < 340; i++) DOTS.push({a:rnd()*TAU, r:.1 + .44*Math.sqrt(rnd()), z:.7 + rnd()*1.3, tw:rnd()*TAU});
+  const bubbles = []; let lastT = 0, nextBubble = 0;
+
+  const smooth = (p, pts) => { // a closed curve through the points, rounded
+    const n = pts.length, mid = (a, b) => [(a[0]+b[0])/2, (a[1]+b[1])/2], m0 = mid(pts[n-1], pts[0]);
+    p.moveTo(m0[0], m0[1]);
+    for (let i = 0; i < n; i++) { const a = pts[i], m = mid(a, pts[(i+1)%n]); p.quadraticCurveTo(a[0], a[1], m[0], m[1]); }
+    p.closePath();
+  };
+  const prof = s => { // half the body's width: round at the nose, widest a quarter of the way back, a slim tail stock
+    if (s < .26) return Math.sqrt(Math.max(0, 1 - Math.pow((.26 - s)/.26, 2)));
+    return .2 + .8*Math.pow(1 - (s - .26)/.74, 1.35);
+  };
+
+  function whale(w, t, th){
+    const R = w.R*S*(1 + .03*Math.sin(.9*t + w.phase)), L = w.len*S, span = L/R, h0 = w.hw*L;
+    const P = s => { const f = th - s*span, r = R + w.amp*L*Math.sin(TAU*1.05*s - 4.4*t + w.beat)*(.1 + .9*Math.pow(s, 1.7));
+      return [cx + r*Math.cos(f), cy + r*Math.sin(f)]; };
+    const N = s => { // tail-ward direction, and the way to the whale's back (outwards from the circle)
+      const a = P(Math.max(0, s - .012)), b = P(Math.min(1, s + .012)); let tx = b[0] - a[0], ty = b[1] - a[1];
+      const m = Math.hypot(tx, ty) || 1; tx /= m; ty /= m;
+      let nx = -ty, ny = tx; const f = th - s*span; if (nx*Math.cos(f) + ny*Math.sin(f) < 0) { nx = -nx; ny = -ny; }
+      return [nx, ny, tx, ty];
+    };
+    const Q = (s, d) => { const p = P(s), n = N(s); return [p[0] + n[0]*d, p[1] + n[1]*d]; };          // d: distance towards the back
+    const U = (s, u) => { s = Math.max(0, Math.min(1, s)); const p = P(s), n = N(s), h = h0*prof(s); return [p[0] + n[0]*h*u, p[1] + n[1]*h*u]; }; // u: -1 belly .. 1 back
+    const ink = "#0A0B0F", pale = w.light ? "#F1EEE7" : "#FFFFFF";
+
+    // flukes, behind the body
+    const p1 = P(1), n1 = N(1), roll = Math.sin(-4.4*t + w.beat + .6);
+    g.save(); g.translate(p1[0], p1[1]); g.rotate(Math.atan2(n1[3], n1[2]) + .22*roll); g.scale(1, .62 + .38*Math.abs(Math.cos(-2.2*t + w.beat)));
+    const fl = L*.17; g.beginPath(); g.moveTo(-fl*.2, 0);
+    g.bezierCurveTo(fl*.25, fl*.32, fl*.7, fl*.72, fl*1.05, fl*.98); g.bezierCurveTo(fl*1.0, fl*.55, fl*.88, fl*.25, fl*.62, 0);
+    g.bezierCurveTo(fl*.88, -fl*.25, fl*1.0, -fl*.55, fl*1.05, -fl*.98); g.bezierCurveTo(fl*.7, -fl*.72, fl*.25, -fl*.32, -fl*.2, 0);
+    g.closePath(); g.fillStyle = ink; g.fill(); g.restore();
+
+    // the body
+    const body = new Path2D(), M = 72, D = [], V = [];
+    for (let i = 0; i <= M; i++) { const s = i < 14 ? .14*Math.pow(i/14, 2) : .14 + (i - 14)/(M - 14)*.86, p = P(s), n = N(s), h = h0*prof(s);
+      D.push([p[0] + n[0]*h, p[1] + n[1]*h]); V.push([p[0] - n[0]*h, p[1] - n[1]*h]); }
+    body.moveTo(D[0][0], D[0][1]); for (let i = 1; i <= M; i++) body.lineTo(D[i][0], D[i][1]);
+    for (let i = M; i >= 0; i--) body.lineTo(V[i][0], V[i][1]); body.closePath();
+    g.fillStyle = w.light ? pale : ink; g.fill(body);
+
+    g.save(); g.clip(body);
+    if (!w.light) { // white underside, with the pale flank patch behind the fin
+      const edge = [[0, 0], [.04, -.4], [.12, -.22], [.22, -.12], [.34, -.2], [.46, -.3], [.55, -.14], [.62, .28], [.68, .44], [.73, .08], [.8, -.4], [.9, -.7], [1, -.9]];
+      const pts = edge.map(e => U(e[0], e[1])); pts.push(U(1, -1.7), U(.5, -1.7), U(0, -1.7));
+      const pp = new Path2D(); smooth(pp, pts); g.fillStyle = pale; g.fill(pp);
+    } else { // the calf: a dark cape over a pale body
+      const edge = [[0, .8], [.05, .1], [.15, -.25], [.3, -.2], [.44, -.32], [.58, -.15], [.72, -.28], [.88, -.35], [1, -.4]];
+      const pts = edge.map(e => U(e[0], e[1])); pts.push(U(1, 1.8), U(.5, 1.8), U(0, 1.8));
+      const pp = new Path2D(); smooth(pp, pts); g.fillStyle = ink; g.fill(pp);
+    }
+    // the oval patch behind the eye, slanting towards the back
+    const e0 = U(.125, .5), en = N(.125), dx = en[2] + .42*en[0], dy = en[3] + .42*en[1];
+    g.beginPath(); g.ellipse(e0[0], e0[1], .052*L, .021*L, Math.atan2(dy, dx), 0, TAU); g.fillStyle = pale; g.fill();
+    if (!w.light) { // the grey saddle behind the fin
+      const s0 = U(.58, .8), sn = N(.58);
+      g.beginPath(); g.ellipse(s0[0], s0[1], .085*L, .034*L, Math.atan2(sn[3], sn[2]), 0, TAU); g.fillStyle = "#AEB2BA"; g.fill();
+    }
+    g.restore();
+
+    // fins: the tall back fin, and the paddle on the underside
+    const fin = new Path2D(), hh = w.fin*L;
+    let a0 = Q(.345, h0*prof(.345)*.8), a1 = Q(.385, h0*prof(.385) + hh*.62), a2 = Q(.47, h0*prof(.47) + hh), a3 = Q(.5, h0*prof(.5) + hh*.12), a4 = Q(.515, h0*prof(.515)*.8);
+    fin.moveTo(a0[0], a0[1]); fin.quadraticCurveTo(a1[0], a1[1], a2[0], a2[1]); fin.quadraticCurveTo(a3[0], a3[1], a4[0], a4[1]); fin.closePath();
+    g.fillStyle = ink; g.fill(fin);
+    const pec = new Path2D(), b0 = Q(.27, -h0*prof(.27)*.8), c0 = Q(.255, -(h0*prof(.255) + L*.13)), tp = Q(.41, -(h0*prof(.41) + L*.17)), c1 = Q(.44, -(h0*prof(.44) + L*.06)), b1 = Q(.385, -h0*prof(.385)*.8);
+    pec.moveTo(b0[0], b0[1]); pec.quadraticCurveTo(c0[0], c0[1], tp[0], tp[1]); pec.quadraticCurveTo(c1[0], c1[1], b1[0], b1[1]); pec.closePath();
+    g.fillStyle = ink; g.fill(pec);
+    return p1;
+  }
+
+  function draw(tms){
+    const t = tms/1000, dt = Math.min(.05, Math.max(0, t - lastT)); lastT = t;
+    g.clearRect(0, 0, W, H);
+    const pal = paletteAt(tms);
+    // a soft pool of light behind the family, in the colour the sea is drifting through
+    let gr = g.createRadialGradient(cx, cy, 0, cx, cy, S*.56);
+    gr.addColorStop(0, rgb(pal.b[0], .55)); gr.addColorStop(.6, rgb(pal.b[1], .22)); gr.addColorStop(1, rgb(pal.b[1], 0));
+    g.fillStyle = gr; g.fillRect(0, 0, W, H);
+    // dots turning slowly round the middle, faster nearer it, twinkling
+    for (const d of DOTS) {
+      const r = d.r*S, a = d.a + t*.1*(.28*S/r), edge = Math.max(0, Math.min(1, (.5*S - r)/(.12*S)));
+      const al = (.18 + .5*(.5 + .5*Math.sin(t*1.3 + d.tw)))*edge;
+      g.fillStyle = "rgba(255,255,255," + al.toFixed(3) + ")"; g.beginPath(); g.arc(cx + r*Math.cos(a), cy + r*Math.sin(a), d.z*Math.max(.8, S/520), 0, TAU); g.fill();
+    }
+    // bubbles from the tails
+    nextBubble -= dt;
+    const th = .5*t; // the whole family turns clockwise
+    const tails = WHALES.map(w => whale(w, t, th + w.phase));
+    if (!still && nextBubble <= 0) { nextBubble = .09 + rnd()*.1; const q = tails[rnd() < .6 ? 0 : 1]; bubbles.push({x:q[0] + (rnd() - .5)*8, y:q[1] + (rnd() - .5)*8, vx:(rnd() - .5)*10, vy:-(8 + rnd()*16), life:1, r:1.2 + rnd()*2.4}); }
+    for (let i = bubbles.length - 1; i >= 0; i--) {
+      const b = bubbles[i]; b.x += b.vx*dt*S/560; b.y += b.vy*dt*S/560; b.life -= dt/2.6;
+      if (b.life <= 0) { bubbles.splice(i, 1); continue; }
+      g.strokeStyle = "rgba(255,255,255," + (b.life*.75).toFixed(3) + ")"; g.lineWidth = 1.1; g.beginPath(); g.arc(b.x, b.y, b.r*S/560 + 1, 0, TAU); g.stroke();
+    }
+  }
+
+  if (opt.manual) return {draw:draw};
+  let run = true, visible = true;
+  if ("IntersectionObserver" in window) new IntersectionObserver(es => { visible = es[0].isIntersecting; }).observe(cv);
+  function frame(t){
+    if (!cv.isConnected || !run) return;
+    if (visible && !document.hidden) draw(t);
+    if (!still) requestAnimationFrame(frame);
+  }
+  if (still) draw(1700); else requestAnimationFrame(frame);
+  return {draw:draw, stop:() => { run = false; }};
 }
 
 /* The demo app: setup screens, the feed, the dashboard, the judge panels, the design lab and a simulated student. */
@@ -2506,6 +2794,7 @@ function getSection(){
   const ua = navigator.userAgent, ios = /iPhone|iPad|iPod/.test(ua) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
   const android = /Android/.test(ua), mine = ios ? "g-iphone" : android ? "g-android" : "g-computer";
   const card = $(mine); card.classList.add("mine"); card.querySelector(".badge").hidden = false;
+  const steps = card.querySelector("details.fold"); if (steps) steps.open = true; // the steps for your own device are open
   const link = location.origin + location.pathname.replace(/[^/]*$/, "") + "?app=1&card=1";
   $("cardLink").value = /^https?:$/.test(location.protocol) ? link : "(open this page on its web address to get the link)";
   $("copyLink").onclick = () => { const f = $("cardLink"); f.select(); try { navigator.clipboard.writeText(f.value); } catch (e) { document.execCommand("copy"); } $("copyLink").textContent = "Copied"; };
@@ -2751,16 +3040,21 @@ function motion(el, kind){
   let seed = 7; const rnd = () => (seed = (seed*16807) % 2147483647) / 2147483647;
   const G = 9, pts = []; for (let y=-G; y<H+G; y+=G) for (let x=-G; x<W+G; x+=G) pts.push([x+rnd()*G*.8, y+rnd()*G*.8, 4+rnd()*4, rnd(), rnd()*6.28]);
   const cyF = +el.dataset.cy || .5, sx = W*.2, sy = H*cyF, fadeN = Math.min(sy, H-sy)/STEP_ + .5;
+  let vis = true; // not drawn while it's scrolled out of view or the tab is hidden (nothing to see, and it's the busiest thing on the page)
+  if ("IntersectionObserver" in window) new IntersectionObserver(es => { vis = es[0].isIntersecting; }).observe(el);
   function frame(t){
     if (!el.isConnected) return;
-    sea(g, pts, W, H, sx, sy, t, el.dataset.scrim === "1");
-    const off = (t/1400) % N;
-    els.forEach((e,i) => { let k = ((i-off)%N+N)%N; if (k > N/2) k -= N; const y = k*STEP, a = Math.asin(Math.max(-1, Math.min(1, y/R)));
-      e.style.transform = "translate("+(BX + R*(1-Math.cos(a)))+"px,"+(sy+y-12)+"px) rotate("+(a*.8)+"rad)";
-      e.style.opacity = Math.max(0, 1-Math.abs(k)/fadeN);
-      const sel = Math.abs(k) < .5;
-      e.innerHTML = sel ? '<i>[ </i>'+esc(words[i][0])+'<i>]</i><em>'+esc(words[i][1])+'</em>' : esc(words[i][0]);
-      e.style.marginLeft = sel ? "-13px" : "0"; });
+    if ((vis || still) && !document.hidden) {
+      sea(g, pts, W, H, sx, sy, t, el.dataset.scrim === "1");
+      const off = (t/1400) % N;
+      els.forEach((e,i) => { let k = ((i-off)%N+N)%N; if (k > N/2) k -= N; const y = k*STEP, a = Math.asin(Math.max(-1, Math.min(1, y/R)));
+        e.style.transform = "translate("+(BX + R*(1-Math.cos(a)))+"px,"+(sy+y-12)+"px) rotate("+(a*.8)+"rad)";
+        e.style.opacity = Math.max(0, 1-Math.abs(k)/fadeN);
+        const sel = Math.abs(k) < .5;
+        if (sel !== e._sel) { e._sel = sel; // the words only change when one reaches or leaves the middle
+          e.innerHTML = sel ? '<i>[ </i>'+esc(words[i][0])+'<i>]</i><em>'+esc(words[i][1])+'</em>' : esc(words[i][0]);
+          e.style.marginLeft = sel ? "-13px" : "0"; } });
+    }
     if (!still) requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
@@ -3030,8 +3324,8 @@ function runAuto(total, perDayMins){
   };
   auto = setInterval(step, perDayMins?25:70);
 }
-$("auto").onclick = () => runAuto(80, 0);
-$("autoWeek").onclick = () => runAuto(7, 60);
+$("auto").onclick = () => { $("deep").open = true; runAuto(80, 0); };
+$("autoWeek").onclick = () => { $("deep").open = true; runAuto(7, 60); };
 
 /* ---------------- design lab ---------------- */
 let labSeed = 1, labAnki = null, labFile = null, labPage = 0;
@@ -3085,7 +3379,13 @@ $("labFile").addEventListener("change", e => {
 });
 window.addEventListener("resize", fitLab);
 
-if (!restore()) fresh(); render(true); if (!APP) { renderLab(); getSection(); } installOffer();
+/* The website's first screen: the sea behind the whole page (lighter at the top, darker as you scroll so the words
+   read) and the orcas in the hero. */
+function siteHero(){
+  seaBackdrop({swimmer:false, maxDpr:1.5, veil:() => .26 + .36*Math.min(1, scrollY/Math.max(1, innerHeight*.75)), slow:() => scrollY > innerHeight*.9});
+  orcaFamily($("orca"));
+}
+if (!restore()) fresh(); render(true); if (!APP) { renderLab(); getSection(); siteHero(); } installOffer();
 // ?card=1 (the iPhone Shortcut's link): open straight on a card, once setup is done
 if (/[?&]card=1\b/.test(location.search) && UI.onboarded && E.cards.length) testCard();
 })();

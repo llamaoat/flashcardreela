@@ -10,6 +10,10 @@
 - Clearer help when Android 13+ greys out the switch for an app installed from a file: the steps show before the
   student hits the wall (and say to tap the switch once first), and again if the switch didn't turn on.
 - Docs: a Google Play step-by-step (`docs/PLAY-STEPS.md`).
+- **The website has a new look** (it goes live when this is merged, with no new app version needed): a deep-sea
+  landing page with an orca and her calf circling in the sea, "How it works", the install steps folded away,
+  and the live demo below. The demo's welcome animation no longer runs while it's off-screen, and the sea draws
+  in a few strokes instead of thousands, so the page is lighter on phones. New share picture (`tools/og-image.py`).
 - **Going back to a card (Android).** Swipe back in TikTok, Instagram or YouTube and the card that sat
   there comes back, sliding down from the top. A card you did shows its answer with "You did this card
   already · Good" and isn't graded twice. One you swiped past says "You skipped this one. Have a go?" and

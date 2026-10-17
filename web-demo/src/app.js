@@ -77,6 +77,7 @@ function getSection(){
   const ua = navigator.userAgent, ios = /iPhone|iPad|iPod/.test(ua) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
   const android = /Android/.test(ua), mine = ios ? "g-iphone" : android ? "g-android" : "g-computer";
   const card = $(mine); card.classList.add("mine"); card.querySelector(".badge").hidden = false;
+  const steps = card.querySelector("details.fold"); if (steps) steps.open = true; // the steps for your own device are open
   const link = location.origin + location.pathname.replace(/[^/]*$/, "") + "?app=1&card=1";
   $("cardLink").value = /^https?:$/.test(location.protocol) ? link : "(open this page on its web address to get the link)";
   $("copyLink").onclick = () => { const f = $("cardLink"); f.select(); try { navigator.clipboard.writeText(f.value); } catch (e) { document.execCommand("copy"); } $("copyLink").textContent = "Copied"; };
@@ -322,16 +323,21 @@ function motion(el, kind){
   let seed = 7; const rnd = () => (seed = (seed*16807) % 2147483647) / 2147483647;
   const G = 9, pts = []; for (let y=-G; y<H+G; y+=G) for (let x=-G; x<W+G; x+=G) pts.push([x+rnd()*G*.8, y+rnd()*G*.8, 4+rnd()*4, rnd(), rnd()*6.28]);
   const cyF = +el.dataset.cy || .5, sx = W*.2, sy = H*cyF, fadeN = Math.min(sy, H-sy)/STEP_ + .5;
+  let vis = true; // not drawn while it's scrolled out of view or the tab is hidden (nothing to see, and it's the busiest thing on the page)
+  if ("IntersectionObserver" in window) new IntersectionObserver(es => { vis = es[0].isIntersecting; }).observe(el);
   function frame(t){
     if (!el.isConnected) return;
-    sea(g, pts, W, H, sx, sy, t, el.dataset.scrim === "1");
-    const off = (t/1400) % N;
-    els.forEach((e,i) => { let k = ((i-off)%N+N)%N; if (k > N/2) k -= N; const y = k*STEP, a = Math.asin(Math.max(-1, Math.min(1, y/R)));
-      e.style.transform = "translate("+(BX + R*(1-Math.cos(a)))+"px,"+(sy+y-12)+"px) rotate("+(a*.8)+"rad)";
-      e.style.opacity = Math.max(0, 1-Math.abs(k)/fadeN);
-      const sel = Math.abs(k) < .5;
-      e.innerHTML = sel ? '<i>[ </i>'+esc(words[i][0])+'<i>]</i><em>'+esc(words[i][1])+'</em>' : esc(words[i][0]);
-      e.style.marginLeft = sel ? "-13px" : "0"; });
+    if ((vis || still) && !document.hidden) {
+      sea(g, pts, W, H, sx, sy, t, el.dataset.scrim === "1");
+      const off = (t/1400) % N;
+      els.forEach((e,i) => { let k = ((i-off)%N+N)%N; if (k > N/2) k -= N; const y = k*STEP, a = Math.asin(Math.max(-1, Math.min(1, y/R)));
+        e.style.transform = "translate("+(BX + R*(1-Math.cos(a)))+"px,"+(sy+y-12)+"px) rotate("+(a*.8)+"rad)";
+        e.style.opacity = Math.max(0, 1-Math.abs(k)/fadeN);
+        const sel = Math.abs(k) < .5;
+        if (sel !== e._sel) { e._sel = sel; // the words only change when one reaches or leaves the middle
+          e.innerHTML = sel ? '<i>[ </i>'+esc(words[i][0])+'<i>]</i><em>'+esc(words[i][1])+'</em>' : esc(words[i][0]);
+          e.style.marginLeft = sel ? "-13px" : "0"; } });
+    }
     if (!still) requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
@@ -601,8 +607,8 @@ function runAuto(total, perDayMins){
   };
   auto = setInterval(step, perDayMins?25:70);
 }
-$("auto").onclick = () => runAuto(80, 0);
-$("autoWeek").onclick = () => runAuto(7, 60);
+$("auto").onclick = () => { $("deep").open = true; runAuto(80, 0); };
+$("autoWeek").onclick = () => { $("deep").open = true; runAuto(7, 60); };
 
 /* ---------------- design lab ---------------- */
 let labSeed = 1, labAnki = null, labFile = null, labPage = 0;
@@ -656,7 +662,13 @@ $("labFile").addEventListener("change", e => {
 });
 window.addEventListener("resize", fitLab);
 
-if (!restore()) fresh(); render(true); if (!APP) { renderLab(); getSection(); } installOffer();
+/* The website's first screen: the sea behind the whole page (lighter at the top, darker as you scroll so the words
+   read) and the orcas in the hero. */
+function siteHero(){
+  seaBackdrop({swimmer:false, maxDpr:1.5, veil:() => .26 + .36*Math.min(1, scrollY/Math.max(1, innerHeight*.75)), slow:() => scrollY > innerHeight*.9});
+  orcaFamily($("orca"));
+}
+if (!restore()) fresh(); render(true); if (!APP) { renderLab(); getSection(); siteHero(); } installOffer();
 // ?card=1 (the iPhone Shortcut's link): open straight on a card, once setup is done
 if (/[?&]card=1\b/.test(location.search) && UI.onboarded && E.cards.length) testCard();
 })();
