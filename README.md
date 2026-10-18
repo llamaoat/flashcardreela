@@ -22,7 +22,7 @@
 
 1. Download **[`Reelcards.apk`](release/Reelcards.apk)** onto the Android phone (from the Releases page, this repo, or a USB cable).
 2. Open it. If Android asks, allow your browser or Files app to **install unknown apps**, then tap **Install**.
-3. Open **Reelcards**. In a hurry? Tap **Quick start** on the first screen: it picks GCSE Biology and Chemistry, "Normal" and no exam date, and goes straight to the switch (change any of it later on the dashboard). Or follow the 4 short steps:
+3. Open **Reelcards** and tap **Get started** on the first screen: it picks GCSE Biology and Chemistry, "Normal" and no exam date, and goes straight to the switch (change any of it later on the dashboard). When the switch is on, a test card slides up by itself. To choose your own decks and exam date first, tap **Choose my decks and exam date first** and follow the 4 short steps:
    1. **Pick what you're revising:** a ready-made deck, paste your notes (*Copy the AI prompt* gets a chatbot you already use to turn them into cards), your Anki decks, or open an Anki file (.apkg).
    2. **Exam date, what you watch, how often:** pick your exam date, your interests (football, gaming, music…) and Chill (1 card every 8 reels), Normal (every 5) or Cram (every 3).
    3. **Switch it on:** tap *Open settings* → *Reelcards* → turn it on → *Allow*. It's the only permission.

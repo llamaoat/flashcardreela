@@ -2,10 +2,13 @@
 
 ## 1.3.2: going back to a card, smoother cards
 
-- **Quick start (Android).** One tap on the welcome screen picks GCSE Biology and Chemistry, "Normal" and no
-  exam date, and goes straight to the switch. The disclosure and the *Agree* tap are still there. Android
-  doesn't let an app switch its own accessibility service on, or allow its own restricted settings, so
-  those two steps stay with the student.
+- **Get started (Android).** The first screen's main button now picks GCSE Biology and Chemistry, "Normal" and
+  no exam date, and goes straight to the switch (the old questions are one link away: "Choose my decks and
+  exam date first"). The disclosure and the *Agree* tap are still there, and *Agree and open settings* now sits
+  right under the disclosure instead of below the steps. When the switch is on, a test card slides up by
+  itself. Android doesn't let an app switch its own accessibility service on, or allow its own restricted
+  settings, and an accessibility service can't bring its app back to the front, so those steps stay with the
+  student: in the app it's two taps, then Android's own switch.
 - **Switch Reelcards off** on the dashboard: one tap, no trip to Settings. It's the only setting Reelcards uses.
 - Clearer help when Android 13+ greys out the switch for an app installed from a file: the steps show before the
   student hits the wall (and say to tap the switch once first), and again if the switch didn't turn on.

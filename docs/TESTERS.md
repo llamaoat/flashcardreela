@@ -30,9 +30,9 @@ device highlighted. The rest of this page says the same in more detail.
 
 ## Set it up (about a minute)
 
-1. Tap **Set up in 1 minute**, or tap **Quick start** to let Reelcards choose (GCSE Biology and
-   Chemistry, "Normal" cards, no exam date) and skip to step 4. You can change all of that later on
-   the dashboard.
+1. Tap **Get started**. Reelcards chooses for you (GCSE Biology and Chemistry, "Normal" cards, no exam
+   date) and skips to step 4. You can change all of that later on the dashboard. To choose your own
+   deck and exam date first, tap **Choose my decks and exam date first**.
 2. **Pick what you're revising:** a ready-made deck, your own notes, or an Anki file. Tap **Next**.
 3. Choose your exam date and how often you want cards. For testing, pick **Demo**, which shows a
    card every two videos.

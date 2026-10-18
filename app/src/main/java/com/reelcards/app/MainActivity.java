@@ -302,13 +302,13 @@ public final class MainActivity extends Activity {
         col.addView(preview, pl);
         loadPreview(preview);
 
-        Button go = primary(col, "Set up in 1 minute", go(new Runnable() { @Override public void run() { addMode = false; showDecks(); } }), 18);
+        Button go = primary(col, "Get started", go(new Runnable() { @Override public void run() { quickStart(); } }), 18);
         go.setTextColor(MotionView.SEA); // a white pill on the sea
         go.setBackground(new RippleDrawable(ColorStateList.valueOf(0x220B2140), Ui.round(white, dp(26)), null));
-        TextView quickStart = Ui.linkButton(this, "Quick start: choose for me");
-        quickStart.setTextColor(white);
-        quickStart.setOnClickListener(go(new Runnable() { @Override public void run() { quickStart(); } }));
-        Ui.add(col, quickStart, 2);
+        TextView own = Ui.linkButton(this, "Choose my decks and exam date first");
+        own.setTextColor(white);
+        own.setOnClickListener(go(new Runnable() { @Override public void run() { addMode = false; showDecks(); } }));
+        Ui.add(col, own, 2);
         Ui.add(col, Ui.text(this, "Free. Works offline. Nothing you watch is saved or sent anywhere.", 13, 0x99FFFFFF, Ui.BODY), 10);
     }
 
@@ -329,7 +329,7 @@ public final class MainActivity extends Activity {
     }
 
     /**
-     * One tap in place of the questions: GCSE Biology and Chemistry, "Normal", no exam date, straight to the switch.
+     * "Get started": one tap in place of the questions: GCSE Biology and Chemistry, "Normal", no exam date, straight to the switch.
      * The disclosure and the Agree tap are still on that page. Everything here can be changed from the dashboard.
      */
     private void quickStart() {
@@ -905,10 +905,10 @@ public final class MainActivity extends Activity {
         LinearLayout col = page("permission", new Runnable() {
             @Override public void run() { if (permissionFromDashboard) { permissionFromDashboard = false; showDashboard(); } else showExam(); }
         });
-        if (!permissionFromDashboard) { if (quick) Ui.add(col, Ui.label(this, "Quick start: one last step"), 0); else steps(col, 3); }
+        if (!permissionFromDashboard) { if (quick) Ui.add(col, Ui.label(this, "One last step"), 0); else steps(col, 3); }
         Ui.add(col, Ui.title(this, "Switch it on"), permissionFromDashboard ? 0 : 18);
         Ui.add(col, Ui.body(this, "Reelcards needs to notice when you swipe to a new reel, and draw a card on top. Android calls this an accessibility service. It's the only permission we ask for."), 8);
-        if (quick && !permissionFromDashboard) Ui.add(col, Ui.muted(this, "Quick start picked GCSE Biology and Chemistry, no exam date and “Normal” cards. You can change all of that on the dashboard afterwards."), 8);
+        if (quick && !permissionFromDashboard) Ui.add(col, Ui.muted(this, "We picked GCSE Biology and Chemistry, no exam date and “Normal” cards for you. You can change all of that on the dashboard afterwards."), 8);
         final boolean stuck = blockedHint; // came back from Settings and it isn't on: the likely reason goes first
         blockedHint = false;
         final boolean fromFile = !stuck && maybeRestricted();
@@ -929,11 +929,8 @@ public final class MainActivity extends Activity {
         Ui.add(promise, policy, 6);
         Ui.add(col, promise, 16);
 
-        Ui.add(col, Ui.label(this, "How"), 20);
-        String[] how = {"Read what it does above, then tap “Agree and open settings”", "Find Reelcards (often under “Installed apps” or “Downloaded apps”)", "Turn it on, then tap Allow", "Come back here. We'll notice"};
-        numberedSteps(col, how);
-        if (fromFile) Ui.add(col, restrictedPanel("Installed from a file? Read this first", false), 16);
-        Ui.add(col, Ui.muted(this, "Tapping “Agree” means you're happy for Reelcards to use the accessibility service as described above. You can switch it off any time in Settings."), 18);
+        Ui.add(col, Ui.muted(this, "Tapping “Agree” means you're happy for Reelcards to use the accessibility service as described above. You can switch it off any time in Settings, or with “Switch Reelcards off” on the dashboard."), 18);
+        if (fromFile) Ui.add(col, Ui.muted(this, "Installed from a file? Android may grey the switch out. The steps for that are just below."), 8);
         primary(col, "Agree and open settings", go(new Runnable() {
             @Override public void run() {
                 Store.prefs(MainActivity.this).edit().putLong("disclosure_agreed", System.currentTimeMillis()).apply();
@@ -945,7 +942,11 @@ public final class MainActivity extends Activity {
         no.setOnClickListener(go(new Runnable() { @Override public void run() { if (back != null) back.run(); } }));
         Ui.add(col, no, 4);
 
-        if (!stuck && !fromFile) Ui.add(col, restrictedPanel("Switch greyed out?", false), 18);
+        Ui.add(col, Ui.label(this, "What happens next"), 20);
+        String[] how = {"Android opens Accessibility settings", "Find Reelcards (often under “Installed apps” or “Downloaded apps”) and tap it", "Turn it on, then tap Allow", "Come back here. We'll notice"};
+        numberedSteps(col, how);
+        if (fromFile) Ui.add(col, restrictedPanel("Installed from a file? Read this first", false), 16);
+        else if (!stuck) Ui.add(col, restrictedPanel("Switch greyed out?", false), 16);
 
         TextView skip = Ui.linkButton(this, "Not now: try the practice feed instead");
         skip.setOnClickListener(go(new Runnable() { @Override public void run() { startActivity(new Intent(MainActivity.this, PracticeFeedActivity.class)); } }));
@@ -1034,10 +1035,23 @@ public final class MainActivity extends Activity {
 
     // ------------------------------------------------------------------ step 4: try it
 
+    private boolean autoCardDone; // "Get started" shows one test card by itself, the first time the switch is on
+
+    /** Tries a few times: the service can take a moment to connect after the switch goes on. */
+    private void autoTestCard(final int tries) {
+        new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(new Runnable() {
+            @Override public void run() {
+                if (!"try".equals(screen)) return;
+                if (!ReelWatcherService.showTestCard() && tries < 6) autoTestCard(tries + 1);
+            }
+        }, tries == 0 ? 700 : 400);
+    }
+
     private void showTry() {
         if (permissionFromDashboard) { permissionFromDashboard = false; showDashboard(); return; }
+        if (quick && !autoCardDone) { autoCardDone = true; autoTestCard(0); }
         LinearLayout col = page("try", new Runnable() { @Override public void run() { showExam(); } });
-        if (quick) Ui.add(col, Ui.label(this, "Quick start: all set"), 0); else steps(col, 4);
+        if (quick) Ui.add(col, Ui.label(this, "All set"), 0); else steps(col, 4);
         Ui.add(col, Ui.title(this, "It's on. Try it"), 18);
         Ui.add(col, Ui.body(this, "Tap below for a test card right here. Then open your usual app and scroll: after a short warm-up, a card slips in every " + engine.settings.baseGap() + " reels."), 8);
         primary(col, "Show me a test card", go(new Runnable() {
