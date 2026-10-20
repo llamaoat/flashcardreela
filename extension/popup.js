@@ -17,8 +17,12 @@ function dataUrl(bytes, type){ let s = ""; for (let i = 0; i < bytes.length; i +
 function draw(){
   const t = Date.now(), k = E.dk(t), d = E.day(k), due = E.cards.filter(c => c.state !== RC.NEW && c.due <= t).length;
   $("stats").innerHTML = [[d.reviews,"done today"],[due,"due now"],[E.cards.length,"cards"]].map(x => '<div><b>'+x[0]+'</b><small>'+x[1]+'</small></div>').join("");
-  const p = E.settings.pausedUntil > t;
+  const p = E.settings.pausedUntil > t, off = !!meta.off;
   $("pause").textContent = p ? "Resume cards" : "Pause for 1 hour";
+  $("pause").hidden = off;
+  $("off").textContent = off ? "Switch on" : "Switch off";
+  $("state").textContent = off ? "Reelcards is off: no cards will appear until you switch it on." : p ? "Paused: cards come back in an hour, or when you resume." : "";
+  $("start").hidden = E.cards.length > 0;
   const have = new Set(E.cards.map(c => c.deck));
   $("decks").innerHTML = Object.keys(DECKS).map(n => '<label class="row"><input type="checkbox" data-deck="'+n+'"'+(have.has(n)?" checked":"")+'> '+n+' <span class="muted">('+DECKS[n].length+')</span></label>').join("");
   $("exam").value = String(meta.exam == null ? 14 : meta.exam);
@@ -45,6 +49,23 @@ $("vibes").addEventListener("change", e => {
 });
 $("exam").onchange = () => { const days = +$("exam").value; change((E2, m2) => setExam(E2, m2, days)); };
 $("intensity").onchange = () => { const v = $("intensity").value; change(E2 => { E2.settings.intensity = v; }); };
+$("off").onclick = () => change((E2, m2) => { m2.off = !m2.off; });
+/* One click, as in the app: GCSE Biology and Chemistry, "Normal", no exam date, then a test card on this tab if it's one of the sites */
+$("go").onclick = () => {
+  change((E2, m2) => {
+    if (!E2.cards.length) { E2.addCards(deckCards("GCSE Biology")); E2.addCards(deckCards("GCSE Chemistry")); }
+    E2.settings.intensity = "normal"; setExam(E2, m2, 0); m2.off = false;
+  }).then(() => {
+    chrome.tabs.query({active: true, currentWindow: true}, tabs => {
+      const t = tabs[0], later = () => { $("goMsg").textContent = "You're set. Open TikTok, Instagram Reels, YouTube Shorts or X and scroll: a card slips in every few videos."; };
+      if (!t) { later(); return; }
+      chrome.tabs.sendMessage(t.id, {type: "testCard"}, r => {
+        if (chrome.runtime.lastError || !r || !r.ok) { later(); return; }
+        if (location.hash !== "#tab") window.close();
+      });
+    });
+  });
+};
 $("pause").onclick = () => change(E2 => { E2.settings.pausedUntil = E2.settings.pausedUntil > Date.now() ? 0 : Date.now() + 60*60000; });
 $("makeCards").onclick = () => {
   const r = parseNotes($("notes").value, $("notesDeck").value.trim() || "My notes");

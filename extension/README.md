@@ -17,15 +17,23 @@ Android app and the web demo.
 
 ## Use it
 
-1. In the popup, tick a ready-made deck, paste your notes, or open an Anki file. Set your exam date,
-   and how often you want cards (*Demo* shows one every 2 videos, which is handy for trying it).
+1. Click the icon, then **Get started**. One click picks GCSE Biology and Chemistry, "Normal" cards and no
+   exam date, and shows a test card if you're on one of the sites. Everything is still there to change
+   in the popup: other ready-made decks, your own notes, an Anki file, your exam date, and how often you
+   want cards (*Demo* shows one every 2 videos, which is handy for trying it).
 2. Open TikTok, Instagram Reels, YouTube Shorts or X and scroll as normal.
 3. When a card appears:
    - **click** to see the answer;
    - **double-click** (or the heart) if you knew it;
    - **scroll on**, press **↓** or **Esc**, or click **Next ↓** to move on;
    - **Pause 1 hour** stops cards for a while.
-4. To try it straight away, open one of the sites and click **Show a test card on this tab** in the popup.
+4. **Going back to a card:** scroll or press **↑** back to the video before and the card that sat there
+   comes back, sliding down from the top (as in the Android app). A card you did shows its answer, says
+   "You did this card already · Good" and isn't graded twice. One you scrolled past says "You skipped
+   this one. Have a go?" and counts when you answer it. Going back never counts as a new video.
+5. **Switch off** in the popup stops all cards until you press **Switch on**. (Pause for an hour is the
+   gentler version.) A test card still works while it's off.
+6. To try it straight away, open one of the sites and click **Show a test card on this tab** in the popup.
 
 The popup shows what you've done today and what's due, and *Reset everything* clears it all.
 
@@ -35,6 +43,10 @@ The popup shows what you've done today and what's due, and *Reset everything* cl
   screen). On YouTube Shorts and Instagram Reels the page address changes with each video. On TikTok and
   X a new video element counts, and on X only a video that's actually playing. When the video changes,
   it asks the engine whether to show a card, exactly as the Android app does when a reel is swiped.
+- It keeps a short trail of the videos of this visit (the last 30, in the page's memory only). A card
+  is shown on arriving at a video and sits just before it, so coming back to the video before it passes
+  through the card's place and brings the card back. The same idea as the slots in the Android app's
+  `ReelWatcherService`. A video change while a card is up is noted but doesn't count.
 - The card is drawn in a shadow root, so the site's styles can't touch it, scaled from the app's
   360 × 740 design to fit the window. While it's up, the page's videos stay paused.
 - `state.js` keeps everything in `chrome.storage.local`, shared by every tab and the popup.
@@ -50,12 +62,23 @@ The popup shows what you've done today and what's due, and *Reset everything* cl
 - **Sites change their pages.** Detection relies on how each site lays out its videos, which they can
   change at any time. It has been tested on stand-in pages that behave like each feed, not on the live
   sites (this project's test machines can't reach them), so try it and report what breaks.
+- **Going back leans on that detection too.** TikTok and X are told apart by their video elements, and if
+  a site reuses one element for different videos, "back" looks like a new video: you just don't get the old
+  card back, and nothing else goes wrong.
 - Not in the Chrome Web Store yet: install it as above. Firefox and Safari need small changes.
 - Tabs share one save. Every change takes a lock in `background.js`, re-reads the newest save, changes it and saves, so tabs never undo each other's progress.
+
+## Test it
+
+`tools/extension-test.py` loads this folder in a real Chromium and drives the popup and stand-in pages that
+behave like each site's feed (cards slipping in, Get started, Switch off, scrolling back to a card). It
+needs Python with Playwright (`pip install playwright`); set `CHROMIUM=/path/to/chrome` if Playwright's own
+browser isn't installed. It takes a few minutes and exits 1 if anything fails. `python3 tools/extension-test.py revisit`
+runs one test.
 
 ## Privacy
 
 It has no network access of its own and sends nothing anywhere. On the four sites it looks only at the
 size and position of video elements and, on YouTube and Instagram, the page address, to tell one
-video from the next. It doesn't read text on the page or keep a record of what you watch. See
-`PRIVACY.md`.
+video from the next. It doesn't read text on the page. It remembers the last 30 videos of a visit in the
+page's memory so that "back" works, and that list is never saved or sent. See `PRIVACY.md`.

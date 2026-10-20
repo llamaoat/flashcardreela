@@ -190,7 +190,15 @@ function hush(){ try { window.speechSynthesis && speechSynthesis.cancel(); } cat
 /* ---------------- phone screens ---------------- */
 const stepbar = n => '<div class="steplbl">Step '+n+' of 4</div><div class="stepbar">'+[1,2,3,4].map(i=>'<i class="'+(i<=n?"on":"")+'"></i>').join("")+'</div>';
 const choice = (act,val,title,sub,on,dis) => '<button class="choice'+(on?" on":"")+'" data-act="'+act+'" data-v="'+esc(val)+'"'+(dis?" disabled":"")+'><span class="t"><b>'+esc(title)+'</b>'+(sub?'<small>'+esc(sub)+'</small>':'')+'</span><span class="m">'+(on?"✓":"")+'</span></button>';
-const tabs = () => UI.onboarded ? '<div class="tabs'+(UI.screen==="dash"?" ondash":"")+'"><button data-act="tab" data-v="dash" class="'+(UI.screen==="dash"?"on":"")+'">Reelcards</button><button data-act="tab" data-v="feed" class="'+(UI.screen==="feed"?"on":"")+'">For You</button></div>' : "";
+/* The top bar is the app's own (TikTok: centred tabs and a search; Instagram: a big "Reels" and a camera; YouTube: "Shorts", a search and a menu),
+   with a Reelcards button that opens the dashboard. On the dashboard itself it's the plain pair of tabs. */
+const FEEDTAB = {tiktok:"For You", instagram:"Reels", youtube:"Shorts"};
+function tabs(){
+  if (!UI.onboarded) return "";
+  const dash = UI.screen === "dash", I = Render.I;
+  const icons = dash ? "" : {tiktok:'<span class="tic">'+I.search+'</span>', instagram:'<span class="tic">'+I.camera+'</span>', youtube:'<span class="tic">'+I.search+'</span><span class="tic">'+I.dots+'</span>'}[UI.host] || "";
+  return '<div class="tabs'+(dash ? " ondash" : " h-"+UI.host)+'"><button data-act="tab" data-v="dash" class="'+(dash?"on":"")+'">Reelcards</button><button data-act="tab" data-v="feed" class="'+(dash?"":"on")+'">'+(dash ? "For You" : FEEDTAB[UI.host] || "For You")+'</button>'+icons+'</div>';
+}
 let timers = [];
 const clearTimers = () => { timers.forEach(clearTimeout); timers = []; };
 
@@ -261,7 +269,7 @@ function renderPhone(anim){
 
 function feedHTML(){
   const it = UI.current;
-  if (!it) return tabs()+'<div class="reel plain-reel" style="background:#16161b"><div class="big">For you</div><div class="small">Swipe up to start scrolling</div></div>';
+  if (!it) return tabs()+Render.plainReel(0, 215, UI.host);
   if (it.kind === "reel") return tabs()+Render.plainReel(it.n, it.hue, UI.host);
   return tabs()+Render.card(it, Object.assign(cardOpts(), {coach: it.coach && !it.revealed && !it.liked && it.pick<0}));
 }
@@ -413,7 +421,7 @@ function renderSide(){
     return '<tr><td>'+(c.saved?"★ ":"")+esc(c.f)+'</td><td>'+esc(c.deck)+'</td><td>'+st+'</td><td class="num">'+(c.state===NEW?"–":Math.round(E.fsrs.recallNow(c,t)*100)+"%")+'</td><td class="num">'+(c.state===NEW?"–":RC.human(c.s))+'</td><td class="num">'+(c.state===NEW?"–":(c.due<=t?"due now":"in "+RC.human((c.due-t)/DAY)))+'</td><td>'+(c.grade?'<span class="chip '+c.grade+'">'+c.grade+'</span>':'–')+'</td><td class="num">'+c.skips+'</td></tr>'; }).join("") : '<tr><td colspan="8" class="muted">No cards yet. Finish step 1 on the phone.</td></tr>';
   $("anki").innerHTML = E.anki.length ? E.anki.map(a=>'<div><span class="chip '+a.g+'" style="margin-right:6px">'+a.g+'</span>'+esc(a.line)+'</div>').join("") : '<span class="muted">Nothing graded yet.</span>';
   $("hint").hidden = UI.onboarded; $("gestures").hidden = !UI.onboarded;
-  $("hostbar").innerHTML = HOSTS.map(([h,l])=>'<button data-host="'+h+'" class="'+(UI.host===h?"on":"")+'" aria-pressed="'+(UI.host===h)+'">'+(UI.host===h?"Scrolling in ":"")+l+'</button>').join("");
+  $("hostbar").innerHTML = '<span class="hostlbl">Scrolling in</span>'+HOSTS.map(([h,l])=>'<button data-host="'+h+'" class="'+(UI.host===h?"on":"")+'" aria-pressed="'+(UI.host===h)+'">'+l+'</button>').join("");
 }
 function render(anim){ renderPhone(anim); renderSide(); saveSoon(); }
 
@@ -549,7 +557,18 @@ $("apkgFile").addEventListener("change", e => {
   f.arrayBuffer().then(b => importApkg(new Uint8Array(b), f.name, "file:" + f.name)).then(r => { UI.apkg = r; renderPhone(false); }, err => { UI.apkg = {error: "Couldn't read that file: " + err.message, name: f.name}; renderPhone(false); });
 });
 $("screen").addEventListener("input", e => { if (e.target.id==="ntext") UI.notesText = e.target.value; if (e.target.id==="ndeck") UI.notesDeck = e.target.value; });
-$("hostbar").addEventListener("click", e => { const b = e.target.closest("[data-host]"); if (!b) return; UI.host = b.dataset.host; if (UI.current && UI.current.kind==="card") UI.current.host = UI.host; render(false); });
+/* Before setup, an app's button shows how Reelcards looks in it: the demo's usual choices, one of their normal reels, then a card slips in. */
+function previewIn(){
+  skipSetup(); swipe();
+  if (UI.current && UI.current.kind === "reel") { const n = UI.reelN; timers.push(setTimeout(() => { if (UI.screen === "feed" && UI.current && UI.current.kind === "reel" && UI.reelN === n) testCard(); }, 1600)); }
+}
+$("hostbar").addEventListener("click", e => {
+  const b = e.target.closest("[data-host]"); if (!b) return;
+  UI.host = b.dataset.host; if (UI.current && UI.current.kind==="card") UI.current.host = UI.host;
+  if (!UI.onboarded) { previewIn(); return; }
+  if (UI.screen === "dash") UI.screen = "feed"; // so the change shows
+  render(false);
+});
 
 let busy = false, ty = null;
 $("phone").addEventListener("wheel", e => { if (UI.screen!=="feed") return; e.preventDefault(); if (busy || Math.abs(e.deltaY) < 20) return; busy = true; swipe(); setTimeout(()=>busy=false, 450); }, {passive:false});

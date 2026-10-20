@@ -31,7 +31,13 @@ const I = {
   bookmark: f => '<svg viewBox="0 0 24 24" fill="'+(f?"currentColor":"none")+'" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M6 3.5h12v17l-6-4.2-6 4.2z"/></svg>',
   share: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M13.5 4.5 21 11l-7.5 6.5v-3.8C8 13.7 5 15.5 3 19.5c.6-5.8 3.6-9.9 10.5-11z"/></svg>',
   send: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M21 3.5 3 10.2l7.2 2.6L21 3.5zm0 0-7.6 17-3.2-7.7"/></svg>',
-  note: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M9 17.5a3 3 0 1 1-2-2.8V5l11-2v11.5a3 3 0 1 1-2-2.8V7.3l-7 1.3z"/></svg>'
+  note: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M9 17.5a3 3 0 1 1-2-2.8V5l11-2v11.5a3 3 0 1 1-2-2.8V7.3l-7 1.3z"/></svg>',
+  // for the top bars and the normal reels in the demo
+  comment: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 3.5c5 0 9 3.4 9 7.7s-4 7.7-9 7.7c-1 0-2-.1-2.9-.4L4 20.5l1.3-4C3.8 15 3 13.2 3 11.2 3 6.9 7 3.5 12 3.5z"/></svg>',
+  remix: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 10V8.5A3.5 3.5 0 0 1 8.5 5H18"/><path d="m15.5 2.5 2.7 2.5-2.7 2.5"/><path d="M19 14v1.5a3.5 3.5 0 0 1-3.5 3.5H6"/><path d="m8.5 16.5-2.7 2.5 2.7 2.5"/></svg>',
+  search: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5"/></svg>',
+  camera: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 8h3l1.6-2.4h6.8L17 8h3a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13" r="3.6"/></svg>',
+  dots: '<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.9"/><circle cx="12" cy="12" r="1.9"/><circle cx="12" cy="19" r="1.9"/></svg>'
 };
 
 /* The key word in a question: the longest word of 5+ letters (what auto-captions highlight). */
@@ -257,11 +263,34 @@ function card(it, opts){
     railHTML(it, host)+bandHTML(it, host)+'<div class="prog"><i style="animation-duration:'+dur.toFixed(1)+'s"></i></div></div>';
 }
 
-/* A normal reel from someone's feed (the thing the card sits between). */
+/* A normal reel from someone's feed (the thing the card sits between), dressed as the app the student is in: that app's
+   rail with its counts, its caption band, and soft moving colour behind, in the colour of the reel (that's what "match the reel" uses). Only words and generic shapes, no logos.
+   n = 0 is the screen before the first swipe. The numbers come from n, so a reel looks the same every time it's drawn. */
+const PEOPLE = [["dan.cooks","day 12 of learning to cook","cooking","I learned to cook in 12 days"], ["footy.clips","this goal though","football","This goal is unreal"],
+  ["mia.dance","wait for the drop","dance","Wait for the drop"], ["techtalk","tutorial in comments","tech","A 30 second phone trick"], ["catsofldn","he really did that","cats","He really did that"],
+  ["gymtok.sam","rate this set","gym","Rate this set"], ["fitcheck","rate this fit","fitcheck","Rate this fit"], ["minecraft.builds","wait for the ending","minecraft","Wait for the ending"]];
+const APPNAME = {tiktok:"TikTok", instagram:"Instagram", youtube:"YouTube"};
 function plainReel(n, hue, host){
-  const creators=["@dan.cooks","@footy.clips","@mia.dance","@techtalk","@catsofldn","@gymtok.sam","@fitcheck","@minecraft.builds"],caps=["wait for the ending","day 12 of learning to cook","this goal though","rate this fit","he really did that","tutorial in comments"];
-  return '<div class="reel plain-reel" style="background:radial-gradient(circle at 50% 35%,hsl('+hue+' 45% 30%),hsl('+hue+' 40% 12%))"><div class="big">Reel '+n+'</div><div class="small">(their normal '+({instagram:"Instagram",youtube:"YouTube"}[host]||"TikTok")+' video plays here)</div>'+
-    '<div style="position:absolute;left:18px;bottom:15%;text-align:left;color:#fff;font-size:13px;text-shadow:0 1px 2px #000"><b style="font-size:14px">'+creators[n%8]+'</b><br>'+caps[n%6]+'</div></div>';
+  host = host === "instagram" || host === "youtube" ? host : "tiktok";
+  const r = k => ((n * 7919 + k * 104729) % 9973) / 9973;                       // a steady number from 0 to 1 for this reel
+  const count = (k, lo, hi) => { const v = Math.round(lo * Math.pow(hi / lo, r(k)));
+    return v >= 1e6 ? (v / 1e6).toFixed(1) + "M" : v >= 1e4 ? Math.round(v / 1e3) + "K" : v >= 1e3 ? Math.floor(v / 1e3) + "," + String(v % 1e3).padStart(3, "0") : String(v); };
+  const p = PEOPLE[n % PEOPLE.length], who = esc(p[0]), ini = esc(p[0][0].toUpperCase()), av = "hsl(" + ((n * 53 + 20) % 360) + " 62% 52%)";
+  const st = (icon, label, cls) => '<div class="st' + (cls ? " " + cls : "") + '"><i>' + icon + '</i><span>' + label + '</span></div>';
+  let rail, band;
+  if (host === "youtube") {
+    rail = st(I.thumb(false), count(1, 900, 4e5)) + st(I.thumb(false), "Dislike", "flip") + st(I.comment, count(2, 40, 9e3)) + st(I.share, "Share") + st(I.remix, "Remix") + '<div class="tile" style="background:' + av + '">' + ini + '</div>';
+    band = '<div class="title">' + esc(p[3]) + ' <span class="tags">#shorts</span></div><div class="who"><span class="dot" style="background:' + av + '">' + ini + '</span>@' + who.replace(/\./g, "") + ' <span class="pill">Subscribe</span></div><div class="sound">' + I.note + '<span>original sound · ' + who + '</span></div>';
+  } else if (host === "instagram") {
+    rail = st(I.heart(false), count(1, 900, 3e5)) + st(I.comment, count(2, 30, 6e3)) + st(I.send, count(3, 60, 4e4)) + st(I.dots, "", "more") + '<div class="tile" style="background:linear-gradient(135deg,' + av + ',hsl(' + ((n * 53 + 140) % 360) + ' 70% 42%))"></div>';
+    band = '<div class="who"><span class="dot" style="background:' + av + '">' + ini + '</span>' + who + ' <span class="pill">Follow</span></div><div class="capline">' + esc(p[1]) + ' <span class="tags">#' + p[2] + '</span></div><div class="sound">' + I.note + '<span>Original audio · ' + who + '</span></div>';
+  } else {
+    rail = '<div class="av" style="background:' + av + '">' + ini + '</div>' + st(I.heart(true), count(1, 900, 4e6)) + st(I.comment, count(2, 40, 2e5)) + st(I.bookmark(true), count(3, 80, 6e5)) + st(I.share, count(4, 30, 9e4)) + '<div class="disc"><b style="background:' + av + '"></b></div>';
+    band = '<div class="who">@' + who + '</div><div class="capline">' + esc(p[1]) + ' <span class="tags">#' + p[2] + ' #fyp</span></div><div class="sound">' + I.note + '<span>original sound · ' + who + '</span></div>';
+  }
+  return '<div class="reel fr h-' + host + '"><div class="foot s' + (n % 3) + '" style="--h:' + hue + '"></div><div class="scrim"></div>' +
+    '<div class="mid"><b>' + (n ? "Reel " + n : "For you") + '</b><span>' + (n ? "Their normal " + APPNAME[host] + " video plays here" : "Swipe up to start scrolling") + '</span></div>' +
+    '<div class="rail">' + rail + '</div><div class="band">' + band + '</div><div class="prog"><i style="animation-duration:' + (9 + r(9) * 8).toFixed(1) + 's"></i></div></div>';
 }
 
 /* A picture full screen (mirrors CardView.zoom): pinch, scroll or double-click to zoom, drag to move, and a

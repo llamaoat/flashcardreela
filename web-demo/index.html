@@ -56,7 +56,8 @@ h1 span{color:var(--muted);font-weight:500}
 @media (max-width:940px){.main{grid-template-columns:minmax(0,1fr)}}
 .phonecol{display:flex;flex-direction:column;gap:10px;align-items:center;position:sticky;top:12px}
 @media (max-width:940px){.phonecol{position:static}}
-.hostbar{display:flex;gap:6px;flex-wrap:wrap;justify-content:center}
+.hostbar{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;align-items:center}
+.hostlbl{font-size:12.5px;color:var(--muted);font-weight:600;margin-right:2px}
 .hostbar button,.chipbtn{min-height:34px;padding:4px 12px;border-radius:999px;border:1px solid var(--line);background:var(--panel2);color:var(--text);font-size:12.5px;font-weight:600}
 .hostbar button.on,.chipbtn.on{background:var(--accent);border-color:var(--accent);color:var(--onaccent)}
 .phone{width:360px;max-width:100%;aspect-ratio:360/740;border-radius:42px;border:8px solid var(--frame);background:#000;position:relative;overflow:hidden;user-select:none;-webkit-user-select:none;box-shadow:0 30px 60px -30px rgba(0,0,0,.35)}
@@ -199,6 +200,17 @@ select{min-height:40px;border-radius:10px;border:1px solid var(--line);backgroun
 .tabs button{pointer-events:auto;background:none;border:none;color:#ffffffa0;font-weight:800;font-size:14px;padding:6px 2px;min-height:34px;text-shadow:0 1px 3px #000}
 .tabs button.on{color:#fff;border-bottom:2px solid #fff}
 .tabs.ondash button{color:rgba(255,255,255,.7);text-shadow:none;font-weight:500}.tabs.ondash button.on{color:#fff;border-bottom-color:#fff}
+/* the app's own top bar: TikTok has centred tabs and a search; Instagram a big "Reels" and a camera; YouTube "Shorts", a search and a menu */
+.tabs .tic{position:absolute;top:12px;right:14px;width:22px;height:22px;color:#fff;filter:drop-shadow(0 1px 3px rgba(0,0,0,.6))}
+.tabs .tic svg{display:block;width:100%;height:100%}
+.tabs.h-instagram,.tabs.h-youtube{justify-content:flex-start;align-items:center;padding:4px 14px 0;gap:12px}
+.tabs.h-instagram button[data-v=feed],.tabs.h-youtube button[data-v=feed]{order:-1;color:#fff;border:0;padding:0;min-height:36px;letter-spacing:-.4px}
+.tabs.h-instagram button[data-v=feed]{font-size:23px;font-weight:700}
+.tabs.h-youtube button[data-v=feed]{font-size:21px;font-weight:700;letter-spacing:-.5px}
+.tabs.h-instagram button[data-v=dash],.tabs.h-youtube button[data-v=dash]{font-size:11.5px;font-weight:700;color:#ffffffe0;border:1.5px solid rgba(255,255,255,.5);border-radius:999px;padding:1px 9px;min-height:0;text-shadow:none}
+.tabs.h-instagram .tic{width:27px;height:27px;top:9px}
+.tabs.h-youtube .tic{width:24px;height:24px;top:11px}
+.tabs.h-youtube .tic:nth-of-type(1){right:46px}
 .settings-sim{position:absolute;inset:0;background:#f4f4f6;color:#1b1b1f;z-index:20;display:flex;flex-direction:column;padding:28px 16px;gap:10px}
 .settings-sim .lbl{font-size:10.5px;text-transform:uppercase;letter-spacing:.08em;color:#6b6b75;font-weight:800}
 .settings-sim .row2{display:flex;align-items:center;justify-content:space-between;background:#fff;border-radius:14px;padding:14px;min-height:56px}
@@ -206,11 +218,54 @@ select{min-height:40px;border-radius:10px;border:1px solid var(--line);backgroun
 .switch::after{content:"";position:absolute;top:3px;left:3px;width:24px;height:24px;border-radius:50%;background:#fff;transition:left .2s}
 .switch.on{background:#2f6bff}.switch.on::after{left:25px}
 
-/* ---------- plain reels (someone's normal feed) ---------- */
+/* ---------- plain reels (someone's normal feed), dressed as the app being used ----------
+   They share the card's safe zones and positions, so a card slips in where a reel's own rail and caption were. */
 .reel{position:absolute;inset:0;overflow:hidden}
-.plain-reel{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:8px}
-.plain-reel .big{font-family:var(--display);font-size:40px;text-transform:uppercase;color:#ffffffd9}
-.plain-reel .small{color:#ffffffa6;font-size:13px;max-width:24ch}
+.reel.fr{--st:5.6%;--sb:16.7%;--sl:5.6%;--sr:11.1%;--hf:var(--f-tiktok);background:#0e0e10;color:#fff;font-family:var(--hf)}
+.reel.fr.h-instagram{--st:10.9%;--sb:16.1%;--sl:3.7%;--sr:7.8%;--hf:var(--f-instagram)}
+.reel.fr.h-youtube{--st:6.3%;--sb:15.6%;--sl:4.4%;--sr:8.9%;--hf:var(--f-youtube)}
+/* the "video": three kinds of scene (two soft lights, a low sun over a horizon, out-of-focus lights), all in the reel's hue */
+.fr .foot{position:absolute;inset:0;z-index:0;background-color:hsl(var(--h) 42% 9%);background-repeat:no-repeat;background-size:140% 140%;animation:footdrift 11s ease-in-out infinite alternate}
+.fr .foot.s0{background-image:radial-gradient(55% 34% at 26% 24%,hsl(var(--h) 78% 50% / .85),transparent 72%),radial-gradient(50% 38% at 80% 58%,hsl(calc(var(--h) + 45) 72% 44% / .8),transparent 72%),radial-gradient(80% 26% at 45% 100%,hsl(calc(var(--h) - 35) 62% 36% / .85),transparent 78%)}
+.fr .foot.s1{background-image:radial-gradient(34% 18% at 50% 56%,hsl(calc(var(--h) + 25) 90% 62% / .95),transparent 72%),linear-gradient(to bottom,hsl(calc(var(--h) - 10) 55% 20%) 0,hsl(var(--h) 70% 34%) 54%,hsl(calc(var(--h) + 10) 45% 10%) 56%,hsl(var(--h) 40% 8%) 100%)}
+.fr .foot.s2{background-image:radial-gradient(9% 5% at 22% 30%,hsl(var(--h) 90% 66% / .75),transparent 80%),radial-gradient(12% 7% at 70% 22%,hsl(calc(var(--h) + 60) 85% 62% / .6),transparent 80%),radial-gradient(10% 6% at 55% 48%,hsl(calc(var(--h) - 40) 85% 60% / .55),transparent 80%),radial-gradient(14% 8% at 30% 66%,hsl(calc(var(--h) + 30) 80% 58% / .5),transparent 80%),linear-gradient(170deg,hsl(var(--h) 50% 18%),hsl(calc(var(--h) + 30) 45% 8%))}
+@keyframes footdrift{from{background-position:0% 0%}to{background-position:100% 60%}}
+.fr .scrim{position:absolute;inset:0;z-index:2;pointer-events:none;background:linear-gradient(to top,rgba(0,0,0,.66) 0%,rgba(0,0,0,0) 38%),linear-gradient(to bottom,rgba(0,0,0,.42) 0%,rgba(0,0,0,0) 20%)}
+.fr .mid{position:absolute;z-index:3;left:0;right:0;top:38%;display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;pointer-events:none}
+.fr .mid b{font-family:var(--display);font-size:30px;font-weight:400;text-transform:uppercase;color:#ffffffd9;text-shadow:0 2px 14px rgba(0,0,0,.5)}
+.fr .mid span{font-size:12.5px;color:#ffffffc8;max-width:22ch;text-shadow:0 1px 6px rgba(0,0,0,.7)}
+.fr .rail{position:absolute;z-index:6;right:max(6px, calc(var(--sr) - 48px));bottom:calc(var(--sb) - 2px);display:flex;flex-direction:column;gap:14px;align-items:center;pointer-events:none}
+.fr .rail .st{display:flex;flex-direction:column;align-items:center;gap:2px;min-width:50px;font-size:11px;font-weight:700;text-shadow:0 1px 2px rgba(0,0,0,.6)}
+.fr .rail .st i{display:flex;align-items:center;justify-content:center;width:32px;height:32px}
+.fr .rail svg{width:32px;height:32px;filter:drop-shadow(0 1px 2px rgba(0,0,0,.45))}
+.fr .rail .av{width:44px;height:44px;border-radius:50%;border:2px solid #fff;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:18px;position:relative;margin-bottom:6px}
+.fr .rail .av::after{content:"+";position:absolute;bottom:-9px;left:50%;transform:translateX(-50%);width:18px;height:18px;border-radius:50%;background:#ff3b5c;color:#fff;font-size:14px;line-height:18px;text-align:center;font-weight:800}
+.fr .rail .disc{width:42px;height:42px;border-radius:50%;background:conic-gradient(#2b2b30,#6a6a72,#2b2b30,#6a6a72,#2b2b30);border:6px solid #17171b;display:flex;align-items:center;justify-content:center;animation:discspin 5s linear infinite;margin-top:2px}
+.fr .rail .disc b{width:16px;height:16px;border-radius:50%;display:block}
+.fr .rail .tile{width:30px;height:30px;border-radius:8px;border:2px solid #fff;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:13px;text-shadow:none;box-shadow:0 1px 6px rgba(0,0,0,.4)}
+.fr.h-instagram .rail{gap:18px}
+.fr.h-instagram .rail svg{width:30px;height:30px}
+.fr.h-instagram .rail .st.more svg{width:24px;height:24px}
+.fr.h-instagram .rail .tile{width:26px;height:26px;border-radius:6px;margin-top:2px}
+.fr.h-youtube .rail{gap:10px}
+.fr.h-youtube .rail .st i{width:46px;height:46px;border-radius:50%;background:rgba(0,0,0,.4)}
+.fr.h-youtube .rail .st svg{width:24px;height:24px;filter:none}
+.fr.h-youtube .rail .st.flip svg{transform:rotate(180deg)}
+.fr.h-youtube .rail .tile{width:36px;height:36px;border-radius:8px;margin-top:4px}
+.fr .band{position:absolute;z-index:5;left:calc(var(--sl) + 10px);right:calc(var(--sr) + 22px);bottom:calc(var(--sb) - 58px);display:flex;flex-direction:column;gap:5px;font-size:14px;line-height:1.3;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.55);pointer-events:none}
+.fr .band .who{display:flex;align-items:center;gap:8px;font-weight:800;font-size:15px}
+.fr .band .dot{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:900;color:#fff;flex-shrink:0;border:1.5px solid rgba(255,255,255,.55);text-shadow:none}
+.fr .band .pill{font-size:12px;font-weight:700;padding:3px 10px;border-radius:8px;border:1.5px solid currentColor;white-space:nowrap}
+.fr.h-youtube .band .pill{background:#fff;color:#0f0f0f;border-color:#fff;border-radius:999px;text-shadow:none}
+.fr .band .sound{display:flex;align-items:center;gap:6px;font-size:12.5px;opacity:.95;white-space:nowrap;overflow:hidden}
+.fr .band .sound svg{width:14px;height:14px;flex-shrink:0}
+.fr .band .tags{font-weight:700;opacity:.95}
+.fr.h-youtube .band .title{order:-1;font-weight:600}
+.fr .prog{position:absolute;left:0;right:0;bottom:0;height:3px;background:rgba(255,255,255,.28);z-index:7}
+.fr .prog i{display:block;height:100%;background:#fff;width:0;animation:prog 12s linear forwards}
+.fr.h-youtube .prog i{background:#ff2d55}
+@keyframes discspin{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.fr *{animation:none!important;transition:none!important}}
 
 /* =================================================================================
    CARD REEL DESIGN SYSTEM
@@ -725,7 +780,7 @@ html.appmode .phone{width:100%;max-width:none;height:100%;aspect-ratio:auto;bord
         <button class="btn primary" id="swipe">Swipe up ↑</button>
         <button class="btn" id="nextday">Next day</button>
       </div>
-      <p class="hint" id="hint">Follow the setup on the phone, or <button class="alink" id="skipSetup" style="padding:0;min-height:0">skip straight to the feed</button>.</p>
+      <p class="hint" id="hint">Follow the setup on the phone, or <button class="alink" id="skipSetup" style="padding:0;min-height:0">skip straight to the feed</button>. Pick an app above to see how a card looks in it.</p>
       <p class="hint" id="gestures" hidden>On a card: tap = reveal · double-tap or heart = “knew it” · speech bubble = hint · bookmark = save · swipe or ↓ = next.</p>
     </div>
     <div class="panels">
@@ -2098,7 +2153,13 @@ const I = {
   bookmark: f => '<svg viewBox="0 0 24 24" fill="'+(f?"currentColor":"none")+'" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M6 3.5h12v17l-6-4.2-6 4.2z"/></svg>',
   share: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M13.5 4.5 21 11l-7.5 6.5v-3.8C8 13.7 5 15.5 3 19.5c.6-5.8 3.6-9.9 10.5-11z"/></svg>',
   send: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M21 3.5 3 10.2l7.2 2.6L21 3.5zm0 0-7.6 17-3.2-7.7"/></svg>',
-  note: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M9 17.5a3 3 0 1 1-2-2.8V5l11-2v11.5a3 3 0 1 1-2-2.8V7.3l-7 1.3z"/></svg>'
+  note: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M9 17.5a3 3 0 1 1-2-2.8V5l11-2v11.5a3 3 0 1 1-2-2.8V7.3l-7 1.3z"/></svg>',
+  // for the top bars and the normal reels in the demo
+  comment: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 3.5c5 0 9 3.4 9 7.7s-4 7.7-9 7.7c-1 0-2-.1-2.9-.4L4 20.5l1.3-4C3.8 15 3 13.2 3 11.2 3 6.9 7 3.5 12 3.5z"/></svg>',
+  remix: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 10V8.5A3.5 3.5 0 0 1 8.5 5H18"/><path d="m15.5 2.5 2.7 2.5-2.7 2.5"/><path d="M19 14v1.5a3.5 3.5 0 0 1-3.5 3.5H6"/><path d="m8.5 16.5-2.7 2.5 2.7 2.5"/></svg>',
+  search: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5"/></svg>',
+  camera: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 8h3l1.6-2.4h6.8L17 8h3a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13" r="3.6"/></svg>',
+  dots: '<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.9"/><circle cx="12" cy="12" r="1.9"/><circle cx="12" cy="19" r="1.9"/></svg>'
 };
 
 /* The key word in a question: the longest word of 5+ letters (what auto-captions highlight). */
@@ -2324,11 +2385,34 @@ function card(it, opts){
     railHTML(it, host)+bandHTML(it, host)+'<div class="prog"><i style="animation-duration:'+dur.toFixed(1)+'s"></i></div></div>';
 }
 
-/* A normal reel from someone's feed (the thing the card sits between). */
+/* A normal reel from someone's feed (the thing the card sits between), dressed as the app the student is in: that app's
+   rail with its counts, its caption band, and soft moving colour behind, in the colour of the reel (that's what "match the reel" uses). Only words and generic shapes, no logos.
+   n = 0 is the screen before the first swipe. The numbers come from n, so a reel looks the same every time it's drawn. */
+const PEOPLE = [["dan.cooks","day 12 of learning to cook","cooking","I learned to cook in 12 days"], ["footy.clips","this goal though","football","This goal is unreal"],
+  ["mia.dance","wait for the drop","dance","Wait for the drop"], ["techtalk","tutorial in comments","tech","A 30 second phone trick"], ["catsofldn","he really did that","cats","He really did that"],
+  ["gymtok.sam","rate this set","gym","Rate this set"], ["fitcheck","rate this fit","fitcheck","Rate this fit"], ["minecraft.builds","wait for the ending","minecraft","Wait for the ending"]];
+const APPNAME = {tiktok:"TikTok", instagram:"Instagram", youtube:"YouTube"};
 function plainReel(n, hue, host){
-  const creators=["@dan.cooks","@footy.clips","@mia.dance","@techtalk","@catsofldn","@gymtok.sam","@fitcheck","@minecraft.builds"],caps=["wait for the ending","day 12 of learning to cook","this goal though","rate this fit","he really did that","tutorial in comments"];
-  return '<div class="reel plain-reel" style="background:radial-gradient(circle at 50% 35%,hsl('+hue+' 45% 30%),hsl('+hue+' 40% 12%))"><div class="big">Reel '+n+'</div><div class="small">(their normal '+({instagram:"Instagram",youtube:"YouTube"}[host]||"TikTok")+' video plays here)</div>'+
-    '<div style="position:absolute;left:18px;bottom:15%;text-align:left;color:#fff;font-size:13px;text-shadow:0 1px 2px #000"><b style="font-size:14px">'+creators[n%8]+'</b><br>'+caps[n%6]+'</div></div>';
+  host = host === "instagram" || host === "youtube" ? host : "tiktok";
+  const r = k => ((n * 7919 + k * 104729) % 9973) / 9973;                       // a steady number from 0 to 1 for this reel
+  const count = (k, lo, hi) => { const v = Math.round(lo * Math.pow(hi / lo, r(k)));
+    return v >= 1e6 ? (v / 1e6).toFixed(1) + "M" : v >= 1e4 ? Math.round(v / 1e3) + "K" : v >= 1e3 ? Math.floor(v / 1e3) + "," + String(v % 1e3).padStart(3, "0") : String(v); };
+  const p = PEOPLE[n % PEOPLE.length], who = esc(p[0]), ini = esc(p[0][0].toUpperCase()), av = "hsl(" + ((n * 53 + 20) % 360) + " 62% 52%)";
+  const st = (icon, label, cls) => '<div class="st' + (cls ? " " + cls : "") + '"><i>' + icon + '</i><span>' + label + '</span></div>';
+  let rail, band;
+  if (host === "youtube") {
+    rail = st(I.thumb(false), count(1, 900, 4e5)) + st(I.thumb(false), "Dislike", "flip") + st(I.comment, count(2, 40, 9e3)) + st(I.share, "Share") + st(I.remix, "Remix") + '<div class="tile" style="background:' + av + '">' + ini + '</div>';
+    band = '<div class="title">' + esc(p[3]) + ' <span class="tags">#shorts</span></div><div class="who"><span class="dot" style="background:' + av + '">' + ini + '</span>@' + who.replace(/\./g, "") + ' <span class="pill">Subscribe</span></div><div class="sound">' + I.note + '<span>original sound · ' + who + '</span></div>';
+  } else if (host === "instagram") {
+    rail = st(I.heart(false), count(1, 900, 3e5)) + st(I.comment, count(2, 30, 6e3)) + st(I.send, count(3, 60, 4e4)) + st(I.dots, "", "more") + '<div class="tile" style="background:linear-gradient(135deg,' + av + ',hsl(' + ((n * 53 + 140) % 360) + ' 70% 42%))"></div>';
+    band = '<div class="who"><span class="dot" style="background:' + av + '">' + ini + '</span>' + who + ' <span class="pill">Follow</span></div><div class="capline">' + esc(p[1]) + ' <span class="tags">#' + p[2] + '</span></div><div class="sound">' + I.note + '<span>Original audio · ' + who + '</span></div>';
+  } else {
+    rail = '<div class="av" style="background:' + av + '">' + ini + '</div>' + st(I.heart(true), count(1, 900, 4e6)) + st(I.comment, count(2, 40, 2e5)) + st(I.bookmark(true), count(3, 80, 6e5)) + st(I.share, count(4, 30, 9e4)) + '<div class="disc"><b style="background:' + av + '"></b></div>';
+    band = '<div class="who">@' + who + '</div><div class="capline">' + esc(p[1]) + ' <span class="tags">#' + p[2] + ' #fyp</span></div><div class="sound">' + I.note + '<span>original sound · ' + who + '</span></div>';
+  }
+  return '<div class="reel fr h-' + host + '"><div class="foot s' + (n % 3) + '" style="--h:' + hue + '"></div><div class="scrim"></div>' +
+    '<div class="mid"><b>' + (n ? "Reel " + n : "For you") + '</b><span>' + (n ? "Their normal " + APPNAME[host] + " video plays here" : "Swipe up to start scrolling") + '</span></div>' +
+    '<div class="rail">' + rail + '</div><div class="band">' + band + '</div><div class="prog"><i style="animation-duration:' + (9 + r(9) * 8).toFixed(1) + 's"></i></div></div>';
 }
 
 /* A picture full screen (mirrors CardView.zoom): pinch, scroll or double-click to zoom, drag to move, and a
@@ -2907,7 +2991,15 @@ function hush(){ try { window.speechSynthesis && speechSynthesis.cancel(); } cat
 /* ---------------- phone screens ---------------- */
 const stepbar = n => '<div class="steplbl">Step '+n+' of 4</div><div class="stepbar">'+[1,2,3,4].map(i=>'<i class="'+(i<=n?"on":"")+'"></i>').join("")+'</div>';
 const choice = (act,val,title,sub,on,dis) => '<button class="choice'+(on?" on":"")+'" data-act="'+act+'" data-v="'+esc(val)+'"'+(dis?" disabled":"")+'><span class="t"><b>'+esc(title)+'</b>'+(sub?'<small>'+esc(sub)+'</small>':'')+'</span><span class="m">'+(on?"✓":"")+'</span></button>';
-const tabs = () => UI.onboarded ? '<div class="tabs'+(UI.screen==="dash"?" ondash":"")+'"><button data-act="tab" data-v="dash" class="'+(UI.screen==="dash"?"on":"")+'">Reelcards</button><button data-act="tab" data-v="feed" class="'+(UI.screen==="feed"?"on":"")+'">For You</button></div>' : "";
+/* The top bar is the app's own (TikTok: centred tabs and a search; Instagram: a big "Reels" and a camera; YouTube: "Shorts", a search and a menu),
+   with a Reelcards button that opens the dashboard. On the dashboard itself it's the plain pair of tabs. */
+const FEEDTAB = {tiktok:"For You", instagram:"Reels", youtube:"Shorts"};
+function tabs(){
+  if (!UI.onboarded) return "";
+  const dash = UI.screen === "dash", I = Render.I;
+  const icons = dash ? "" : {tiktok:'<span class="tic">'+I.search+'</span>', instagram:'<span class="tic">'+I.camera+'</span>', youtube:'<span class="tic">'+I.search+'</span><span class="tic">'+I.dots+'</span>'}[UI.host] || "";
+  return '<div class="tabs'+(dash ? " ondash" : " h-"+UI.host)+'"><button data-act="tab" data-v="dash" class="'+(dash?"on":"")+'">Reelcards</button><button data-act="tab" data-v="feed" class="'+(dash?"":"on")+'">'+(dash ? "For You" : FEEDTAB[UI.host] || "For You")+'</button>'+icons+'</div>';
+}
 let timers = [];
 const clearTimers = () => { timers.forEach(clearTimeout); timers = []; };
 
@@ -2978,7 +3070,7 @@ function renderPhone(anim){
 
 function feedHTML(){
   const it = UI.current;
-  if (!it) return tabs()+'<div class="reel plain-reel" style="background:#16161b"><div class="big">For you</div><div class="small">Swipe up to start scrolling</div></div>';
+  if (!it) return tabs()+Render.plainReel(0, 215, UI.host);
   if (it.kind === "reel") return tabs()+Render.plainReel(it.n, it.hue, UI.host);
   return tabs()+Render.card(it, Object.assign(cardOpts(), {coach: it.coach && !it.revealed && !it.liked && it.pick<0}));
 }
@@ -3130,7 +3222,7 @@ function renderSide(){
     return '<tr><td>'+(c.saved?"★ ":"")+esc(c.f)+'</td><td>'+esc(c.deck)+'</td><td>'+st+'</td><td class="num">'+(c.state===NEW?"–":Math.round(E.fsrs.recallNow(c,t)*100)+"%")+'</td><td class="num">'+(c.state===NEW?"–":RC.human(c.s))+'</td><td class="num">'+(c.state===NEW?"–":(c.due<=t?"due now":"in "+RC.human((c.due-t)/DAY)))+'</td><td>'+(c.grade?'<span class="chip '+c.grade+'">'+c.grade+'</span>':'–')+'</td><td class="num">'+c.skips+'</td></tr>'; }).join("") : '<tr><td colspan="8" class="muted">No cards yet. Finish step 1 on the phone.</td></tr>';
   $("anki").innerHTML = E.anki.length ? E.anki.map(a=>'<div><span class="chip '+a.g+'" style="margin-right:6px">'+a.g+'</span>'+esc(a.line)+'</div>').join("") : '<span class="muted">Nothing graded yet.</span>';
   $("hint").hidden = UI.onboarded; $("gestures").hidden = !UI.onboarded;
-  $("hostbar").innerHTML = HOSTS.map(([h,l])=>'<button data-host="'+h+'" class="'+(UI.host===h?"on":"")+'" aria-pressed="'+(UI.host===h)+'">'+(UI.host===h?"Scrolling in ":"")+l+'</button>').join("");
+  $("hostbar").innerHTML = '<span class="hostlbl">Scrolling in</span>'+HOSTS.map(([h,l])=>'<button data-host="'+h+'" class="'+(UI.host===h?"on":"")+'" aria-pressed="'+(UI.host===h)+'">'+l+'</button>').join("");
 }
 function render(anim){ renderPhone(anim); renderSide(); saveSoon(); }
 
@@ -3266,7 +3358,18 @@ $("apkgFile").addEventListener("change", e => {
   f.arrayBuffer().then(b => importApkg(new Uint8Array(b), f.name, "file:" + f.name)).then(r => { UI.apkg = r; renderPhone(false); }, err => { UI.apkg = {error: "Couldn't read that file: " + err.message, name: f.name}; renderPhone(false); });
 });
 $("screen").addEventListener("input", e => { if (e.target.id==="ntext") UI.notesText = e.target.value; if (e.target.id==="ndeck") UI.notesDeck = e.target.value; });
-$("hostbar").addEventListener("click", e => { const b = e.target.closest("[data-host]"); if (!b) return; UI.host = b.dataset.host; if (UI.current && UI.current.kind==="card") UI.current.host = UI.host; render(false); });
+/* Before setup, an app's button shows how Reelcards looks in it: the demo's usual choices, one of their normal reels, then a card slips in. */
+function previewIn(){
+  skipSetup(); swipe();
+  if (UI.current && UI.current.kind === "reel") { const n = UI.reelN; timers.push(setTimeout(() => { if (UI.screen === "feed" && UI.current && UI.current.kind === "reel" && UI.reelN === n) testCard(); }, 1600)); }
+}
+$("hostbar").addEventListener("click", e => {
+  const b = e.target.closest("[data-host]"); if (!b) return;
+  UI.host = b.dataset.host; if (UI.current && UI.current.kind==="card") UI.current.host = UI.host;
+  if (!UI.onboarded) { previewIn(); return; }
+  if (UI.screen === "dash") UI.screen = "feed"; // so the change shows
+  render(false);
+});
 
 let busy = false, ty = null;
 $("phone").addEventListener("wheel", e => { if (UI.screen!=="feed") return; e.preventDefault(); if (busy || Math.abs(e.deltaY) < 20) return; busy = true; swipe(); setTimeout(()=>busy=false, 450); }, {passive:false});

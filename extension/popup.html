@@ -37,9 +37,17 @@ a{color:var(--text);text-underline-offset:3px}
   <h1>Reel<span>cards</span></h1>
   <p class="muted" style="margin:0">Your flashcards slip in between videos on TikTok, Instagram Reels, YouTube Shorts and X.</p>
 
+  <section id="start" hidden>
+    <h2>Get started</h2>
+    <p class="muted" style="margin:0 0 8px">One click: GCSE Biology and Chemistry, “Normal” cards and no exam date. You can change any of it below.</p>
+    <div class="btns" style="margin-top:0"><button class="primary" id="go">Get started</button></div>
+    <p class="msg" id="goMsg"></p>
+  </section>
+
   <section>
     <div class="stats" id="stats"></div>
-    <div class="btns"><button class="primary" id="test">Show a test card on this tab</button><button id="pause"></button></div>
+    <p class="msg" id="state"></p>
+    <div class="btns"><button class="primary" id="test">Show a test card on this tab</button><button id="pause"></button><button id="off"></button></div>
     <p class="msg" id="testMsg"></p>
   </section>
 

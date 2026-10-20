@@ -21,7 +21,20 @@
   there comes back, sliding down from the top. A card you did shows its answer with "You did this card
   already · Good" and isn't graded twice. One you swiped past says "You skipped this one. Have a go?" and
   counts when you answer it. Swiping back also no longer counts as a new reel, so it can't set off a fresh
-  card. Not yet run on a phone, and the web demo and extension don't do this yet.
+  card. Not yet run on a phone. The browser extension does the same (next entry); the web demo doesn't.
+- **The browser extension (0.2.0) catches up with the app.** *Get started* in the popup (one click: GCSE
+  Biology and Chemistry, "Normal", no exam date, then a test card on the page you're on), *Switch off* and
+  *Switch on*, and **going back to a card**: scroll or press ↑ to the video before and the card comes back
+  with "You did this card already · Good" (answer showing, not graded twice) or "You skipped this one. Have a
+  go?". Going back doesn't count as a new video. `tools/extension-test.py` is new: it loads the extension
+  in a real Chromium and runs it on stand-in TikTok, Instagram and YouTube feeds (48 checks pass). It has not
+  been tried on the live sites, which this machine can't reach. The extension keeps the last 30 videos of a
+  visit in the page's memory so that back works (never saved or sent); `PRIVACY.md` says so.
+- **In the web demo, TikTok, Instagram and YouTube now look different.** Each has its own top bar ("For
+  You" with a search, a big "Reels" with a camera, "Shorts" with a search and a menu) and its own normal reels
+  with that app's rail and counts, caption band and "Follow" or "Subscribe" button, in the safe zones the cards
+  use. Pressing an app's button before setup now shows it: a normal reel, then a card slips in. The Android
+  practice feed's filler reels are still the same for all three.
 - Smoother cards on Android (not yet run on a phone): the card window is now hardware-accelerated and
   the slide in and out animates a cached layer, so it no longer redraws every frame. A card on its way
   no longer triggers a save mid-slide, and the swipe detector stops querying the reel app for the rest of a

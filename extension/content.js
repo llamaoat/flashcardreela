@@ -4,8 +4,9 @@
 
    What it looks at: the position and size of <video> elements on the page, to tell which video is the
    one being watched, and the page address on YouTube Shorts and Instagram Reels (which changes with
-   each video). It doesn't read text on the page, doesn't keep the addresses, and sends nothing
-   anywhere: everything stays in the browser's extension storage. */
+   each video). It doesn't read text on the page and sends nothing anywhere. To know what "back" is it
+   remembers the last 30 videos of this visit (an address, or a marker for the player), in this page's
+   memory only: never saved, gone when the tab is. Everything else stays in the browser's extension storage. */
 "use strict";
 (function(){
 if (window.__reelcards) return; window.__reelcards = true;
@@ -44,28 +45,57 @@ function keyOf(v){
   if (SITE === "x" && v.paused && !v.autoplay) return null;                 // X: only a video that's playing
   return idOf(v) + "|" + (v.currentSrc || v.src || "");
 }
+/* The videos watched this visit, in order, and where we are in them. A card is shown on arriving at a video and sits
+   just before it, so scrolling back from that video to the one before it passes through the card's place: the card
+   comes back, with a note if it was done already (as in the Android app). Going back never counts as a new video. */
+const TRAIL_MAX = 30, SLOTS_MAX = 8;
+let trail = [], at = -1, slots = [], slotNow = null;
+function resetTrail(){ trail = []; at = -1; slots = []; slotNow = null; lastKey = null; }
 function watch(){
-  if (cur || !inFeed()) return;
+  if (!inFeed()) { if (trail.length) resetTrail(); return; }
   const v = mainVideo(); if (!v) return;
   const k = keyOf(v); if (!k || k === lastKey) return;
-  lastKey = k; nextVideo();
+  lastKey = k;
+  let step = "new";
+  if (at > 0 && k === trail[at - 1]) { at--; step = "back"; }                                 // back to the video before
+  else if (at >= 0 && at < trail.length - 1 && k === trail[at + 1]) { at++; step = "on"; }    // on again to one seen before
+  else {                                                                                      // a video we haven't seen
+    trail.length = at + 1; trail.push(k); at = trail.length - 1;
+    if (trail.length > TRAIL_MAX) { trail.shift(); at--; slots.forEach(sl => { sl.at--; }); slots = slots.filter(sl => sl.at >= 0); }
+  }
+  if (cur) return; // the video changed under a card: keep our place, but that isn't a reason for another card
+  if (step === "back") backTo(); else nextVideo();
+}
+function backTo(){
+  const slot = slots.find(sl => sl.at === at + 1);
+  if (slot && slot.it && E && meta && !meta.off && E.cards.length) revisit(slot);
+}
+const cap = t => t ? t[0].toUpperCase() + t.slice(1) : t;
+/* The card shown again. One they did shows its answer, with a note, and isn't graded twice; one they scrolled past can be answered now. */
+function revisit(slot){
+  const old = slot.it, did = !!slot.grade || !!(slot.out && slot.out.shared);
+  const it = did ? Object.assign({}, old, {revealed:true, settled:true, got:(old.got || []).slice()})
+    : Object.assign({}, old, {revealed:false, liked:false, likedBefore:false, pick:-1, saved:false, hinted:false, beat:0, count:null, got:[], moreOpen:false, settled:false});
+  it.coach = false; it.shownAt = performance.now();
+  it.revisit = {slot, looking:did, note: slot.grade ? "You did this card already · " + cap(slot.grade) : did ? "You shared this card already" : "You skipped this one. Have a go?"};
+  show(it, {back:true});
 }
 setInterval(watch, 600);
 addEventListener("scroll", () => setTimeout(watch, 250), {passive:true, capture:true});
 
 function nextVideo(){
-  if (!E || !meta || !meta.onboarded || !E.cards.length) return;
-  change(E2 => E2.onReelSwipe(now(), SITE)).then(sh => { if (sh && !cur) show(sh); });
+  if (!E || !meta || !meta.onboarded || meta.off || !E.cards.length) return;
+  change(E2 => E2.onReelSwipe(now(), SITE)).then(sh => { if (sh && !cur) show(sh, {slotAt:at}); });
 }
 
 /* ---------------- the card overlay ---------------- */
 function pauseVideos(){ paused = []; document.querySelectorAll("video").forEach(v => { if (!v.paused) { paused.push(v); try { v.pause(); } catch (e) {} } }); }
 function resumeVideos(){ paused.forEach(v => { try { v.play().catch(() => {}); } catch (e) {} }); paused = []; }
-function mount(){
+function mount(back){
   host = document.createElement("div"); host.id = "reelcards-overlay";
   host.style.cssText = "position:fixed;inset:0;z-index:2147483647;";
   root = host.attachShadow({mode:"open"});
-  root.innerHTML = '<style>' + CARD_CSS + OVERLAY_CSS + '</style><div class="dim"></div><div class="wrap"><div class="frame"><div class="stage"></div></div>' +
+  root.innerHTML = '<style>' + CARD_CSS + OVERLAY_CSS + '</style><div class="dim"></div><div class="wrap"><div class="frame' + (back ? ' back' : '') + '"><div class="stage"></div><div class="note" hidden></div></div>' +
     '<div class="bar"><button data-x="next">Next ↓</button><span>Tap to see the answer · double-tap if you knew it · scroll on to skip</span><button data-x="pause">Pause 1 hour</button></div></div>';
   document.documentElement.appendChild(host);
   root.addEventListener("click", onClick); root.addEventListener("dblclick", onDbl);
@@ -76,20 +106,23 @@ function mount(){
 function onWheel(e){
   if (!cur) return; e.preventDefault(); e.stopImmediatePropagation();
   const z = root && root.querySelector(".zoomer"); if (z) { z._wheel(e); return; } // a picture is open: scrolling zooms it
-  if (e.deltaY > 30) done();
+  if (e.deltaY > 30 || (cur.revisit && e.deltaY < -30)) done();
 }
 function unmount(){ removeEventListener("wheel", onWheel, {capture:true}); removeEventListener("keydown", onKey, true); removeEventListener("resize", scale); if (host) host.remove(); host = root = null; }
 /* the card is designed at 360 x 740 (a phone); scale it to the window's height */
 function scale(){ if (!root) return; const k = Math.min((innerHeight - 70) / 740, (innerWidth - 20) / 360, 1.25); root.querySelector(".frame").style.setProperty("--k", k.toFixed(3)); }
 
-function show(sh){
+function show(sh, opt){
+  opt = opt || {};
   // an Anki card's pictures and sounds live in storage: look them up first
   const keys = RCState.MEDIA.map(k => sh.s[k]).filter(Boolean);
-  if (keys.length && !sh.mediaReady) { RCState.media(keys).then(m => { RCState.MEDIA.forEach(k => { if (sh.s[k]) sh.s[k] = m[sh.s[k]] || null; }); sh.mediaReady = true; show(sh); }); return; }
+  if (keys.length && !sh.mediaReady) { RCState.media(keys).then(m => { RCState.MEDIA.forEach(k => { if (sh.s[k]) sh.s[k] = m[sh.s[k]] || null; }); sh.mediaReady = true; show(sh, opt); }); return; }
   pauseVideos();
   cur = Object.assign({kind:"card", revealed:false, liked:false, likedBefore:false, pick:-1, saved:false, hinted:false, beat:0, count:null, got:[], moreOpen:false, settled:false, shownAt:performance.now()}, sh);
-  if (meta.coachLeft > 0) cur.coach = true; // counted down when the card is finished
-  mount(); draw();
+  if (meta.coachLeft > 0 && !cur.revisit) cur.coach = true; // counted down when the card is finished
+  if (opt.slotAt != null) { slots = slots.filter(sl => sl.at !== opt.slotAt); slotNow = {at:opt.slotAt, it:null, out:null, grade:null}; slots.push(slotNow); if (slots.length > SLOTS_MAX) slots.shift(); }
+  else slotNow = null;
+  mount(!!opt.back); draw();
   if (cur.s.snd) play(cur.s.snd);
 }
 let sound = null;
@@ -101,6 +134,9 @@ function draw(){
   const h = new Date().getHours();
   root.querySelector(".stage").innerHTML = Render.card(cur, {night: h >= 22 || h < 6, tint:null, coach: cur.coach && !cur.revealed && !cur.liked && cur.pick < 0});
   fitCards(root.querySelector(".stage"));
+  const note = root.querySelector(".note"), hint = root.querySelector(".bar span");
+  if (cur.revisit) { note.textContent = cur.revisit.note; note.hidden = false; hint.textContent = cur.revisit.looking ? "Scroll either way or press an arrow key to carry on" : "Tap to see the answer · double-tap if you knew it · scroll either way to carry on"; }
+  else { note.hidden = true; hint.textContent = "Tap to see the answer · double-tap if you knew it · scroll on to skip"; }
   startTimers();
 }
 function done(){
@@ -108,8 +144,16 @@ function done(){
   const it = cur; cur = null; clearTimers();
   const outcome = {revealed:it.revealed, liked:it.liked, likedBefore:it.likedBefore, pick:it.pick, likeAt:it.likeAt||0, pickAt:it.pickAt||0, hintAt:it.hintAt||0,
     saved:!!it.saved, shared:!!it.shared, got:(it.got||[]).filter(Boolean).length, dwell:performance.now()-it.shownAt}, coach = !!it.coach;
-  // grade the newest saved copy of this card (another tab may have changed others meanwhile)
-  change((E2, m2) => { const c = E2.cards.find(x => x.id === it.card.id); if (coach && m2.coachLeft > 0) m2.coachLeft--; if (c) { it.card = c; E2.onCardFinished(it, outcome, now()); } });
+  const rv = it.revisit, slot = rv ? rv.slot : slotNow; slotNow = null;
+  const answered = it.revealed || it.liked || it.pick >= 0 || (it.got || []).some(Boolean);
+  if (slot && !rv) { slot.it = it; slot.out = outcome; }
+  if (rv && (rv.looking || !answered)) { /* just looking back, or skipped again: nothing to grade, and not a second skip */ }
+  else {
+    // grade the newest saved copy of this card (another tab may have changed others meanwhile)
+    change((E2, m2) => { const c = E2.cards.find(x => x.id === it.card.id); if (coach && m2.coachLeft > 0) m2.coachLeft--;
+      if (!c) return null; it.card = c; const r = E2.onCardFinished(it, outcome, now()); if (rv && r.grade) E2.dropRequeue(c); return r; })
+      .then(r => { if (slot && r) { slot.grade = r.grade; if (rv) { slot.it = it; slot.out = outcome; } } });
+  }
   if (sound) { sound.pause(); sound = null; }
   unmount(); resumeVideos();
 }
@@ -179,7 +223,7 @@ function onKey(e){
   if (!cur) return;
   const k = e.key, z = root && root.querySelector(".zoomer");
   if (z) { if (k === "Escape") { z.remove(); e.preventDefault(); e.stopPropagation(); } return; } // a picture is open: Esc closes it, not the card
-  if (k === "ArrowDown" || k === "j" || k === "Escape" || k === "PageDown") done();
+  if (k === "ArrowDown" || k === "j" || k === "Escape" || k === "PageDown" || (cur.revisit && (k === "ArrowUp" || k === "k"))) done();
   else if (k === " " || k === "Enter") reveal();
   else if (k === "l") like();
   else return;
@@ -225,6 +269,12 @@ const OVERLAY_CSS = `
 .wrap{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;pointer-events:none}
 .frame{--k:1;width:calc(360px * var(--k));height:calc(740px * var(--k));position:relative;pointer-events:auto;border-radius:calc(22px * var(--k));overflow:hidden;box-shadow:0 30px 80px -20px #000}
 .stage{position:absolute;left:0;top:0;width:360px;height:740px;transform:scale(var(--k));transform-origin:0 0}
+.frame{animation:rcin .26s cubic-bezier(.2,.8,.2,1)}.frame.back{animation-name:rcback}
+@keyframes rcin{from{transform:translateY(28px);opacity:0}to{transform:none;opacity:1}}
+@keyframes rcback{from{transform:translateY(-28px);opacity:0}to{transform:none;opacity:1}}
+@media (prefers-reduced-motion:reduce){.frame{animation:none}}
+.note{position:absolute;top:calc(46px * var(--k));left:50%;transform:translateX(-50%);z-index:5;max-width:88%;text-align:center;font:600 calc(13px * var(--k))/1.3 system-ui,sans-serif;color:#111;background:rgba(255,255,255,.96);padding:calc(8px * var(--k)) calc(14px * var(--k));border-radius:calc(16px * var(--k));box-shadow:0 6px 20px rgba(0,0,0,.35);pointer-events:none}
+.note[hidden]{display:none}
 .bar{pointer-events:auto;display:flex;gap:10px;align-items:center;font:600 12px/1.3 system-ui,sans-serif;color:#ddd;max-width:92vw;flex-wrap:wrap;justify-content:center}
 .bar button{font:700 12px system-ui,sans-serif;border:0;border-radius:999px;padding:8px 14px;cursor:pointer;background:#fff;color:#111}
 .bar button[data-x=pause]{background:#2a2a30;color:#eee}

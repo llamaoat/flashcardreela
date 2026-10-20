@@ -7,7 +7,7 @@ const RCState = (function(){
 const KEY = "reelcards";
 const ENGINE_FIELDS = ["adaptiveRhythm","sessionId","sessionReels","reelsSinceCard","cardsToday","newToday","postponed","lastSwipeAt","snoozeUntil",
   "dayKey","rhythmArm","lastHost","lastDeck","recentFast","recentReel","requeue","log","anki","tzOffsetMin"];
-const freshMeta = () => ({onboarded:false, coachLeft:2, exam:14, vibes:[], firstDay:null});
+const freshMeta = () => ({onboarded:false, coachLeft:2, exam:14, vibes:[], firstDay:null, off:false}); // off: switched off from the popup (no cards until it's switched on)
 
 function toJSON(E, meta){
   const engine = {cards:E.cards.map(c => Object.assign({}, c)),

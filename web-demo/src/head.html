@@ -56,7 +56,8 @@ h1 span{color:var(--muted);font-weight:500}
 @media (max-width:940px){.main{grid-template-columns:minmax(0,1fr)}}
 .phonecol{display:flex;flex-direction:column;gap:10px;align-items:center;position:sticky;top:12px}
 @media (max-width:940px){.phonecol{position:static}}
-.hostbar{display:flex;gap:6px;flex-wrap:wrap;justify-content:center}
+.hostbar{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;align-items:center}
+.hostlbl{font-size:12.5px;color:var(--muted);font-weight:600;margin-right:2px}
 .hostbar button,.chipbtn{min-height:34px;padding:4px 12px;border-radius:999px;border:1px solid var(--line);background:var(--panel2);color:var(--text);font-size:12.5px;font-weight:600}
 .hostbar button.on,.chipbtn.on{background:var(--accent);border-color:var(--accent);color:var(--onaccent)}
 .phone{width:360px;max-width:100%;aspect-ratio:360/740;border-radius:42px;border:8px solid var(--frame);background:#000;position:relative;overflow:hidden;user-select:none;-webkit-user-select:none;box-shadow:0 30px 60px -30px rgba(0,0,0,.35)}
@@ -199,6 +200,17 @@ select{min-height:40px;border-radius:10px;border:1px solid var(--line);backgroun
 .tabs button{pointer-events:auto;background:none;border:none;color:#ffffffa0;font-weight:800;font-size:14px;padding:6px 2px;min-height:34px;text-shadow:0 1px 3px #000}
 .tabs button.on{color:#fff;border-bottom:2px solid #fff}
 .tabs.ondash button{color:rgba(255,255,255,.7);text-shadow:none;font-weight:500}.tabs.ondash button.on{color:#fff;border-bottom-color:#fff}
+/* the app's own top bar: TikTok has centred tabs and a search; Instagram a big "Reels" and a camera; YouTube "Shorts", a search and a menu */
+.tabs .tic{position:absolute;top:12px;right:14px;width:22px;height:22px;color:#fff;filter:drop-shadow(0 1px 3px rgba(0,0,0,.6))}
+.tabs .tic svg{display:block;width:100%;height:100%}
+.tabs.h-instagram,.tabs.h-youtube{justify-content:flex-start;align-items:center;padding:4px 14px 0;gap:12px}
+.tabs.h-instagram button[data-v=feed],.tabs.h-youtube button[data-v=feed]{order:-1;color:#fff;border:0;padding:0;min-height:36px;letter-spacing:-.4px}
+.tabs.h-instagram button[data-v=feed]{font-size:23px;font-weight:700}
+.tabs.h-youtube button[data-v=feed]{font-size:21px;font-weight:700;letter-spacing:-.5px}
+.tabs.h-instagram button[data-v=dash],.tabs.h-youtube button[data-v=dash]{font-size:11.5px;font-weight:700;color:#ffffffe0;border:1.5px solid rgba(255,255,255,.5);border-radius:999px;padding:1px 9px;min-height:0;text-shadow:none}
+.tabs.h-instagram .tic{width:27px;height:27px;top:9px}
+.tabs.h-youtube .tic{width:24px;height:24px;top:11px}
+.tabs.h-youtube .tic:nth-of-type(1){right:46px}
 .settings-sim{position:absolute;inset:0;background:#f4f4f6;color:#1b1b1f;z-index:20;display:flex;flex-direction:column;padding:28px 16px;gap:10px}
 .settings-sim .lbl{font-size:10.5px;text-transform:uppercase;letter-spacing:.08em;color:#6b6b75;font-weight:800}
 .settings-sim .row2{display:flex;align-items:center;justify-content:space-between;background:#fff;border-radius:14px;padding:14px;min-height:56px}
@@ -206,11 +218,54 @@ select{min-height:40px;border-radius:10px;border:1px solid var(--line);backgroun
 .switch::after{content:"";position:absolute;top:3px;left:3px;width:24px;height:24px;border-radius:50%;background:#fff;transition:left .2s}
 .switch.on{background:#2f6bff}.switch.on::after{left:25px}
 
-/* ---------- plain reels (someone's normal feed) ---------- */
+/* ---------- plain reels (someone's normal feed), dressed as the app being used ----------
+   They share the card's safe zones and positions, so a card slips in where a reel's own rail and caption were. */
 .reel{position:absolute;inset:0;overflow:hidden}
-.plain-reel{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:8px}
-.plain-reel .big{font-family:var(--display);font-size:40px;text-transform:uppercase;color:#ffffffd9}
-.plain-reel .small{color:#ffffffa6;font-size:13px;max-width:24ch}
+.reel.fr{--st:5.6%;--sb:16.7%;--sl:5.6%;--sr:11.1%;--hf:var(--f-tiktok);background:#0e0e10;color:#fff;font-family:var(--hf)}
+.reel.fr.h-instagram{--st:10.9%;--sb:16.1%;--sl:3.7%;--sr:7.8%;--hf:var(--f-instagram)}
+.reel.fr.h-youtube{--st:6.3%;--sb:15.6%;--sl:4.4%;--sr:8.9%;--hf:var(--f-youtube)}
+/* the "video": three kinds of scene (two soft lights, a low sun over a horizon, out-of-focus lights), all in the reel's hue */
+.fr .foot{position:absolute;inset:0;z-index:0;background-color:hsl(var(--h) 42% 9%);background-repeat:no-repeat;background-size:140% 140%;animation:footdrift 11s ease-in-out infinite alternate}
+.fr .foot.s0{background-image:radial-gradient(55% 34% at 26% 24%,hsl(var(--h) 78% 50% / .85),transparent 72%),radial-gradient(50% 38% at 80% 58%,hsl(calc(var(--h) + 45) 72% 44% / .8),transparent 72%),radial-gradient(80% 26% at 45% 100%,hsl(calc(var(--h) - 35) 62% 36% / .85),transparent 78%)}
+.fr .foot.s1{background-image:radial-gradient(34% 18% at 50% 56%,hsl(calc(var(--h) + 25) 90% 62% / .95),transparent 72%),linear-gradient(to bottom,hsl(calc(var(--h) - 10) 55% 20%) 0,hsl(var(--h) 70% 34%) 54%,hsl(calc(var(--h) + 10) 45% 10%) 56%,hsl(var(--h) 40% 8%) 100%)}
+.fr .foot.s2{background-image:radial-gradient(9% 5% at 22% 30%,hsl(var(--h) 90% 66% / .75),transparent 80%),radial-gradient(12% 7% at 70% 22%,hsl(calc(var(--h) + 60) 85% 62% / .6),transparent 80%),radial-gradient(10% 6% at 55% 48%,hsl(calc(var(--h) - 40) 85% 60% / .55),transparent 80%),radial-gradient(14% 8% at 30% 66%,hsl(calc(var(--h) + 30) 80% 58% / .5),transparent 80%),linear-gradient(170deg,hsl(var(--h) 50% 18%),hsl(calc(var(--h) + 30) 45% 8%))}
+@keyframes footdrift{from{background-position:0% 0%}to{background-position:100% 60%}}
+.fr .scrim{position:absolute;inset:0;z-index:2;pointer-events:none;background:linear-gradient(to top,rgba(0,0,0,.66) 0%,rgba(0,0,0,0) 38%),linear-gradient(to bottom,rgba(0,0,0,.42) 0%,rgba(0,0,0,0) 20%)}
+.fr .mid{position:absolute;z-index:3;left:0;right:0;top:38%;display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;pointer-events:none}
+.fr .mid b{font-family:var(--display);font-size:30px;font-weight:400;text-transform:uppercase;color:#ffffffd9;text-shadow:0 2px 14px rgba(0,0,0,.5)}
+.fr .mid span{font-size:12.5px;color:#ffffffc8;max-width:22ch;text-shadow:0 1px 6px rgba(0,0,0,.7)}
+.fr .rail{position:absolute;z-index:6;right:max(6px, calc(var(--sr) - 48px));bottom:calc(var(--sb) - 2px);display:flex;flex-direction:column;gap:14px;align-items:center;pointer-events:none}
+.fr .rail .st{display:flex;flex-direction:column;align-items:center;gap:2px;min-width:50px;font-size:11px;font-weight:700;text-shadow:0 1px 2px rgba(0,0,0,.6)}
+.fr .rail .st i{display:flex;align-items:center;justify-content:center;width:32px;height:32px}
+.fr .rail svg{width:32px;height:32px;filter:drop-shadow(0 1px 2px rgba(0,0,0,.45))}
+.fr .rail .av{width:44px;height:44px;border-radius:50%;border:2px solid #fff;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:18px;position:relative;margin-bottom:6px}
+.fr .rail .av::after{content:"+";position:absolute;bottom:-9px;left:50%;transform:translateX(-50%);width:18px;height:18px;border-radius:50%;background:#ff3b5c;color:#fff;font-size:14px;line-height:18px;text-align:center;font-weight:800}
+.fr .rail .disc{width:42px;height:42px;border-radius:50%;background:conic-gradient(#2b2b30,#6a6a72,#2b2b30,#6a6a72,#2b2b30);border:6px solid #17171b;display:flex;align-items:center;justify-content:center;animation:discspin 5s linear infinite;margin-top:2px}
+.fr .rail .disc b{width:16px;height:16px;border-radius:50%;display:block}
+.fr .rail .tile{width:30px;height:30px;border-radius:8px;border:2px solid #fff;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:13px;text-shadow:none;box-shadow:0 1px 6px rgba(0,0,0,.4)}
+.fr.h-instagram .rail{gap:18px}
+.fr.h-instagram .rail svg{width:30px;height:30px}
+.fr.h-instagram .rail .st.more svg{width:24px;height:24px}
+.fr.h-instagram .rail .tile{width:26px;height:26px;border-radius:6px;margin-top:2px}
+.fr.h-youtube .rail{gap:10px}
+.fr.h-youtube .rail .st i{width:46px;height:46px;border-radius:50%;background:rgba(0,0,0,.4)}
+.fr.h-youtube .rail .st svg{width:24px;height:24px;filter:none}
+.fr.h-youtube .rail .st.flip svg{transform:rotate(180deg)}
+.fr.h-youtube .rail .tile{width:36px;height:36px;border-radius:8px;margin-top:4px}
+.fr .band{position:absolute;z-index:5;left:calc(var(--sl) + 10px);right:calc(var(--sr) + 22px);bottom:calc(var(--sb) - 58px);display:flex;flex-direction:column;gap:5px;font-size:14px;line-height:1.3;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.55);pointer-events:none}
+.fr .band .who{display:flex;align-items:center;gap:8px;font-weight:800;font-size:15px}
+.fr .band .dot{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:900;color:#fff;flex-shrink:0;border:1.5px solid rgba(255,255,255,.55);text-shadow:none}
+.fr .band .pill{font-size:12px;font-weight:700;padding:3px 10px;border-radius:8px;border:1.5px solid currentColor;white-space:nowrap}
+.fr.h-youtube .band .pill{background:#fff;color:#0f0f0f;border-color:#fff;border-radius:999px;text-shadow:none}
+.fr .band .sound{display:flex;align-items:center;gap:6px;font-size:12.5px;opacity:.95;white-space:nowrap;overflow:hidden}
+.fr .band .sound svg{width:14px;height:14px;flex-shrink:0}
+.fr .band .tags{font-weight:700;opacity:.95}
+.fr.h-youtube .band .title{order:-1;font-weight:600}
+.fr .prog{position:absolute;left:0;right:0;bottom:0;height:3px;background:rgba(255,255,255,.28);z-index:7}
+.fr .prog i{display:block;height:100%;background:#fff;width:0;animation:prog 12s linear forwards}
+.fr.h-youtube .prog i{background:#ff2d55}
+@keyframes discspin{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.fr *{animation:none!important;transition:none!important}}
 
 /* =================================================================================
    CARD REEL DESIGN SYSTEM

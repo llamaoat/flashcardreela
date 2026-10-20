@@ -1,6 +1,6 @@
 # Privacy
 
-*Last updated: 13 October 2026. Applies to the Reelcards Android app, the web demo, the Reelcards Feed page and the browser extension.*
+*Last updated: 20 October 2026. Applies to the Reelcards Android app, the web demo, the Reelcards Feed page and the browser extension.*
 
 Reelcards is built for school students, so it's built to know as little as possible.
 
@@ -95,9 +95,11 @@ Reelcards that connects to other companies**, so it's kept apart from the rest a
 
 The extension runs on TikTok, Instagram, YouTube and X (twitter.com) in your browser. To tell one
 short video from the next, it looks at the size and position of the video players on the page and, on
-YouTube and Instagram, at the page address. It doesn't read text, comments or names on the page, and
-doesn't keep a record of the videos or addresses. It pauses the playing video while a card is up and
-plays it again afterwards.
+YouTube and Instagram, at the page address. It doesn't read text, comments or names on the page. So that
+scrolling *back* can bring a card back, it remembers the last 30 videos of that visit (the page address,
+or a marker for the video player) in the page's memory only. That list is never saved or sent, and it's
+gone when you leave or close the tab. It pauses the playing video while a card is up and plays it again
+afterwards.
 
 Your cards, their schedule, your settings and daily counts are kept in the browser's storage for
 extensions, on that computer. The extension doesn't send anything anywhere: it has no server and no
