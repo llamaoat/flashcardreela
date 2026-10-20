@@ -1,5 +1,8 @@
 # Getting Reelcards onto Google Play
 
+For the order to do things in, and what to click, start with [PLAY-STEPS.md](PLAY-STEPS.md). This page has
+the text to paste.
+
 Most of what Google Play asks for is now in the repo. The rest needs your Play Console account. This page
 lists both, with text you can paste. Play's rules change, so check each step against the Console
 when you do it.
@@ -24,10 +27,9 @@ when you do it.
    Run workflow*, or push a version tag. The *Reelcards-play-bundle* artifact is the `.aab` to upload.
    Keep the key file and its password in a password manager, and turn on **Play App Signing** when
    the Console asks (Google keeps the key that signs the app itself).
-3. **Privacy policy online.** Turn on GitHub Pages (Settings → Pages → Source: *GitHub Actions*), then
-   merge this branch into `main`. The policy appears at
-   `https://llamaoat.github.io/flashcardreela/privacy.html`. If the repo moves or is renamed, change
-   `PRIVACY_URL` in `MainActivity.java` and the links in `PRIVACY.md`.
+3. **Privacy policy online.** The Pages workflow publishes it at
+   `https://llamaoat.github.io/flashcardreela/privacy.html`. Open that address and check it loads. If the
+   repo moves or is renamed, change `PRIVACY_URL` in `MainActivity.java` and the links in `PRIVACY.md`.
 4. **Create the app** in the Console: name *Reelcards*, default language English (United Kingdom), App,
    Free.
 5. **App content** (Console → Policy → App content):

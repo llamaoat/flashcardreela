@@ -20,6 +20,14 @@ looks*. Audience: UK GCSE students, 14–16. Android first, open source (GPLv3).
   and `icons/` sit beside it so it can be added to a phone's home screen; opened from there (or with
   `?app=1`) it shows only the phone (`html.appmode`) and skips the accessibility step. Bump `CACHE` in
   `sw.js` if you add files it should keep offline.
+- The website (GitHub Pages) is the same file: a deep-sea landing page (`.sitenav`, `.landing` with the sea from
+  `sea.js` and the orcas from `orca.js`, "How it works", "Get Reelcards", then the phone demo and its panels, "More
+  under the hood", the design lab and a footer). Its CSS is one block just before the `html.appmode` rules in
+  `head.html`, after the "Add to Home Screen" marker, so the Feed and the extension don't get it. Opened as the
+  home-screen app (`?app=1`) it hides everything but the phone. The phone's own UI already uses the class names
+  `hero`, `brand`, `num` and `steps`, so the page's are `landing`, `nav-brand`, `how-num` and `details.fold`: don't
+  reuse the phone's. Keep every `id` in `body.html`: `app.js` reads them. `tools/og-image.py` makes the share picture
+  (`web-demo/icons/og.jpg`) from the first screen; run it after changing how that looks.
 - The web demo saves like `Store` does: once setup is done, `save()` in `app.js` keeps the engine's state
   in localStorage (`reelcards-demo`) and Anki files with pictures or sounds in IndexedDB, and `restore()`
   reads them back on load. New engine state that should survive a reload goes in `ENGINE_FIELDS` (or the

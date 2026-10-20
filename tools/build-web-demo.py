@@ -17,7 +17,7 @@ import base64
 sample = base64.b64encode((ROOT / "engine" / "src" / "test" / "resources" / "anki" / "sample.apkg").read_bytes()).decode()
 app = (read("app.js").replace("/*__DECKS__*/", read("decks.js")).replace("/*__NOTES__*/", read("notes.js"))
        .replace("/*__SAMPLE_APKG__*/", 'const SAMPLE_APKG = "' + sample + '"; // tools/make-test-decks.py'))
-scripts = "<script>\n" + read("engine.js") + "\n" + read("apkg.js") + "\n" + read("render.js") + "\n" + read("sea.js") + "\n" + app + "\n</script>\n"
+scripts = "<script>\n" + read("engine.js") + "\n" + read("apkg.js") + "\n" + read("render.js") + "\n" + read("sea.js") + "\n" + read("orca.js") + "\n" + app + "\n</script>\n"
 head = read("head.html")
 body = read("body.html")
 page = head + body + scripts + "</body>\n</html>\n"

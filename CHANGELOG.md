@@ -2,6 +2,21 @@
 
 ## 1.3.2: going back to a card, smoother cards
 
+- **Get started (Android).** The first screen's main button now picks GCSE Biology and Chemistry, "Normal" and
+  no exam date, and goes straight to the switch (the old questions are one link away: "Choose my decks and
+  exam date first"). The disclosure and the *Agree* tap are still there, and *Agree and open settings* now sits
+  right under the disclosure instead of below the steps. When the switch is on, a test card slides up by
+  itself. Android doesn't let an app switch its own accessibility service on, or allow its own restricted
+  settings, and an accessibility service can't bring its app back to the front, so those steps stay with the
+  student: in the app it's two taps, then Android's own switch.
+- **Switch Reelcards off** on the dashboard: one tap, no trip to Settings. It's the only setting Reelcards uses.
+- Clearer help when Android 13+ greys out the switch for an app installed from a file: the steps show before the
+  student hits the wall (and say to tap the switch once first), and again if the switch didn't turn on.
+- Docs: a Google Play step-by-step (`docs/PLAY-STEPS.md`).
+- **The website has a new look** (it goes live when this is merged, with no new app version needed): a deep-sea
+  landing page with an orca and her calf circling in the sea, "How it works", the install steps folded away,
+  and the live demo below. The demo's welcome animation no longer runs while it's off-screen, and the sea draws
+  in a few strokes instead of thousands, so the page is lighter on phones. New share picture (`tools/og-image.py`).
 - **Going back to a card (Android).** Swipe back in TikTok, Instagram or YouTube and the card that sat
   there comes back, sliding down from the top. A card you did shows its answer with "You did this card
   already · Good" and isn't graded twice. One you swiped past says "You skipped this one. Have a go?" and
