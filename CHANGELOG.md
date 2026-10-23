@@ -35,6 +35,11 @@
   with that app's rail and counts, caption band and "Follow" or "Subscribe" button, in the safe zones the cards
   use. Pressing an app's button before setup now shows it: a normal reel, then a card slips in. The Android
   practice feed's filler reels are still the same for all three.
+- **Get started in the web app too** (the home-screen app on an iPhone, and the demo on the website): one tap
+  picks GCSE Biology and Chemistry, "Normal" and no exam date. On the home-screen app that's one tap to the
+  first card, since there's no switch to turn on; the website's demo goes on to its pretend Android switch, as
+  the app does. The iPhone Shortcut's link (`?card=1`) now works before setup as well, with the same choices.
+  Not tried on a real iPhone.
 - Smoother cards on Android (not yet run on a phone): the card window is now hardware-accelerated and
   the slide in and out animates a cached layer, so it no longer redraws every frame. A card on its way
   no longer triggers a save mid-slide, and the swipe detector stops querying the reel app for the rest of a

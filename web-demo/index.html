@@ -740,7 +740,7 @@ html.appmode .phone{width:100%;max-width:none;height:100%;aspect-ratio:auto;bord
         <h3>iPhone</h3>
         <p class="muted">iPhones don't let any app draw over TikTok, so a card can't slip in by itself. This gives you the app and a one-tap card.</p>
         <details class="fold"><summary>Show the steps</summary><ol>
-          <li>Open this page in <b>Safari</b>. Tap <b>Share</b>, then <b>Add to Home Screen</b>. Set up your decks in it.</li>
+          <li>Open this page in <b>Safari</b>. Tap <b>Share</b>, then <b>Add to Home Screen</b>. Open it and tap <b>Get started</b>.</li>
           <li>Open the <b>Shortcuts</b> app, tap <b>+</b>, <b>Add Action</b>, then <b>Open URLs</b>. Paste this link:
             <input type="text" readonly id="cardLink" aria-label="Link for the Shortcut"> <button class="btn" id="copyLink">Copy link</button></li>
           <li>Name it <b>Reelcards</b>, then add it to your Home Screen, Action Button or Back Tap. Tap it when you want a card.</li>
@@ -3009,7 +3009,7 @@ function renderPhone(anim){
   switch (UI.screen) {
     case "welcome":
       h = '<div class="app sea"><div class="hero" data-motion="welcome" data-cy=".34" data-scrim="1"></div><div class="brand">Reelcards</div><div class="spacer"></div><h3>Revise without trying<span>between your reels</span></h3><p class="muted">Your flashcards slip in between TikTok, Instagram and YouTube Shorts, looking just like another reel. Double-tap if you know it. Swipe if you don\'t.</p>'+
-        '<button class="abtn" data-act="go" data-v="decks">Set up in 1 minute</button><p class="muted" style="font-size:12px">Free. Works offline. Nothing you watch is saved or sent anywhere.</p></div>'; break;
+        '<button class="abtn" data-act="quick">Get started</button><button class="alink" data-act="go" data-v="decks">Choose my decks and exam date first</button><p class="muted" style="font-size:12px">Free. Works offline. Nothing you watch is saved or sent anywhere.</p></div>'; break;
     case "decks": {
       const have = n => E.cards.some(c=>c.deck===n);
       h = '<div class="app">'+(UI.addMode?"":stepbar(1))+'<h3>'+(UI.addMode?"Add cards":"What are you revising?")+'</h3><p class="muted">Pick a ready-made deck, paste your notes, or use your Anki decks. Mix as many as you like.</p><div class="sec">Ready-made decks</div>'+
@@ -3047,7 +3047,7 @@ function renderPhone(anim){
         '<div class="sec">How often should cards appear?</div>'+[["chill","Starts at 1 card every 8 reels, up to 60 a day"],["normal","Starts at 1 card every 5 reels, up to 150 a day (recommended)"],["cram","Starts at 1 card every 3 reels, up to 300 a day"]].map(m=>choice("intensity",m[0],m[0][0].toUpperCase()+m[0].slice(1),m[1],UI.intensity===m[0])).join("")+
         '<p class="muted" style="font-size:12px">It then learns your rhythm: fewer cards if you skip them, more if you answer.</p><button class="abtn" data-act="examNext">Next</button></div>'; break; }
     case "permission":
-      h = '<div class="app">'+stepbar(3)+'<h3>Switch it on</h3><p class="muted">Reelcards needs to notice when you swipe to a new reel and draw a card on top. Android calls this an accessibility permission. It\'s the only one it asks for.</p>'+
+      h = '<div class="app">'+(UI.quick?'<div class="steplbl">One last step</div>':stepbar(3))+'<h3>Switch it on</h3>'+(UI.quick?'<p class="muted">We picked GCSE Biology and Chemistry, no exam date and “Normal” cards for you. You can change all of that on the dashboard afterwards.</p>':'')+'<p class="muted">Reelcards needs to notice when you swipe to a new reel and draw a card on top. Android calls this an accessibility permission. It\'s the only one it asks for.</p>'+
         '<div class="box"><b>What it can and can\'t do</b><span class="muted" style="font-size:13px">It only reacts to swipes in TikTok, Instagram, YouTube, Snapchat, Facebook, X, Reddit and Pinterest. It never reads your messages, never saves what you watch, and nothing leaves your phone.</span></div>'+
         ['Tap “Open settings” below','Find Reelcards (often under “Installed apps”)','Turn it on, then tap Allow','Come back here. The app notices'].map((s,i)=>'<div class="num"><i>'+(i+1)+'</i><span>'+s+'</span></div>').join("")+
         '<button class="abtn" data-act="openSettings">Open settings</button><div class="box"><b>Switch greyed out?</b><span class="muted" style="font-size:13px">Android blocks this for apps installed from a file: tap the switch once and press OK, then App info → ⋮ → “Allow restricted settings”, and try again.</span></div></div>'+
@@ -3230,6 +3230,13 @@ function render(anim){ renderPhone(anim); renderSide(); saveSoon(); }
 function go(s){ UI.screen = s; UI.err = ""; render(true); }
 function finishSetup(){ UI.onboarded = true; if (UI.firstDay==null) UI.firstDay = E.dk(now()); UI.screen = "feed"; render(true); }
 function applyExam(){ E.settings.examDate = UI.exam ? now() + UI.exam*DAY : 0; E.settings.intensity = UI.intensity; E.setVibes([...UI.vibes]); }
+/* "Get started": one tap in place of the questions, as in the Android app: GCSE Biology and Chemistry, "Normal", no
+   exam date. On the web (the home-screen app) there's no switch to turn on, so it goes straight to a test card. */
+function quickStart(){
+  if (!E.cards.length) { E.addCards(deckCards("GCSE Biology")); E.addCards(deckCards("GCSE Chemistry")); }
+  UI.exam = 0; UI.intensity = "normal"; applyExam(); UI.quick = true;
+  if (UI.permission) testCard(); else go("permission");
+}
 function skipSetup(){ if (!E.cards.length) { E.addCards(deckCards("GCSE Biology")); E.addCards(deckCards("GCSE Chemistry")); E.addCards(deckCards("GCSE Science: longer answers")); sampleDeck().then(r => { E.addCards(r.cards); renderSide(); }, () => {}); } UI.exam = 14; if (!UI.vibes.size) { UI.vibes.add("football"); UI.vibes.add("gaming"); } applyExam(); UI.permission = true; finishSetup(); }
 function outcomeOf(it, dwell){ return {revealed:it.revealed, liked:it.liked, likedBefore:it.likedBefore, pick:it.pick, likeAt:it.likeAt||0, pickAt:it.pickAt||0, hintAt:it.hintAt||0, saved:!!it.saved, shared:!!it.shared,
   got:(it.got||[]).filter(Boolean).length, dwell}; }
@@ -3324,7 +3331,8 @@ $("screen").addEventListener("click", e => {
       case "examNext": applyExam(); go(UI.permission ? "try" : "permission"); return;
       case "openSettings": UI.settingsOpen = true; renderPhone(false); return;
       case "toggleSwitch": UI.permission = !UI.permission; renderPhone(false); return;
-      case "backFromSettings": UI.settingsOpen = false; go("try"); return;
+      case "backFromSettings": UI.settingsOpen = false; if (UI.quick) testCard(); else go("try"); return; // Get started: a test card shows by itself
+      case "quick": quickStart(); return;
       case "testCard": testCard(); return;
       case "finishSetup": finishSetup(); return;
       case "addCards": UI.addMode = true; go("decks"); return;
@@ -3489,8 +3497,8 @@ function siteHero(){
   orcaFamily($("orca"));
 }
 if (!restore()) fresh(); render(true); if (!APP) { renderLab(); getSection(); siteHero(); } installOffer();
-// ?card=1 (the iPhone Shortcut's link): open straight on a card, once setup is done
-if (/[?&]card=1\b/.test(location.search) && UI.onboarded && E.cards.length) testCard();
+// ?card=1 (the iPhone Shortcut's link): open straight on a card. Before setup, that's Get started's choices.
+if (/[?&]card=1\b/.test(location.search)) { if (!UI.onboarded) quickStart(); else if (E.cards.length) testCard(); }
 })();
 
 </script>
