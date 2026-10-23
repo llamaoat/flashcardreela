@@ -36,6 +36,8 @@
 
 **On a computer:** the browser extension in [`extension/`](extension/) puts your cards between videos on TikTok, Instagram Reels, YouTube Shorts and X in Chrome or Edge ([how to install it](extension/README.md)).
 
+**On an iPhone or iPad, in Safari:** the same extension, packed for Safari by `tools/build-safari.py`, puts cards between videos on the YouTube, TikTok, Instagram and X websites (not in their apps: iOS doesn't let any app do that). Setup is a welcome page with one-tap *Get started*. Publishing it needs an Apple Developer account, but no Mac: [docs/SAFARI.md](docs/SAFARI.md). It has been tested in a phone-sized Chromium with touch, not yet in Safari or on an iPhone.
+
 **On an iPhone (or any phone):** open the web demo from GitHub Pages and add it to the home screen (Safari: Share → *Add to Home Screen*; Chrome on Android offers an *Add to home screen* button on the page). It then opens full screen as just the phone part, with no demo panels, and works without signal. It can't put cards between real TikTok reels (only the Android app can), but on an iPhone the page shows how to make a Shortcut that opens straight onto a card in one tap (`?app=1&card=1`), with an optional automation that does it after you open TikTok, and it keeps your cards and progress in the browser on that device (nothing is sent anywhere; *Reset everything* clears it).
 
 **No permission? No problem.** The **Practice feed** inside the app is a pretend reel feed that uses the exact same engine, cards and designs. Good for demos with no Wi-Fi and no TikTok.

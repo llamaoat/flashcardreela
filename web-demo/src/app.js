@@ -11,6 +11,9 @@ const makeCard = RC.makeCard;
 const PRE = {"GCSE Biology":"bio","GCSE Chemistry":"chem","GCSE Spanish":"es","GCSE Science: longer answers":"sci"};
 const deckCards = name => DECKS[name].map((r,i)=>makeCard(PRE[name]+"-"+(i+1), name, r[0], r[1], r[2]));
 const HOSTS = [["tiktok","TikTok"],["instagram","Instagram"],["youtube","YouTube"]];
+// The Safari extension's install link (TestFlight's public link, then the App Store's): the iPhone card under
+// "Get Reelcards" shows an "Add to Safari" button once it's set. docs/SAFARI.md says how to get one.
+const SAFARI_LINK = "";
 
 /* ---------------- Anki files (.apkg) ---------------- */
 const MIME = {png:"image/png", jpeg:"image/jpeg", gif:"image/gif", webp:"image/webp", bmp:"image/bmp", mp3:"audio/mpeg", ogg:"audio/ogg", m4a:"audio/mp4", wav:"audio/wav", flac:"audio/flac"};
@@ -78,6 +81,7 @@ function getSection(){
   const android = /Android/.test(ua), mine = ios ? "g-iphone" : android ? "g-android" : "g-computer";
   const card = $(mine); card.classList.add("mine"); card.querySelector(".badge").hidden = false;
   const steps = card.querySelector("details.fold"); if (steps) steps.open = true; // the steps for your own device are open
+  if (SAFARI_LINK) { $("safariLink").href = SAFARI_LINK; $("safariGet").hidden = false; }
   const link = location.origin + location.pathname.replace(/[^/]*$/, "") + "?app=1&card=1";
   $("cardLink").value = /^https?:$/.test(location.protocol) ? link : "(open this page on its web address to get the link)";
   $("copyLink").onclick = () => { const f = $("cardLink"); f.select(); try { navigator.clipboard.writeText(f.value); } catch (e) { document.execCommand("copy"); } $("copyLink").textContent = "Copied"; };

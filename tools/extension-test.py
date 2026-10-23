@@ -6,7 +6,9 @@
 
 It loads extension/ unpacked, answers requests for tiktok.com, instagram.com, youtube.com and x.com itself (so
 the content script runs as it would on the real sites, with nothing fetched from the internet), and drives the
-popup and the feeds. The stand-ins copy how the extension tells one video from the next (the page address on
+popup and the feeds. The phone tests run the same extension in a Chromium the size of an iPhone, with touch
+(Chrome's own touch input, so the pages get real touches): the closest this machine gets to Safari on a phone. It
+isn't Safari: nothing here runs WebKit. The stand-ins copy how the extension tells one video from the next (the page address on
 YouTube Shorts and Instagram Reels, a new <video> element on TikTok and X). They don't prove it works on the live
 sites, which change their pages and which this machine can't reach.
 
@@ -25,19 +27,23 @@ def check(name, ok, detail=""):
     print(("  PASS  " if ok else "  FAIL  ") + name + (("   [" + str(detail) + "]") if detail and not ok else ""))
 
 # ---------------------------------------------------------------- stand-in pages
-SHORTS = """<!doctype html><html><body style="margin:0;background:#111;color:#fff;font:14px system-ui">
+SHORTS = """<!doctype html><html><head><meta name="viewport" content="width=device-width, initial-scale=1"></head><body style="margin:0;background:#111;color:#fff;font:14px system-ui">
 <video id="v" width="360" height="640" muted style="display:block;margin:10px auto;background:#222"></video><p id="t" style="text-align:center"></p>
 <script>
 const IDS = "abcdefghijklmnop".split(""), PREFIX = "%(prefix)s", SUFFIX = "%(suffix)s";
 const idx = () => { const m = location.pathname.match(/\\/(?:shorts|reels?)\\/([^\\/]+)/); return m ? IDS.indexOf(m[1]) : 0; };
+if (!/\\/(?:shorts|reels?)\\/[^\\/]+/.test(location.pathname)) history.replaceState({}, "", PREFIX + IDS[0] + SUFFIX); // like the real feeds: /shorts goes to its first video
 function go(d){ const i = Math.max(0, Math.min(IDS.length - 1, idx() + d)); history.pushState({}, "", PREFIX + IDS[i] + SUFFIX); show(); }
 function show(){ document.getElementById("t").textContent = "Short " + IDS[idx()]; }
 addEventListener("keydown", e => { if (e.key === "ArrowDown") go(1); else if (e.key === "ArrowUp") go(-1); });
 addEventListener("wheel", e => { if (e.defaultPrevented) return; if (e.deltaY > 30) go(1); else if (e.deltaY < -30) go(-1); }, {passive:true});
+let ty = null; // a finger, as on a phone: swipe up for the next video, down for the one before
+addEventListener("touchstart", e => { ty = e.touches[0].clientY; }, {passive:true});
+addEventListener("touchend", e => { if (ty == null) return; const dy = e.changedTouches[0].clientY - ty; ty = null; if (dy < -50) go(1); else if (dy > 50) go(-1); }, {passive:true});
 show();
 </script></body></html>"""
 
-TIKTOK = """<!doctype html><html><body style="margin:0;background:#111;color:#fff;font:14px system-ui">
+TIKTOK = """<!doctype html><html><head><meta name="viewport" content="width=device-width, initial-scale=1"></head><body style="margin:0;background:#111;color:#fff;font:14px system-ui">
 <div id="feed" style="height:100vh;overflow-y:scroll;scroll-snap-type:y mandatory">
 """ + "".join('<section style="height:100vh;scroll-snap-align:start;display:flex;align-items:center;justify-content:center"><video width="360" height="640" muted style="background:#222"></video></section>' for _ in range(14)) + """
 </div></body></html>"""
@@ -46,13 +52,16 @@ PAGES = {
     "youtube": ("https://www.youtube.com/**", "https://www.youtube.com/shorts/a", SHORTS % {"prefix": "/shorts/", "suffix": ""}),
     "instagram": ("https://www.instagram.com/**", "https://www.instagram.com/reels/a/", SHORTS % {"prefix": "/reels/", "suffix": "/"}),
     "tiktok": ("https://www.tiktok.com/**", "https://www.tiktok.com/", TIKTOK),
+    "youtube-phone": ("https://m.youtube.com/**", "https://m.youtube.com/shorts/a", SHORTS % {"prefix": "/shorts/", "suffix": ""}),
 }
+IPHONE = "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1"
 
 # ---------------------------------------------------------------- helpers
-def launch(p):
+def launch(p, phone=False):
     profile = tempfile.mkdtemp(prefix="reelcards-ext-")
     exe = {"executable_path": os.environ["CHROMIUM"]} if os.environ.get("CHROMIUM") else {}
-    ctx = p.chromium.launch_persistent_context(profile, headless=False, viewport={"width": 1000, "height": 800}, **exe,
+    size = dict(viewport={"width": 390, "height": 844}, is_mobile=True, has_touch=True, device_scale_factor=3, user_agent=IPHONE) if phone else dict(viewport={"width": 1000, "height": 800})
+    ctx = p.chromium.launch_persistent_context(profile, headless=False, **size, **exe,
         args=["--headless=new", "--no-sandbox", "--disable-extensions-except=" + EXT, "--load-extension=" + EXT])
     for site, (pattern, _, html) in PAGES.items():
         ctx.route(pattern, lambda route, request, html=html: route.fulfill(body=html, content_type="text/html"))
@@ -131,6 +140,23 @@ def graded(sw):
     st = storage(sw)
     return sum(1 for line in st["engine"]["log"] if line.startswith("Graded")) if st else 0
 
+def wait_for(ok, secs, page):
+    """Polls ok() for up to secs seconds, waiting on page (Playwright only hears from the browser while it waits)."""
+    end = time.time() + secs
+    while time.time() < end:
+        if ok(): return True
+        page.wait_for_timeout(200)
+    return ok()
+
+def swipe(page, cdp, dy, x=195, y=None, ms=160):
+    """A finger dragged dy pixels up (negative) or down the screen, through Chrome's own touch input."""
+    y = y if y is not None else (620 if dy < 0 else 220)
+    cdp.send("Input.dispatchTouchEvent", {"type": "touchStart", "touchPoints": [{"x": x, "y": y}]})
+    for i in range(1, 9):
+        page.wait_for_timeout(ms / 8)
+        cdp.send("Input.dispatchTouchEvent", {"type": "touchMove", "touchPoints": [{"x": x, "y": y + dy * i / 8}]})
+    cdp.send("Input.dispatchTouchEvent", {"type": "touchEnd", "touchPoints": []})
+
 def note(page):
     n = overlay(page).locator(".note")
     return n.inner_text() if n.count() and n.is_visible() else ""
@@ -170,7 +196,7 @@ def get_started(ctx, sw, ext_id):
     check("  \"Normal\" cards, no exam date", st and st["engine"]["settings"]["intensity"] == "normal" and not st["engine"]["settings"]["examDate"])
     check("  and it's marked as set up", st and st["meta"]["onboarded"] is True)
     check("the Get started box goes away once there are cards", not popup.is_visible("#go"))
-    check("the popup says what to do next", "slips in" in popup.inner_text("#goMsg"), popup.inner_text("#goMsg"))
+    check("the popup says what to do next, where you can see it", popup.is_visible("#goMsg") and "first video brings a card" in popup.inner_text("#goMsg"), popup.inner_text("#goMsg"))
     popup.click("#off"); popup.wait_for_timeout(500)
     st = storage(sw)
     check("Switch off saves that cards are off", st and st["meta"]["off"] is True)
@@ -235,20 +261,115 @@ def revisit(ctx, sw, ext_id):
         page.close()
     popup.close()
 
+def phone(ctx, sw, ext_id):
+    print("On a phone (Chromium the size of an iPhone, with touch)")
+    welcome = None
+    if wait_for(lambda: any(pg.url.endswith("/welcome.html") for pg in ctx.pages), 6, ctx.pages[0]):
+        welcome = next(pg for pg in ctx.pages if pg.url.endswith("/welcome.html"))
+    check("installing it opens the welcome page by itself", welcome is not None)
+    if not welcome: return
+    # carry on in a copy the test opens itself: Playwright attaches late to a tab an extension opens, and can miss
+    # the stand-in sites for it
+    url = welcome.url; welcome.close(); welcome = ctx.new_page(); welcome.goto(url)
+    welcome.wait_for_selector("#go", state="visible")
+    check("  it starts with one button: Get started", welcome.is_visible("#go") and not welcome.is_visible("#s-allow"))
+    welcome.tap("#go")
+    welcome.wait_for_selector("#s-ready", state="visible", timeout=5000)
+    st = storage(sw)
+    decks = sorted({c["deck"] for c in st["engine"]["cards"]}) if st else []
+    check("one tap sets it up: GCSE Biology and Chemistry, Normal, no exam date",
+          decks == ["GCSE Biology", "GCSE Chemistry"] and st["engine"]["settings"]["intensity"] == "normal" and not st["engine"]["settings"]["examDate"], decks)
+    check("  Chrome allows the video sites already, so it goes straight to them (Safari asks first)", not welcome.is_visible("#s-allow"))
+    check("  with a button for each site", welcome.locator("#sites a").count() == 4)
+    welcome.tap('#sites a[href*="youtube"]')
+    page = welcome
+    page.wait_for_url("**/shorts/a")
+    shown = wait_for(lambda: card_up(page), 5, page)
+    check("the first video brings a card straight away", shown)
+    if not shown: return
+    box, vw = overlay(page).locator(".frame").bounding_box(), page.viewport_size
+    check("  it fills the phone's screen, like a reel", box and abs(box["width"] - vw["width"]) < 2 and abs(box["height"] - vw["height"]) < 2, box)
+    check("  with no bar under it", not overlay(page).locator(".bar").is_visible())
+    if overlay(page).locator(".card.l-quiz").count(): overlay(page).locator('[data-act="pick"]').first.tap()  # a quiz is answered by picking
+    else: page.touchscreen.tap(100, 620)
+    page.wait_for_timeout(600)
+    check("a tap shows the answer", overlay(page).locator(".card.rv").count() == 1)
+    cdp = ctx.new_cdp_session(page)
+    first = where(page, "youtube")
+    swipe(page, cdp, -60, ms=320); page.wait_for_timeout(400)
+    check("a short drag springs back: the card stays", card_up(page))
+    swipe(page, cdp, -420); page.wait_for_timeout(700)
+    check("swiping the card up takes it away", not card_up(page))
+    check("  and the video under it stays put: the site never saw that swipe", where(page, "youtube") == first, where(page, "youtube"))
+    popup = open_popup(ctx, ext_id); set_intensity(popup, "demo"); popup.close()
+    page.bring_to_front()
+    shown = False
+    for _ in range(8):
+        swipe(page, cdp, -420); page.wait_for_timeout(1100)
+        if card_up(page): shown = True; break
+    check("swiping up the feed brings the next card", shown)
+    if not shown: return
+    at_card = where(page, "youtube")
+    page.touchscreen.tap(100, 620); page.wait_for_timeout(90); page.touchscreen.tap(102, 622); page.wait_for_timeout(500)
+    badge = overlay(page).locator(".badge")
+    check("a double tap says you knew it", badge.count() == 1 and "Knew it" in badge.inner_text(), badge.inner_text() if badge.count() else "no badge")
+    before = graded(sw)
+    swipe(page, cdp, -420); page.wait_for_timeout(800)
+    check("  and swiping on grades it, once", graded(sw) == before + 1 and not card_up(page), (before, graded(sw)))
+    swipe(page, cdp, 420); page.wait_for_timeout(1300)
+    check("swiping back to the video before brings the card again", card_up(page) and note(page).startswith("You did this card already"), note(page))
+    check("  over the video before", where(page, "youtube") != at_card)
+    under = where(page, "youtube")
+    swipe(page, cdp, 420); page.wait_for_timeout(700)
+    check("  and a swipe either way takes it away, leaving the video where it was", not card_up(page) and where(page, "youtube") == under, (card_up(page), under, where(page, "youtube")))
+    check("  without grading it again", graded(sw) == before + 1, (before, graded(sw)))
+    # one swiped past without answering, then come back to: it can be answered now, and counts
+    shown = False
+    for _ in range(8):
+        swipe(page, cdp, -420); page.wait_for_timeout(1100)
+        if card_up(page): shown = True; break
+    if shown:
+        swipe(page, cdp, -420); page.wait_for_timeout(800)   # past it, unanswered
+        swipe(page, cdp, 420); page.wait_for_timeout(1300)   # and back
+        check("one swiped past says so when you come back", card_up(page) and "skipped" in note(page), note(page))
+        if overlay(page).locator(".card.l-quiz").count(): overlay(page).locator('[data-act="pick"]').first.tap()
+        else: page.touchscreen.tap(100, 620)
+        page.wait_for_timeout(600)
+        check("  and it can be answered now", overlay(page).locator(".card.rv").count() == 1)
+        before = graded(sw)
+        swipe(page, cdp, -420); page.wait_for_timeout(800)
+        check("  which counts", graded(sw) == before + 1 and not card_up(page), (before, graded(sw)))
+    else:
+        check("another card comes along", False)
+    # TikTok's feed scrolls natively: the card must keep the finger from scrolling it underneath
+    tk = open_site(ctx, "tiktok"); cdp2 = ctx.new_cdp_session(tk); shown = False
+    for _ in range(8):
+        swipe(tk, cdp2, -420); tk.wait_for_timeout(1300)
+        if card_up(tk): shown = True; break
+    check("[tiktok] swiping up the feed brings a card", shown)
+    if shown:
+        top = where(tk, "tiktok")
+        swipe(tk, cdp2, -420); tk.wait_for_timeout(900)
+        check("[tiktok]   swiping the card away doesn't scroll the feed under it", not card_up(tk) and where(tk, "tiktok") == top, (top, where(tk, "tiktok")))
+    tk.close()
+
 def run(only=None):
     with sync_playwright() as p:
-        ctx, sw, ext_id, profile = launch(p)
-        try:
-            for name, fn in TESTS:
-                if only and only not in name: continue
-                reset(sw)  # every test starts from a new install
-                fn(ctx, sw, ext_id)
-        finally:
-            ctx.close(); shutil.rmtree(profile, ignore_errors=True)
+        for is_phone, tests in ((False, TESTS), (True, PHONE_TESTS)):
+            tests = [t for t in tests if not only or only in t[0]]
+            if not tests: continue
+            ctx, sw, ext_id, profile = launch(p, phone=is_phone)
+            try:
+                for name, fn in tests:
+                    if not is_phone: reset(sw)  # every test starts from a new install (the phone test is one: it needs the install's welcome page)
+                    fn(ctx, sw, ext_id)
+            finally:
+                ctx.close(); shutil.rmtree(profile, ignore_errors=True)
     print("\n%d of %d checks passed" % (sum(results), len(results)))
     return 0 if all(results) else 1
 
 TESTS = [("basics", basics), ("get_started", get_started), ("revisit", revisit)]
+PHONE_TESTS = [("phone", phone)]
 
 if __name__ == "__main__":
     sys.exit(run(sys.argv[1] if len(sys.argv) > 1 else None))

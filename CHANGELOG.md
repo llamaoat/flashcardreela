@@ -40,6 +40,24 @@
   first card, since there's no switch to turn on; the website's demo goes on to its pretend Android switch, as
   the app does. The iPhone Shortcut's link (`?card=1`) now works before setup as well, with the same choices.
   Not tried on a real iPhone.
+- **The extension on phones, and packed for Safari (0.3.0),** so iPhones and iPads can have cards between
+  videos in Safari: on the YouTube, TikTok, Instagram and X websites, not in their apps, which iOS doesn't allow
+  for any app.
+  - On a phone the card fills the screen like a reel. A finger drags it as on Android: up to move on, down as
+    well on a card you came back to, springing back if the drag is short. Double-tap works without the browser's
+    help. Touches on the card never reach the site, so its own swipe can't move the video underneath.
+  - A **welcome page** opens by itself at install, in the website's sea-and-orca look: one tap on *Get
+    started*, then (in Safari only) *Allow on the video sites*, then a site to open. The first video after Get
+    started brings a card straight away.
+  - `tools/build-safari.py` makes `Reelcards-safari.zip` (CI keeps it as an artifact) for Apple's Safari Web
+    Extension Packager, which turns it into an app for TestFlight and the App Store with no Mac.
+    [docs/SAFARI.md](docs/SAFARI.md) has every step, for you and for students. The website's iPhone card shows an
+    *Add to Safari* button once its link is set.
+  - Fixed on the way: *Pause 1 hour* on a card's bar now saves; saves no longer stall if the background
+    script is slow to answer.
+  - Tested in a Chromium the size of an iPhone, with touch, on stand-in pages (`tools/extension-test.py phone`,
+    24 checks). **Not run in Safari or on an iPhone**: this machine can't run either, and needs an Apple
+    Developer account to make the app.
 - Smoother cards on Android (not yet run on a phone): the card window is now hardware-accelerated and
   the slide in and out animates a cached layer, so it no longer redraws every frame. A card on its way
   no longer triggers a save mid-slide, and the swipe detector stops querying the reel app for the rest of a

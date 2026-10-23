@@ -2,6 +2,7 @@
 <html lang="en-GB">
 <head>
 <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Reelcards</title>
 <style>
 /* Same tokens as the app's own screens (Ui.java, .app in web-demo/src/head.html): light by day, dark with the system. */
@@ -12,6 +13,12 @@
 @font-face{font-family:"Inter";font-weight:600 900;src:url(fonts/Inter-SemiBold.ttf)}
 body{margin:0;width:360px;background:var(--bg);color:var(--text);font:14px/1.45 "Inter",system-ui,sans-serif;letter-spacing:-.1px;-webkit-font-smoothing:antialiased}
 body.tab{width:auto;max-width:520px;margin:0 auto}
+@media (pointer:coarse){body{width:auto}} /* Safari on a phone shows the popup as a sheet as wide as the screen */
+/* the top, in the website's deep-sea navy */
+.top{margin:-18px -16px 0;padding:18px 16px 16px;color:#fff;background:radial-gradient(120% 90% at 85% 0%,rgba(34,184,207,.45),rgba(34,184,207,0) 60%),radial-gradient(90% 120% at 0% 100%,rgba(99,102,241,.5),rgba(99,102,241,0) 62%),#0B2140}
+.top h1{display:flex;align-items:center;gap:9px;color:#fff}.top h1 img{border-radius:7px}
+.top p{margin:6px 0 0;color:rgba(238,242,248,.85);font-size:12.5px}
+.top a{color:#fff}
 main{padding:18px 16px 20px;display:flex;flex-direction:column;gap:12px}
 h1{margin:0;font-weight:600;font-size:16px;letter-spacing:-.3px}h1 span{color:inherit}
 h2{margin:0 0 8px;font-size:12px;font-weight:500;color:var(--muted)}
@@ -34,17 +41,26 @@ a{color:var(--text);text-underline-offset:3px}
 </head>
 <body>
 <main>
-  <h1>Reel<span>cards</span></h1>
-  <p class="muted" style="margin:0">Your flashcards slip in between videos on TikTok, Instagram Reels, YouTube Shorts and X.</p>
+  <div class="top">
+    <h1><img src="icons/icon-48.png" alt="" width="24" height="24">Reelcards</h1>
+    <p>Your flashcards slip in between videos on TikTok, Instagram Reels, YouTube Shorts and X. <a href="welcome.html" target="_blank">How it works</a></p>
+  </div>
+
+  <section id="sitesBox" hidden>
+    <h2>One last step</h2>
+    <p class="muted" style="margin:0 0 8px">Safari asks before any extension works on a website. Reelcards only works on TikTok, Instagram, YouTube and X.</p>
+    <div class="btns" style="margin-top:0"><button class="primary" id="allowSites">Allow on the video sites</button></div>
+    <p class="msg" id="sitesMsg"></p>
+  </section>
 
   <section id="start" hidden>
     <h2>Get started</h2>
     <p class="muted" style="margin:0 0 8px">One click: GCSE Biology and Chemistry, “Normal” cards and no exam date. You can change any of it below.</p>
     <div class="btns" style="margin-top:0"><button class="primary" id="go">Get started</button></div>
-    <p class="msg" id="goMsg"></p>
   </section>
 
   <section>
+    <p class="msg" id="goMsg" style="margin:0 0 10px" hidden></p>
     <div class="stats" id="stats"></div>
     <p class="msg" id="state"></p>
     <div class="btns"><button class="primary" id="test">Show a test card on this tab</button><button id="pause"></button><button id="off"></button></div>
@@ -87,6 +103,7 @@ a{color:var(--text);text-underline-offset:3px}
 <script src="lib/decks.js"></script>
 <script src="lib/notes.js"></script>
 <script src="state.js"></script>
+<script src="setup.js"></script>
 <script src="popup.js"></script>
 </body>
 </html>

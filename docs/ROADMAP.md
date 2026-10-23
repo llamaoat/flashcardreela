@@ -52,8 +52,13 @@ hasn't run on a real phone yet.
 7. **iPhone.** iOS doesn't let apps detect individual reels.
    - **Options:** cards timed with Screen Time (every few minutes of TikTok), home-screen and
      lock-screen widgets, and a Shortcuts automation that opens a card when TikTok opens.
+   - **Built, waiting on an Apple account:** the browser extension packed for Safari
+     (`tools/build-safari.py`, [SAFARI.md](SAFARI.md)) puts cards between videos on the YouTube, TikTok,
+     Instagram and X websites in Safari, with a phone layout, touch gestures and a one-tap welcome page. It
+     needs an Apple Developer account to pack through App Store Connect (no Mac), then TestFlight. Tested in a
+     phone-sized Chromium, not yet in Safari.
    - **Today:** an iPhone Shortcut (steps shown on the web page when opened in iOS Safari) opens the web
-     demo's `?app=1&card=1` link, which goes straight to a card once setup is done. The timed
+     demo's `?app=1&card=1` link, which goes straight to a card (with Get started's choices before setup). The timed
      automation (open TikTok, wait, open the link) is untested. Safari and a home-screen copy keep
      separate saves, so the guide says to use one. The web demo can be added to an iPhone's home screen, where it opens full screen and
      works offline (`manifest.webmanifest`, `sw.js`, the `appmode` view). It keeps progress in the

@@ -15,7 +15,7 @@ SRC, EXT = ROOT / "web-demo" / "src", ROOT / "extension"
 LIB = EXT / "lib"
 LIB.mkdir(parents=True, exist_ok=True)
 
-for name in ("engine.js", "apkg.js", "render.js", "decks.js", "notes.js"):
+for name in ("engine.js", "apkg.js", "render.js", "decks.js", "notes.js", "sea.js", "orca.js"):  # sea and orcas: the welcome page
     shutil.copyfile(SRC / name, LIB / name)
 # notes.js runs inside app.js in the web demo, where makeCard is already defined
 (LIB / "notes.js").write_text("const makeCard = RC.makeCard; // defined in app.js in the web demo\n" + (SRC / "notes.js").read_text(encoding="utf-8"), encoding="utf-8")
@@ -39,7 +39,7 @@ icons.mkdir(exist_ok=True)
 try:
     from PIL import Image
     big = Image.open(ROOT / "docs" / "play-store" / "icon-512.png").convert("RGB")
-    for n in (16, 32, 48, 128):
+    for n in (16, 32, 48, 96, 128, 256, 512):  # 96 to 512: Safari's sizes (tools/build-safari.py)
         big.resize((n, n), Image.LANCZOS).save(icons / ("icon-%d.png" % n), optimize=True)
 except ImportError:
     print("Pillow missing: icons not rebuilt")

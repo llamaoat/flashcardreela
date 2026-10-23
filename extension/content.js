@@ -52,6 +52,7 @@ const TRAIL_MAX = 30, SLOTS_MAX = 8;
 let trail = [], at = -1, slots = [], slotNow = null;
 function resetTrail(){ trail = []; at = -1; slots = []; slotNow = null; lastKey = null; }
 function watch(){
+  if (!E || !meta) return; // the saved state isn't loaded yet: don't note a video we couldn't act on
   if (!inFeed()) { if (trail.length) resetTrail(); return; }
   const v = mainVideo(); if (!v) return;
   const k = keyOf(v); if (!k || k === lastKey) return;
@@ -85,7 +86,9 @@ addEventListener("scroll", () => setTimeout(watch, 250), {passive:true, capture:
 
 function nextVideo(){
   if (!E || !meta || !meta.onboarded || meta.off || !E.cards.length) return;
-  change(E2 => E2.onReelSwipe(now(), SITE)).then(sh => { if (sh && !cur) show(sh, {slotAt:at}); });
+  // straight after Get started, the first video brings a card, so it's clear at once that it works
+  change((E2, m2) => { if (m2.firstCard) { m2.firstCard = false; return E2.forceShow(now(), SITE); } return E2.onReelSwipe(now(), SITE); })
+    .then(sh => { if (sh && !cur) show(sh, {slotAt:at}); });
 }
 
 /* ---------------- the card overlay ---------------- */
@@ -93,12 +96,18 @@ function pauseVideos(){ paused = []; document.querySelectorAll("video").forEach(
 function resumeVideos(){ paused.forEach(v => { try { v.play().catch(() => {}); } catch (e) {} }); paused = []; }
 function mount(back){
   host = document.createElement("div"); host.id = "reelcards-overlay";
-  host.style.cssText = "position:fixed;inset:0;z-index:2147483647;";
+  host.style.cssText = "position:fixed;inset:0;z-index:2147483647;touch-action:none;overscroll-behavior:contain;-webkit-tap-highlight-color:transparent;";
   root = host.attachShadow({mode:"open"});
   root.innerHTML = '<style>' + CARD_CSS + OVERLAY_CSS + '</style><div class="dim"></div><div class="wrap"><div class="frame' + (back ? ' back' : '') + '"><div class="stage"></div><div class="note" hidden></div></div>' +
     '<div class="bar"><button data-x="next">Next ↓</button><span>Tap to see the answer · double-tap if you knew it · scroll on to skip</span><button data-x="pause">Pause 1 hour</button></div></div>';
   document.documentElement.appendChild(host);
   root.addEventListener("click", onClick); root.addEventListener("dblclick", onDbl);
+  root.addEventListener("pointerdown", onDown); root.addEventListener("pointermove", onMove);
+  root.addEventListener("pointerup", onUp); root.addEventListener("pointercancel", onCancel);
+  // touches and clicks on the card stay with the card: the site's own swipe (to its next video) or tap (pause) never sees
+  // them, and the page underneath doesn't scroll. A long explanation that's open can still be scrolled with a finger.
+  ["touchstart","touchmove","touchend","touchcancel","pointerdown","pointermove","pointerup","pointercancel","click","dblclick","mousedown","mouseup"].forEach(t =>
+    host.addEventListener(t, e => { e.stopPropagation(); if (t === "touchmove" && !inMore(e.composedPath()[0])) e.preventDefault(); }, {passive:false}));
   addEventListener("wheel", onWheel, {capture:true, passive:false}); // scrolling on = next, and the site underneath doesn't scroll
   addEventListener("keydown", onKey, true);
   scale(); addEventListener("resize", scale);
@@ -109,8 +118,48 @@ function onWheel(e){
   if (e.deltaY > 30 || (cur.revisit && e.deltaY < -30)) done();
 }
 function unmount(){ removeEventListener("wheel", onWheel, {capture:true}); removeEventListener("keydown", onKey, true); removeEventListener("resize", scale); if (host) host.remove(); host = root = null; }
-/* the card is designed at 360 x 740 (a phone); scale it to the window's height */
-function scale(){ if (!root) return; const k = Math.min((innerHeight - 70) / 740, (innerWidth - 20) / 360, 1.25); root.querySelector(".frame").style.setProperty("--k", k.toFixed(3)); }
+/* The card is designed at 360 x 740 (a phone). On a phone held upright it fills the screen, like a reel; on a phone on
+   its side it's the screen's height; anywhere else it's that design in a frame, scaled to the window. */
+function scale(){
+  if (!root) return;
+  const wrap = root.querySelector(".wrap"), small = matchMedia("(pointer: coarse)").matches && Math.min(innerWidth, innerHeight) < 600, upright = small && innerHeight >= innerWidth;
+  wrap.classList.toggle("phone", upright); wrap.classList.toggle("bare", small && !upright);
+  const k = upright ? 1 : small ? innerHeight / 740 : Math.min((innerHeight - 70) / 740, (innerWidth - 20) / 360, 1.25);
+  root.querySelector(".frame").style.setProperty("--k", k.toFixed(3));
+  if (cur) fitCards(root.querySelector(".stage")); // the screen turned: the text may fit differently
+}
+
+/* ---------------- touch: drag the card, as the app's CardView does ----------------
+   Up to move on, and down too on a card they came back to. It follows the finger, goes past a fifth of the screen or
+   on a quick flick, and springs back otherwise. A mouse uses the wheel instead. */
+let drag = null, noClickUntil = 0;
+const frameEl = () => root && root.querySelector(".frame");
+const inMore = el => !!(el && el.closest && el.closest(".moreopen .band"));
+function onDown(e){
+  if (!cur || cur.leaving || e.pointerType === "mouse" || !e.isPrimary || root.querySelector(".zoomer")) return;
+  if (e.target.closest(".bar") || inMore(e.target)) return; // a drag can start anywhere on the card, even on a button (a tap is still only that button), but an open explanation scrolls
+  drag = {id:e.pointerId, y0:e.clientY, dy:0, moving:false, pts:[[e.timeStamp, e.clientY]]};
+}
+function onMove(e){
+  const d = drag; if (!d || e.pointerId !== d.id || !cur) return;
+  d.dy = e.clientY - d.y0; d.pts.push([e.timeStamp, e.clientY]); if (d.pts.length > 6) d.pts.shift();
+  if (!d.moving && (d.dy < -12 || (cur.revisit && d.dy > 12))) { d.moving = true; clearTimeout(tapTimer); }
+  if (d.moving) { const f = frameEl(); f.classList.add("drag"); f.style.transform = "translateY(" + (cur.revisit ? d.dy : Math.min(0, d.dy)) + "px)"; }
+}
+function onUp(e){
+  const d = drag; if (!d || e.pointerId !== d.id) return; drag = null;
+  const f = frameEl(); if (!d.moving || !cur || !f) return;
+  noClickUntil = performance.now() + 400; // the lift at the end of a drag isn't a tap
+  const p = d.pts[0], v = (e.clientY - p[1]) / Math.max(16, e.timeStamp - p[0]) * 1000; // px per second
+  f.classList.remove("drag");
+  if (d.dy < -innerHeight * .2 || v < -1400) leave(-1);
+  else if (cur.revisit && (d.dy > innerHeight * .2 || v > 1400)) leave(1);
+  else f.style.transform = "";
+}
+function onCancel(e){ if (!drag || e.pointerId !== drag.id) return; drag = null; const f = frameEl(); if (f) { f.classList.remove("drag"); f.style.transform = ""; } }
+/* slides the card off the way the finger went, then moves on. The video starts again straight away, while the finger's
+   still the reason: phones only let a page start a video with sound from a tap or a swipe. */
+function leave(dir){ const it = cur, f = frameEl(); it.leaving = true; f.classList.add("leaving"); f.style.transform = "translateY(" + (dir * 110) + "%)"; resumeVideos(); setTimeout(() => { if (cur === it) done(); }, 190); }
 
 function show(sh, opt){
   opt = opt || {};
@@ -119,6 +168,7 @@ function show(sh, opt){
   if (keys.length && !sh.mediaReady) { RCState.media(keys).then(m => { RCState.MEDIA.forEach(k => { if (sh.s[k]) sh.s[k] = m[sh.s[k]] || null; }); sh.mediaReady = true; show(sh, opt); }); return; }
   pauseVideos();
   cur = Object.assign({kind:"card", revealed:false, liked:false, likedBefore:false, pick:-1, saved:false, hinted:false, beat:0, count:null, got:[], moreOpen:false, settled:false, shownAt:performance.now()}, sh);
+  cur.leaving = false; // a card brought back was last seen sliding away
   if (meta.coachLeft > 0 && !cur.revisit) cur.coach = true; // counted down when the card is finished
   if (opt.slotAt != null) { slots = slots.filter(sl => sl.at !== opt.slotAt); slotNow = {at:opt.slotAt, it:null, out:null, grade:null}; slots.push(slotNow); if (slots.length > SLOTS_MAX) slots.shift(); }
   else slotNow = null;
@@ -190,10 +240,11 @@ function tick(i){
   it.got[i] = !it.got[i]; it.settled = true; draw();
 }
 function toast(msg){ if (!root) return; const t = document.createElement("div"); t.className = "toast"; t.textContent = msg; root.querySelector(".stage").appendChild(t); setTimeout(() => t.remove(), 1800); }
-let tapTimer = null;
+let tapTimer = null, lastTap = {t:0, x:0, y:0};
 function onClick(e){
+  if (performance.now() < noClickUntil || (cur && cur.leaving)) return;
   const x = e.target.closest("[data-x]");
-  if (x) { if (x.dataset.x === "next") done(); else { E.settings.pausedUntil = now() + 60*60000; done(); } return; }
+  if (x) { if (x.dataset.x === "pause") change(E2 => { E2.settings.pausedUntil = now() + 60*60000; }); done(); return; }
   if (e.target.classList.contains("dim")) { done(); return; }
   const b = e.target.closest("[data-act]"), it = cur; if (!it) return;
   if (b) {
@@ -213,6 +264,9 @@ function onClick(e){
   }
   if (e.target.closest("[data-card]")) {
     clearTimeout(tapTimer);
+    const t = performance.now();
+    if (t - lastTap.t < 320 && Math.abs(e.clientX - lastTap.x) < 40 && Math.abs(e.clientY - lastTap.y) < 40) { lastTap.t = 0; like(); return; } // a double tap
+    lastTap = {t, x:e.clientX, y:e.clientY};
     const pic = e.target.closest(".pic.zoomable");
     if (pic && pic.dataset.src && cur.revealed) tapTimer = setTimeout(() => Render.zoomIn(root, pic.dataset.src), 260); // once the answer's showing, a click on a picture opens it full screen
     else tapTimer = setTimeout(reveal, 260);
@@ -230,7 +284,7 @@ function onKey(e){
   e.preventDefault(); e.stopImmediatePropagation();
 }
 // while a card is up, the site doesn't get to start the next video
-setInterval(() => { if (cur) document.querySelectorAll("video").forEach(v => { if (!v.paused) { try { v.pause(); } catch (e) {} if (paused.indexOf(v) < 0) paused.push(v); } }); }, 400);
+setInterval(() => { if (cur && !cur.leaving) document.querySelectorAll("video").forEach(v => { if (!v.paused) { try { v.pause(); } catch (e) {} if (paused.indexOf(v) < 0) paused.push(v); } }); }, 400);
 
 /* fit pass: shrink text a step at a time if it would spill out of the safe zone (as in the web demo) */
 function fitCards(r){
@@ -258,7 +312,7 @@ chrome.runtime.onMessage.addListener((msg, sender, reply) => {
     E = r.E; meta = r.meta;
     if (!E.cards.length) { reply({ok:false, why:"Add some cards first."}); return; }
     if (cur) done();
-    change(E2 => E2.forceShow(now(), SITE)).then(sh => { if (sh) show(sh); reply({ok:!!sh}); });
+    change((E2, m2) => { m2.firstCard = false; return E2.forceShow(now(), SITE); }).then(sh => { if (sh) show(sh); reply({ok:!!sh}); });
   });
   return true;
 });
@@ -269,7 +323,15 @@ const OVERLAY_CSS = `
 .wrap{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;pointer-events:none}
 .frame{--k:1;width:calc(360px * var(--k));height:calc(740px * var(--k));position:relative;pointer-events:auto;border-radius:calc(22px * var(--k));overflow:hidden;box-shadow:0 30px 80px -20px #000}
 .stage{position:absolute;left:0;top:0;width:360px;height:740px;transform:scale(var(--k));transform-origin:0 0}
-.frame{animation:rcin .26s cubic-bezier(.2,.8,.2,1)}.frame.back{animation-name:rcback}
+.frame{animation:rcin .26s cubic-bezier(.2,.8,.2,1);transition:transform .18s ease-out;touch-action:none}.frame.back{animation-name:rcback}
+.frame.drag{transition:none}.frame.leaving{transition:transform .19s ease-in,opacity .19s ease-in;opacity:.4}
+/* a phone held upright: the card is the whole screen, like a reel; on its side, the screen's height. No bar either way:
+   swipe up to move on, as in the app */
+.wrap.phone{gap:0}
+.wrap.phone .frame{width:100vw;height:100vh;height:100dvh;border-radius:0;box-shadow:none}
+.wrap.phone .stage{width:100%;height:100%;transform:none}
+.wrap.phone .bar,.wrap.bare .bar{display:none}
+.card.moreopen .band{touch-action:pan-y}
 @keyframes rcin{from{transform:translateY(28px);opacity:0}to{transform:none;opacity:1}}
 @keyframes rcback{from{transform:translateY(-28px);opacity:0}to{transform:none;opacity:1}}
 @media (prefers-reduced-motion:reduce){.frame{animation:none}}

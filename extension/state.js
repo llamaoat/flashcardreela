@@ -7,7 +7,9 @@ const RCState = (function(){
 const KEY = "reelcards";
 const ENGINE_FIELDS = ["adaptiveRhythm","sessionId","sessionReels","reelsSinceCard","cardsToday","newToday","postponed","lastSwipeAt","snoozeUntil",
   "dayKey","rhythmArm","lastHost","lastDeck","recentFast","recentReel","requeue","log","anki","tzOffsetMin"];
-const freshMeta = () => ({onboarded:false, coachLeft:2, exam:14, vibes:[], firstDay:null, off:false}); // off: switched off from the popup (no cards until it's switched on)
+// off: switched off from the popup (no cards until it's switched on); firstCard: Get started was just pressed, so the
+// first video brings a card at once
+const freshMeta = () => ({onboarded:false, coachLeft:2, exam:14, vibes:[], firstDay:null, off:false, firstCard:false});
 
 function toJSON(E, meta){
   const engine = {cards:E.cards.map(c => Object.assign({}, c)),
@@ -32,7 +34,8 @@ function save(E, meta){ return new Promise(ok => chrome.storage.local.set({[KEY]
 /* Read the newest save, change it, save it, while holding the background script's lock (background.js).
    Every tab and the popup changes progress this way, so no change is ever lost to another tab's, however
    close together they come. */
-const lock = () => new Promise(ok => { try { chrome.runtime.sendMessage({type: "lock"}, () => { void chrome.runtime.lastError; ok(); }); } catch (e) { ok(); } });
+// If the background script doesn't answer (it can be slow to wake on a phone), carry on after 2 seconds rather than stall every save.
+const lock = () => new Promise(ok => { const t = setTimeout(ok, 2000); try { chrome.runtime.sendMessage({type: "lock"}, () => { void chrome.runtime.lastError; clearTimeout(t); ok(); }); } catch (e) { clearTimeout(t); ok(); } });
 const unlock = () => { try { chrome.runtime.sendMessage({type: "unlock"}, () => { void chrome.runtime.lastError; }); } catch (e) {} };
 let queue = Promise.resolve();
 function update(fn){
