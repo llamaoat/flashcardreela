@@ -9,8 +9,11 @@ the content script runs as it would on the real sites, with nothing fetched from
 popup and the feeds. The phone tests run the same extension in a Chromium the size of an iPhone, with touch
 (Chrome's own touch input, so the pages get real touches): the closest this machine gets to Safari on a phone. It
 isn't Safari: nothing here runs WebKit. The stand-ins copy how the extension tells one video from the next (the page address on
-YouTube Shorts and Instagram Reels, a new <video> element on TikTok and X). They don't prove it works on the live
-sites, which change their pages and which this machine can't reach.
+YouTube Shorts and Instagram Reels, a new <video> element on TikTok and X). They also behave badly on purpose, the
+ways a real site might: they listen for swipes, scrolls and keys on the whole window before anything else does, a
+phone one keeps its own banner in the browser's top layer, and one TikTok-style feed throws its video players away
+and makes new ones as you scroll. They don't prove it works on the live sites, which change their pages and which
+this machine can't reach.
 
 Needs Python 3 with Playwright (pip install playwright). Set CHROMIUM=/path/to/chrome if Playwright's own browser
 isn't installed. Exits 1 if anything fails.
@@ -28,18 +31,22 @@ def check(name, ok, detail=""):
 
 # ---------------------------------------------------------------- stand-in pages
 SHORTS = """<!doctype html><html><head><meta name="viewport" content="width=device-width, initial-scale=1"></head><body style="margin:0;background:#111;color:#fff;font:14px system-ui">
-<video id="v" width="360" height="640" muted style="display:block;margin:10px auto;background:#222"></video><p id="t" style="text-align:center"></p>
+<video id="v" width="360" height="640" src="/clip.wav" loop playsinline style="display:block;margin:10px auto;background:#222"></video><p id="t" style="text-align:center"></p>
+%(banner)s
 <script>
+// one player for every video, as on YouTube's phone site; a tap on it plays or pauses
+const V = document.getElementById("v"); V.addEventListener("click", () => { if (V.paused) V.play(); else V.pause(); });
 const IDS = "abcdefghijklmnop".split(""), PREFIX = "%(prefix)s", SUFFIX = "%(suffix)s";
 const idx = () => { const m = location.pathname.match(/\\/(?:shorts|reels?)\\/([^\\/]+)/); return m ? IDS.indexOf(m[1]) : 0; };
 if (!/\\/(?:shorts|reels?)\\/[^\\/]+/.test(location.pathname)) history.replaceState({}, "", PREFIX + IDS[0] + SUFFIX); // like the real feeds: /shorts goes to its first video
 function go(d){ const i = Math.max(0, Math.min(IDS.length - 1, idx() + d)); history.pushState({}, "", PREFIX + IDS[i] + SUFFIX); show(); }
 function show(){ document.getElementById("t").textContent = "Short " + IDS[idx()]; }
-addEventListener("keydown", e => { if (e.key === "ArrowDown") go(1); else if (e.key === "ArrowUp") go(-1); });
-addEventListener("wheel", e => { if (e.defaultPrevented) return; if (e.deltaY > 30) go(1); else if (e.deltaY < -30) go(-1); }, {passive:true});
+// a greedy site: it listens on the whole window, before anything else would (capture), for keys, scrolls and swipes
+addEventListener("keydown", e => { if (e.key === "ArrowDown") go(1); else if (e.key === "ArrowUp") go(-1); }, true);
+addEventListener("wheel", e => { if (e.defaultPrevented) return; if (e.deltaY > 30) go(1); else if (e.deltaY < -30) go(-1); }, {passive:true, capture:true});
 let ty = null; // a finger, as on a phone: swipe up for the next video, down for the one before
-addEventListener("touchstart", e => { ty = e.touches[0].clientY; }, {passive:true});
-addEventListener("touchend", e => { if (ty == null) return; const dy = e.changedTouches[0].clientY - ty; ty = null; if (dy < -50) go(1); else if (dy > 50) go(-1); }, {passive:true});
+addEventListener("touchstart", e => { ty = e.touches[0].clientY; }, {passive:true, capture:true});
+addEventListener("touchend", e => { if (ty == null) return; const dy = e.changedTouches[0].clientY - ty; ty = null; if (dy < -50) go(1); else if (dy > 50) go(-1); }, {passive:true, capture:true});
 show();
 </script></body></html>"""
 
@@ -48,12 +55,41 @@ TIKTOK = """<!doctype html><html><head><meta name="viewport" content="width=devi
 """ + "".join('<section style="height:100vh;scroll-snap-align:start;display:flex;align-items:center;justify-content:center"><video width="360" height="640" muted style="background:#222"></video></section>' for _ in range(14)) + """
 </div></body></html>"""
 
+# a feed that keeps a player only for the video on screen: each one is thrown away as you scroll off it and a new one
+# made when you come back (some sites do this to save memory), so "back" can't be told from the player alone
+TIKTOK_RECYCLE = TIKTOK.replace("</div></body>", """</div><script>
+const feed = document.getElementById("feed"), secs = [...feed.children];
+secs.forEach(s => s.innerHTML = "");
+function player(){ const v = document.createElement("video"); v.width = 360; v.height = 640; v.muted = true; v.style.background = "#222"; return v; }
+function settle(){ const i = Math.round(feed.scrollTop / innerHeight);
+  secs.forEach((s, j) => { const v = s.querySelector("video"); if (j !== i && v) v.remove(); if (j === i && !v) s.appendChild(player()); }); }
+feed.addEventListener("scroll", () => { clearTimeout(window.__t); window.__t = setTimeout(settle, 60); }, {passive:true});
+settle();
+</script></body>""")
+
+# a phone site's own banner ("Open in the app"), kept in the browser's top layer, above anything with a z-index
+BANNER = """<div id="banner" popover="manual" style="position:fixed;inset:0 0 auto 0;margin:0;width:100%;height:80px;border:0;padding:0 16px;box-sizing:border-box;background:#e0245e;color:#fff;font:600 15px system-ui;display:flex;align-items:center">Open in the app</div>
+<script>const B = document.getElementById("banner"); if (B.showPopover) B.showPopover();</script>"""
+
 PAGES = {
-    "youtube": ("https://www.youtube.com/**", "https://www.youtube.com/shorts/a", SHORTS % {"prefix": "/shorts/", "suffix": ""}),
-    "instagram": ("https://www.instagram.com/**", "https://www.instagram.com/reels/a/", SHORTS % {"prefix": "/reels/", "suffix": "/"}),
+    "youtube": ("https://www.youtube.com/**", "https://www.youtube.com/shorts/a", SHORTS % {"prefix": "/shorts/", "suffix": "", "banner": ""}),
+    "instagram": ("https://www.instagram.com/**", "https://www.instagram.com/reels/a/", SHORTS % {"prefix": "/reels/", "suffix": "/", "banner": ""}),
     "tiktok": ("https://www.tiktok.com/**", "https://www.tiktok.com/", TIKTOK),
-    "youtube-phone": ("https://m.youtube.com/**", "https://m.youtube.com/shorts/a", SHORTS % {"prefix": "/shorts/", "suffix": ""}),
+    "tiktok-recycled": ("https://m.tiktok.com/**", "https://m.tiktok.com/", TIKTOK_RECYCLE),
+    "youtube-phone": ("https://m.youtube.com/**", "https://m.youtube.com/shorts/a", SHORTS % {"prefix": "/shorts/", "suffix": "", "banner": BANNER}),
 }
+
+def wav(secs=4, rate=8000):
+    """A few seconds of a quiet tone: the stand-in players play it, so there's real sound to stop and start."""
+    import io, math, wave
+    buf = io.BytesIO(); w = wave.open(buf, "wb"); w.setnchannels(1); w.setsampwidth(1); w.setframerate(rate)
+    w.writeframes(bytes(128 + int(12 * math.sin(2 * math.pi * 440 * i / rate)) for i in range(secs * rate))); w.close()
+    return buf.getvalue()
+CLIP = wav()
+
+def serve(route, request, html):
+    if request.url.endswith(".wav"): route.fulfill(body=CLIP, content_type="audio/wav")
+    else: route.fulfill(body=html, content_type="text/html")
 IPHONE = "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1"
 
 # ---------------------------------------------------------------- helpers
@@ -64,7 +100,7 @@ def launch(p, phone=False):
     ctx = p.chromium.launch_persistent_context(profile, headless=False, **size, **exe,
         args=["--headless=new", "--no-sandbox", "--disable-extensions-except=" + EXT, "--load-extension=" + EXT])
     for site, (pattern, _, html) in PAGES.items():
-        ctx.route(pattern, lambda route, request, html=html: route.fulfill(body=html, content_type="text/html"))
+        ctx.route(pattern, lambda route, request, html=html: serve(route, request, html))
     for _ in range(40):
         if ctx.service_workers: break
         time.sleep(.25)
@@ -86,7 +122,7 @@ def open_site(ctx, site):
 def move(page, site, steps, back=False):
     """One step along the feed, the way a person does it: the arrow key on Shorts and Reels, a scroll on TikTok."""
     for _ in range(abs(steps)):
-        if site == "tiktok":
+        if site.startswith("tiktok"):
             page.evaluate("(d) => { const f = document.getElementById('feed'); f.scrollTo({top: Math.round(f.scrollTop / innerHeight + d) * innerHeight}); }", -1 if back else 1)
         else:
             page.keyboard.press("ArrowUp" if back else "ArrowDown")
@@ -100,7 +136,7 @@ def card_up(page):
 
 def where(page, site):
     """Which video the stand-in feed is showing."""
-    if site == "tiktok": return page.evaluate("() => Math.round(document.getElementById('feed').scrollTop / innerHeight)")
+    if site.startswith("tiktok"): return page.evaluate("() => Math.round(document.getElementById('feed').scrollTop / innerHeight)")
     return page.inner_text("#t")
 
 def dismiss(page, site):
@@ -180,8 +216,10 @@ def basics(ctx, sw, ext_id):
         check("a card slips in between videos on a %s-style feed" % site, shown)
         if shown:
             check("  the card is drawn in a shadow root over the page", page.locator("#reelcards-overlay .card").count() == 1)
+            spot = where(page, site)
             dismiss(page, site)
             check("  scrolling on dismisses it", not card_up(page))
+            check("  and the site never saw that scroll: the video under it stays put", where(page, site) == spot, (spot, where(page, site)))
         page.close()
     popup.close()
 
@@ -222,7 +260,7 @@ def get_started(ctx, sw, ext_id):
 def revisit(ctx, sw, ext_id):
     print("Scrolling back to a card")
     popup = ready(ctx, sw, ext_id, "demo")
-    for site in ("youtube", "tiktok"):
+    for site in ("youtube", "tiktok", "tiktok-recycled"):
         page = open_site(ctx, site)
         page.wait_for_timeout(500)
         if card_up(page): dismiss(page, site)  # a card on the very first video has no video before it to come back to
@@ -290,6 +328,8 @@ def phone(ctx, sw, ext_id):
     box, vw = overlay(page).locator(".frame").bounding_box(), page.viewport_size
     check("  it fills the phone's screen, like a reel", box and abs(box["width"] - vw["width"]) < 2 and abs(box["height"] - vw["height"]) < 2, box)
     check("  with no bar under it", not overlay(page).locator(".bar").is_visible())
+    check("  above the site's own banner, which is in the browser's top layer",
+          page.evaluate("() => document.elementFromPoint(195, 40) === document.getElementById('reelcards-overlay')"))
     if overlay(page).locator(".card.l-quiz").count(): overlay(page).locator('[data-act="pick"]').first.tap()  # a quiz is answered by picking
     else: page.touchscreen.tap(100, 620)
     page.wait_for_timeout(600)
@@ -303,12 +343,16 @@ def phone(ctx, sw, ext_id):
     check("  and the video under it stays put: the site never saw that swipe", where(page, "youtube") == first, where(page, "youtube"))
     popup = open_popup(ctx, ext_id); set_intensity(popup, "demo"); popup.close()
     page.bring_to_front()
+    playing = "() => { const v = document.getElementById('v'); return !v.paused && !v.muted; }"
+    page.touchscreen.tap(195, 330); page.wait_for_timeout(500)  # start the video, with its sound, as a person does
+    check("(the stand-in's video plays, with sound)", page.evaluate(playing))
     shown = False
     for _ in range(8):
         swipe(page, cdp, -420); page.wait_for_timeout(1100)
         if card_up(page): shown = True; break
     check("swiping up the feed brings the next card", shown)
     if not shown: return
+    check("  and the video stops under it", page.evaluate("() => document.getElementById('v').paused"))
     at_card = where(page, "youtube")
     page.touchscreen.tap(100, 620); page.wait_for_timeout(90); page.touchscreen.tap(102, 622); page.wait_for_timeout(500)
     badge = overlay(page).locator(".badge")
@@ -316,6 +360,7 @@ def phone(ctx, sw, ext_id):
     before = graded(sw)
     swipe(page, cdp, -420); page.wait_for_timeout(800)
     check("  and swiping on grades it, once", graded(sw) == before + 1 and not card_up(page), (before, graded(sw)))
+    check("  and the video plays again, with its sound (started from the swipe's touchend)", page.evaluate(playing))
     swipe(page, cdp, 420); page.wait_for_timeout(1300)
     check("swiping back to the video before brings the card again", card_up(page) and note(page).startswith("You did this card already"), note(page))
     check("  over the video before", where(page, "youtube") != at_card)
@@ -353,23 +398,76 @@ def phone(ctx, sw, ext_id):
         check("[tiktok]   swiping the card away doesn't scroll the feed under it", not card_up(tk) and where(tk, "tiktok") == top, (top, where(tk, "tiktok")))
     tk.close()
 
+def phone_setup(ctx, sw, ext_id):
+    print("On a phone, set up from the video page (for when Safari doesn't open the welcome page)")
+    page = ctx.new_page(); page.goto(PAGES["youtube-phone"][1])
+    chip = page.locator("#reelcards-setup")
+    check("with nothing set up, a feed offers Get started at the top", wait_for(lambda: chip.count() == 1 and chip.locator(".go").is_visible(), 4, page))
+    check("  above the site's own banner", page.evaluate("() => document.elementFromPoint(195, 40) === document.getElementById('reelcards-setup')"))
+    first = where(page, "youtube")
+    chip.locator(".x").tap(); page.wait_for_timeout(500)
+    st = storage(sw)
+    check("\"Not now\" puts it away", chip.count() == 0 and where(page, "youtube") == first)
+    check("  for a day", st and st["meta"]["setupLater"] > time.time() * 1000 + 23 * 3600 * 1000)
+    page.reload(); page.wait_for_timeout(1500)
+    check("  so it doesn't come back on the next visit", page.locator("#reelcards-setup").count() == 0)
+    sw.evaluate("() => new Promise(ok => chrome.storage.local.get('reelcards', r => { r.reelcards.meta.setupLater = 0; chrome.storage.local.set(r, ok); }))")
+    page.reload()
+    check("a day later it's back", wait_for(lambda: page.locator("#reelcards-setup .go").count() == 1, 4, page))
+    page.locator("#reelcards-setup .go").tap()
+    shown = wait_for(lambda: card_up(page), 4, page)
+    st = storage(sw)
+    decks = sorted({c["deck"] for c in st["engine"]["cards"]}) if st else []
+    check("one tap on it sets up GCSE Biology and Chemistry", decks == ["GCSE Biology", "GCSE Chemistry"] and st["meta"]["onboarded"] is True, decks)
+    check("  and a card comes up on this video straight away", shown)
+    check("  and the bar is gone", page.locator("#reelcards-setup").count() == 0)
+    check("  and the video didn't move", where(page, "youtube") == first)
+    page.close()
+
+def sound_fallback(ctx, sw, ext_id):
+    print("Sound after a card, when a phone says no (sound.js)")
+    page = ctx.new_page(); page.goto("chrome-extension://%s/welcome.html" % ext_id)
+    page.add_script_tag(url="chrome-extension://%s/sound.js" % ext_id)
+    r = page.evaluate("""async () => {
+        // a stand-in player: it plays muted whenever asked, but with sound only if the phone allows it
+        const player = allow => ({muted:false, paused:true, play(){ if (!this.muted && !allow) return Promise.reject(Object.assign(new Error("no"), {name:"NotAllowedError"})); this.paused = false; return Promise.resolve(); }});
+        const ok = player(true), no = player(false), told = [];
+        RCSound.resume([ok, no], v => told.push(v));
+        await new Promise(r => setTimeout(r, 50));
+        const before = {okPlaying: !ok.paused, okMuted: ok.muted, noPlaying: !no.paused, noMuted: no.muted, told: told.length === 1 && told[0] === no};
+        no.play = function(){ this.paused = false; return Promise.resolve(); }; // the tap on "Tap for sound" is allowed
+        RCSound.unmute(no);
+        return Object.assign(before, {after: !no.muted && !no.paused});
+    }""")
+    check("a video the phone lets play goes on as it was, with sound", r["okPlaying"] and not r["okMuted"], r)
+    check("one it won't let play with sound plays on muted, rather than stopping", r["noPlaying"] and r["noMuted"], r)
+    check("  and \"Tap for sound\" is offered for it", r["told"], r)
+    check("  which gives the sound back", r["after"], r)
+    page.close()
+
 def run(only=None):
     with sync_playwright() as p:
         for is_phone, tests in ((False, TESTS), (True, PHONE_TESTS)):
             tests = [t for t in tests if not only or only in t[0]]
             if not tests: continue
-            ctx, sw, ext_id, profile = launch(p, phone=is_phone)
+            if is_phone:  # each phone test is a new install: one starts from the welcome page, one from a video page
+                for name, fn in tests:
+                    ctx, sw, ext_id, profile = launch(p, phone=True)
+                    try: fn(ctx, sw, ext_id)
+                    finally: ctx.close(); shutil.rmtree(profile, ignore_errors=True)
+                continue
+            ctx, sw, ext_id, profile = launch(p)
             try:
                 for name, fn in tests:
-                    if not is_phone: reset(sw)  # every test starts from a new install (the phone test is one: it needs the install's welcome page)
+                    reset(sw)  # every test starts from a new install
                     fn(ctx, sw, ext_id)
             finally:
                 ctx.close(); shutil.rmtree(profile, ignore_errors=True)
     print("\n%d of %d checks passed" % (sum(results), len(results)))
     return 0 if all(results) else 1
 
-TESTS = [("basics", basics), ("get_started", get_started), ("revisit", revisit)]
-PHONE_TESTS = [("phone", phone)]
+TESTS = [("basics", basics), ("get_started", get_started), ("revisit", revisit), ("sound_fallback", sound_fallback)]
+PHONE_TESTS = [("phone", phone), ("phone_setup", phone_setup)]
 
 if __name__ == "__main__":
     sys.exit(run(sys.argv[1] if len(sys.argv) > 1 else None))

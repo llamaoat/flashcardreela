@@ -64,7 +64,9 @@ $("go").onclick = () => {
     });
   });
 };
-$("allowSites").onclick = () => { RCSetup.askSites().then(ok => { if (ok) draw(); else $("sitesMsg").innerHTML = "No box came up? Open the site in Safari, tap the <b>⋯</b> More button, tap <b>Reelcards</b> and choose <b>Always Allow</b>."; }); };
+// Safari's question comes up from the tap; look again afterwards rather than trust the answer, and say how Safari asks on the site if it didn't
+$("allowSites").onclick = () => { RCSetup.askSites().then(() => RCSetup.hasSites()).then(ok => { if (ok) draw(); else $("sitesMsg").innerHTML = "No box came up? Open the site in Safari, tap the <b>⋯</b> More button (it shows a dot when Reelcards is waiting), tap <b>Reelcards</b> and choose <b>Always Allow</b>."; }); };
+try { chrome.permissions.onAdded.addListener(() => draw()); } catch (e) {} // allowed from Safari's own menu meanwhile
 $("pause").onclick = () => change(E2 => { E2.settings.pausedUntil = E2.settings.pausedUntil > Date.now() ? 0 : Date.now() + 60*60000; });
 $("makeCards").onclick = () => {
   const r = parseNotes($("notes").value, $("notesDeck").value.trim() || "My notes");

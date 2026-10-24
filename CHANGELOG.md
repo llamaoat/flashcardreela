@@ -49,15 +49,27 @@
   - A **welcome page** opens by itself at install, in the website's sea-and-orca look: one tap on *Get
     started*, then (in Safari only) *Allow on the video sites*, then a site to open. The first video after Get
     started brings a card straight away.
+  - **Nothing depends on the welcome page.** Safari's install event is unreliable on iPhones, so a feed with
+    nothing set up shows a *Get started* bar at the top: one tap sets up and puts a card on that video (*Not
+    now* hides it for a day). The *Allow* button checks whether access really was given, notices when it's
+    given from Safari's own menu, and otherwise explains Safari's way and offers the site.
+  - **Ready for real sites doing awkward things.** `guard.js` loads before a page's own scripts, so a card's
+    touches, clicks, scrolls and keys reach nothing else, however early the site listens. Cards, the bar and
+    "Tap for sound" go in the browser's top layer, above a site's own banners. A feed that rebuilds its players
+    as you scroll still gets "back" right, from the way the page scrolled.
+  - **Sound after a card:** the video restarts from the swipe's touchend (iPhones only allow sound from a
+    touch, click or key, not the pointer events used for dragging). If a phone still refuses, it plays muted
+    with a *Tap for sound* button rather than stopping.
   - `tools/build-safari.py` makes `Reelcards-safari.zip` (CI keeps it as an artifact) for Apple's Safari Web
     Extension Packager, which turns it into an app for TestFlight and the App Store with no Mac.
     [docs/SAFARI.md](docs/SAFARI.md) has every step, for you and for students. The website's iPhone card shows an
     *Add to Safari* button once its link is set.
   - Fixed on the way: *Pause 1 hour* on a card's bar now saves; saves no longer stall if the background
     script is slow to answer.
-  - Tested in a Chromium the size of an iPhone, with touch, on stand-in pages (`tools/extension-test.py phone`,
-    24 checks). **Not run in Safari or on an iPhone**: this machine can't run either, and needs an Apple
-    Developer account to make the app.
+  - Tested in Chromium, at computer and iPhone size with touch, on stand-in pages that misbehave on purpose
+    (`tools/extension-test.py`); each new check also fails on a copy of the extension without its fix. **Not
+    run in Safari or on an iPhone**: this machine can't run either or reach the real sites, and making the app
+    needs an Apple Developer account. [docs/SAFARI.md](docs/SAFARI.md) lists what to check first.
 - Smoother cards on Android (not yet run on a phone): the card window is now hardware-accelerated and
   the slide in and out animates a cached layer, so it no longer redraws every frame. A card on its way
   no longer triggers a save mid-slide, and the swipe detector stops querying the reel app for the rest of a

@@ -10,11 +10,15 @@
   "host_permissions": ["https://www.tiktok.com/*", "https://m.tiktok.com/*", "https://www.instagram.com/*", "https://www.youtube.com/*", "https://m.youtube.com/*", "https://x.com/*", "https://twitter.com/*"],
   "content_scripts": [{
     "matches": ["https://www.tiktok.com/*", "https://m.tiktok.com/*", "https://www.instagram.com/*", "https://www.youtube.com/*", "https://m.youtube.com/*", "https://x.com/*", "https://twitter.com/*"],
-    "js": ["lib/engine.js", "lib/render.js", "lib/card-css.js", "state.js", "content.js"],
+    "js": ["guard.js"],
+    "run_at": "document_start"
+  }, {
+    "matches": ["https://www.tiktok.com/*", "https://m.tiktok.com/*", "https://www.instagram.com/*", "https://www.youtube.com/*", "https://m.youtube.com/*", "https://x.com/*", "https://twitter.com/*"],
+    "js": ["lib/engine.js", "lib/render.js", "lib/card-css.js", "lib/decks.js", "state.js", "setup.js", "sound.js", "content.js"],
     "run_at": "document_idle"
   }],
   "web_accessible_resources": [{
-    "resources": ["fonts/*.ttf"],
+    "resources": ["fonts/*.ttf", "icons/icon-48.png"],
     "matches": ["https://www.tiktok.com/*", "https://m.tiktok.com/*", "https://www.instagram.com/*", "https://www.youtube.com/*", "https://m.youtube.com/*", "https://x.com/*", "https://twitter.com/*"]
   }]
 }

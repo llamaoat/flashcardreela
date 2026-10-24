@@ -35,8 +35,11 @@ looks*. Audience: UK GCSE students, 14–16. Android first, open source (GPLv3).
 - `extension/`: the browser extension (Chrome/Edge, Manifest V3, and Safari on iPhone, iPad and Mac) for TikTok,
   Instagram Reels, YouTube Shorts and X. Its own files are `manifest.json`, `content.js` (spots the next video,
   draws the card in a shadow root; on a phone the card fills the screen and a finger drags it, as `CardView`
-  does), `popup.*`, `welcome.*` (opens at install: one-tap Get started), `setup.js` (Get started and Safari's
-  site question, shared by the popup and the welcome page) and `state.js`; `lib/` is copied from `web-demo/src/` by
+  does), `popup.*`, `welcome.*` (opens at install: one-tap Get started; Safari may never open it, so a feed with
+  nothing set up shows a Get started bar too), `setup.js` (Get started and Safari's site question, shared by all
+  three), `guard.js` (loaded at document_start so the card's touches, clicks, scrolls and keys reach no site
+  code: `content.js` handles them in `__rcGuard`, using `composedPath()[0]` as the target), `sound.js` (videos
+  restart from touchend/click/keydown, else muted with "Tap for sound") and `state.js`; `lib/` is copied from `web-demo/src/` by
   `python3 tools/build-extension.py`, never edited by hand, and CI fails if it's out of date. So a
   change to the engine or the cards reaches the extension when you rerun that script. `content.js` keeps a
   trail of the last 30 videos so that scrolling back to a card's place brings it back (`watch`, `backTo`,

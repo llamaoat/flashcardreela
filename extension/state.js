@@ -8,8 +8,8 @@ const KEY = "reelcards";
 const ENGINE_FIELDS = ["adaptiveRhythm","sessionId","sessionReels","reelsSinceCard","cardsToday","newToday","postponed","lastSwipeAt","snoozeUntil",
   "dayKey","rhythmArm","lastHost","lastDeck","recentFast","recentReel","requeue","log","anki","tzOffsetMin"];
 // off: switched off from the popup (no cards until it's switched on); firstCard: Get started was just pressed, so the
-// first video brings a card at once
-const freshMeta = () => ({onboarded:false, coachLeft:2, exam:14, vibes:[], firstDay:null, off:false, firstCard:false});
+// first video brings a card at once; setupLater: "Not now" on a video page's Get started bar, until then
+const freshMeta = () => ({onboarded:false, coachLeft:2, exam:14, vibes:[], firstDay:null, off:false, firstCard:false, setupLater:0});
 
 function toJSON(E, meta){
   const engine = {cards:E.cards.map(c => Object.assign({}, c)),

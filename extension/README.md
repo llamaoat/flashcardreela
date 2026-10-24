@@ -20,9 +20,10 @@ On an iPhone or iPad: [docs/SAFARI.md](../docs/SAFARI.md).
 
 ## Use it
 
-1. On the welcome page (or in the popup), tap **Get started**. One tap picks GCSE Biology and Chemistry,
-   "Normal" cards and no exam date. In Safari there's one more tap, **Allow on the video sites**, because
-   Safari asks before an extension works on a website. Everything is still there to change in the popup:
+1. On the welcome page, in the popup, or on the **Get started** bar a video site shows when nothing's set up
+   yet, tap **Get started**. One tap picks GCSE Biology and Chemistry, "Normal" cards and no exam date. In
+   Safari there's one more step, allowing it on the video sites, because Safari asks before an extension works
+   on a website. Everything is still there to change in the popup:
    other ready-made decks, your own notes, an Anki file, your exam date, and how often you want cards
    (*Demo* shows one every 2 videos, which is handy for trying it).
 2. Open TikTok, Instagram Reels, YouTube Shorts or X and scroll as normal. The first video after Get
@@ -56,10 +57,20 @@ The popup shows what you've done today and what's due, and *Reset everything* cl
 - The card is drawn in a shadow root, so the site's styles can't touch it. On a computer or tablet it's the
   app's 360 × 740 design in a frame, scaled to the window. On a phone held upright it fills the screen like a
   reel, and a finger drags it as the Android app's card does: up to move on (down as well on a card you came
-  back to), springing back if the drag is short. Touches on the card never reach the site, so its own swipe
-  can't change the video underneath. While a card is up, the page's videos stay paused.
-- `welcome.html` opens once, at install, in the website's deep-sea look (`lib/sea.js`, `lib/orca.js`).
-  `setup.js` is Get started and the Safari site question, shared by it and the popup.
+  back to), springing back if the drag is short. While a card is up, the page's videos stay paused.
+- `guard.js` loads before the page's own scripts, so Reelcards gets the first say over every touch, click,
+  scroll and key: anything that lands on a card (or the Get started bar) is handled by `content.js` and goes no
+  further, so a site can't act on it too, however early it listens. With nothing of ours on screen it does
+  nothing. Our layers go in the browser's top layer (a popover) where there is one, above the site's own.
+- When a feed rebuilds its video players as you scroll, so a player can't say which video it is, "back" is
+  told from the way the page last scrolled.
+- Videos start again after a card from the swipe's `touchend` (or the tap's click, or the key), the events a
+  phone allows sound from. If a phone still refuses, `sound.js` plays the video muted and offers **Tap for
+  sound**.
+- `welcome.html` opens once, at install, in the website's deep-sea look (`lib/sea.js`, `lib/orca.js`). Safari
+  doesn't always open it, so a feed with nothing set up shows a **Get started** bar instead (*Not now* keeps
+  it away for a day). `setup.js` is Get started and the Safari site question, shared by the welcome page, the
+  popup and the bar.
 - `state.js` keeps everything in `chrome.storage.local`, shared by every tab and the popup.
 - `lib/` is copied from `web-demo/src/` by `tools/build-extension.py`: the engine, the card renderer,
   the card styles, the ready-made decks, the notes parser, the Anki reader and the sea. Never edit it by
@@ -73,9 +84,10 @@ The popup shows what you've done today and what's due, and *Reset everything* cl
 - **Sites change their pages.** Detection relies on how each site lays out its videos, which they can
   change at any time. It has been tested on stand-in pages that behave like each feed, not on the live
   sites (this project's test machines can't reach them), so try it and report what breaks.
-- **Going back leans on that detection too.** TikTok and X are told apart by their video elements, and if
-  a site reuses one element for different videos, "back" looks like a new video: you just don't get the old
-  card back, and nothing else goes wrong.
+- **Going back leans on that detection too.** TikTok and X are told apart by their video elements and, when
+  a site rebuilds those, by the way the page scrolled. A site that swaps videos without scrolling or new
+  players could still make "back" look like a new video: you just don't get the old card back, and nothing
+  else goes wrong.
 - **Safari hasn't run it yet.** Its phone layout and touch have been tested in a Chromium the size of an
   iPhone, not in Safari or on an iPhone: [docs/SAFARI.md](../docs/SAFARI.md) lists what to check.
 - Not in the Chrome Web Store yet: install it as above. Firefox needs small changes.
@@ -85,14 +97,17 @@ The popup shows what you've done today and what's due, and *Reset everything* cl
 ## Test it
 
 `tools/extension-test.py` loads this folder in a real Chromium and drives the popup and stand-in pages that
-behave like each site's feed: cards slipping in, Get started, Switch off, scrolling back to a card, and on a
-phone-sized screen with touch, the welcome page, swipes and double-taps. It needs Python with Playwright
+behave like each site's feed, and badly on purpose (listening on the whole window first, a banner in the top
+layer, a feed that rebuilds its players): cards slipping in, Get started, Switch off, scrolling back to a card,
+sound after a card, and on a phone-sized screen with touch, the welcome page, the Get started bar, swipes and
+double-taps. It needs Python with Playwright
 (`pip install playwright`); set `CHROMIUM=/path/to/chrome` if Playwright's own browser isn't installed. It
 takes a few minutes and exits 1 if anything fails. `python3 tools/extension-test.py phone` runs one test.
 
 ## Privacy
 
 It has no network access of its own and sends nothing anywhere. On the four sites it looks only at the
-size and position of video elements and, on YouTube and Instagram, the page address, to tell one
-video from the next. It doesn't read text on the page. It remembers the last 30 videos of a visit in the
+size and position of video elements, which way the page scrolls and, on YouTube and Instagram, the page
+address, to tell one video from the next. It doesn't read text on the page, and it keeps touches and keys
+from the site only while one of its cards is on screen, without recording them. It remembers the last 30 videos of a visit in the
 page's memory so that "back" works, and that list is never saved or sent. See `PRIVACY.md`.

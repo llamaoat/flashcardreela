@@ -96,8 +96,10 @@ Reelcards that connects to other companies**, so it's kept apart from the rest a
 The extension runs on TikTok, Instagram, YouTube and X (twitter.com) in your browser: Chrome or Edge on a
 computer, or Safari on an iPhone, iPad or Mac (where Safari asks you first whether it may work on those sites,
 and you can change that in Safari's settings at any time). To tell one
-short video from the next, it looks at the size and position of the video players on the page and, on
-YouTube and Instagram, at the page address. It doesn't read text, comments or names on the page. So that
+short video from the next, it looks at the size and position of the video players on the page, which way
+the page scrolls and, on YouTube and Instagram, at the page address. While one of its cards is on screen it
+keeps the touches, clicks, scrolls and keys meant for the card, so the site can't act on them too; it doesn't
+record them, and the rest of the time it leaves them alone. It doesn't read text, comments or names on the page. So that
 scrolling *back* can bring a card back, it remembers the last 30 videos of that visit (the page address,
 or a marker for the video player) in the page's memory only. That list is never saved or sent, and it's
 gone when you leave or close the tab. It pauses the playing video while a card is up and plays it again

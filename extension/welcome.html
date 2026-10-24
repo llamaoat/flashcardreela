@@ -35,7 +35,7 @@ h1 span{display:block;color:rgba(255,255,255,.64);font-weight:500}
 .sites{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.sites .btn{padding:0 10px}.sites .btn:first-child{grid-column:1/-1}
 .small{margin:0;font-size:14px;line-height:1.5;color:rgba(238,242,248,.8);text-shadow:0 1px 12px rgba(5,15,40,.6)}
 .small a,.lead a{color:#fff;text-underline-offset:3px}
-.small[hidden]{display:none}
+[hidden]{display:none!important}
 .how{list-style:none;margin:2px 0 0;padding:14px 16px;display:grid;gap:9px;background:rgba(16,38,73,.78);border:1px solid #27447A;border-radius:20px;font-size:15px;line-height:1.4;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
 .how li{display:grid;grid-template-columns:7.2em 1fr;gap:10px}
 .how b{color:#fff;font-weight:600}.how span{color:rgba(238,242,248,.85)}
@@ -59,7 +59,8 @@ footer{margin-top:auto;padding-top:30px}
     <h2>Let it on the video sites</h2>
     <p class="lead">Safari asks before any extension works on a website. Reelcards only works on TikTok, Instagram, YouTube and X, and only notices which video is playing.</p>
     <button class="btn primary" id="allow">Allow on the video sites</button>
-    <p class="small" id="allowHelp" hidden>No box came up? Open YouTube in Safari, tap the <b>⋯</b> More button, tap <b>Reelcards</b> and choose <b>Always Allow</b>. Then come back here and <a href="#" id="recheck">check again</a>.</p>
+    <p class="small" id="allowHelp" hidden>No box came up? Safari can ask on the site instead: open YouTube Shorts below, tap the <b>⋯</b> More button (it shows a dot when Reelcards is waiting for your OK), tap <b>Reelcards</b> and choose <b>Always Allow</b>. A <b>Get started</b> bar then appears at the top. Or <a href="#" id="recheck">check again here</a>.</p>
+    <a class="btn" id="anyway" href="https://www.youtube.com/shorts" hidden>Open YouTube Shorts</a>
   </section>
 
   <section id="s-ready" hidden>
@@ -74,6 +75,7 @@ footer{margin-top:auto;padding-top:30px}
       <li><b>Go back</b><span>a video, and the card comes back, marked if you did it</span></li>
     </ul>
     <p class="small">The Reelcards button pauses it, switches it off or changes your decks. In Safari it's in the <b>⋯</b> More menu; on a computer, pin it from the puzzle-piece menu.</p>
+    <p class="small">No card after a few videos? In Safari, tap <b>⋯</b>, then <b>Reelcards</b>, and check it's allowed on that site.</p>
   </section>
 
   <footer><p class="small">Free. Nothing you watch is saved or sent anywhere. <a href="https://llamaoat.github.io/flashcardreela/privacy.html" target="_blank" rel="noopener">Privacy</a></p></footer>
