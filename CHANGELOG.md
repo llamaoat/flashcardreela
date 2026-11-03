@@ -21,7 +21,55 @@
   there comes back, sliding down from the top. A card you did shows its answer with "You did this card
   already · Good" and isn't graded twice. One you swiped past says "You skipped this one. Have a go?" and
   counts when you answer it. Swiping back also no longer counts as a new reel, so it can't set off a fresh
-  card. Not yet run on a phone, and the web demo and extension don't do this yet.
+  card. Not yet run on a phone. The browser extension does the same (next entry); the web demo doesn't.
+- **The browser extension (0.2.0) catches up with the app.** *Get started* in the popup (one click: GCSE
+  Biology and Chemistry, "Normal", no exam date, then a test card on the page you're on), *Switch off* and
+  *Switch on*, and **going back to a card**: scroll or press ↑ to the video before and the card comes back
+  with "You did this card already · Good" (answer showing, not graded twice) or "You skipped this one. Have a
+  go?". Going back doesn't count as a new video. `tools/extension-test.py` is new: it loads the extension
+  in a real Chromium and runs it on stand-in TikTok, Instagram and YouTube feeds (48 checks pass). It has not
+  been tried on the live sites, which this machine can't reach. The extension keeps the last 30 videos of a
+  visit in the page's memory so that back works (never saved or sent); `PRIVACY.md` says so.
+- **In the web demo, TikTok, Instagram and YouTube now look different.** Each has its own top bar ("For
+  You" with a search, a big "Reels" with a camera, "Shorts" with a search and a menu) and its own normal reels
+  with that app's rail and counts, caption band and "Follow" or "Subscribe" button, in the safe zones the cards
+  use. Pressing an app's button before setup now shows it: a normal reel, then a card slips in. The Android
+  practice feed's filler reels are still the same for all three.
+- **Get started in the web app too** (the home-screen app on an iPhone, and the demo on the website): one tap
+  picks GCSE Biology and Chemistry, "Normal" and no exam date. On the home-screen app that's one tap to the
+  first card, since there's no switch to turn on; the website's demo goes on to its pretend Android switch, as
+  the app does. The iPhone Shortcut's link (`?card=1`) now works before setup as well, with the same choices.
+  Not tried on a real iPhone.
+- **The extension on phones, and packed for Safari (0.3.0),** so iPhones and iPads can have cards between
+  videos in Safari: on the YouTube, TikTok, Instagram and X websites, not in their apps, which iOS doesn't allow
+  for any app.
+  - On a phone the card fills the screen like a reel. A finger drags it as on Android: up to move on, down as
+    well on a card you came back to, springing back if the drag is short. Double-tap works without the browser's
+    help. Touches on the card never reach the site, so its own swipe can't move the video underneath.
+  - A **welcome page** opens by itself at install, in the website's sea-and-orca look: one tap on *Get
+    started*, then (in Safari only) *Allow on the video sites*, then a site to open. The first video after Get
+    started brings a card straight away.
+  - **Nothing depends on the welcome page.** Safari's install event is unreliable on iPhones, so a feed with
+    nothing set up shows a *Get started* bar at the top: one tap sets up and puts a card on that video (*Not
+    now* hides it for a day). The *Allow* button checks whether access really was given, notices when it's
+    given from Safari's own menu, and otherwise explains Safari's way and offers the site.
+  - **Ready for real sites doing awkward things.** `guard.js` loads before a page's own scripts, so a card's
+    touches, clicks, scrolls and keys reach nothing else, however early the site listens. Cards, the bar and
+    "Tap for sound" go in the browser's top layer, above a site's own banners. A feed that rebuilds its players
+    as you scroll still gets "back" right, from the way the page scrolled.
+  - **Sound after a card:** the video restarts from the swipe's touchend (iPhones only allow sound from a
+    touch, click or key, not the pointer events used for dragging). If a phone still refuses, it plays muted
+    with a *Tap for sound* button rather than stopping.
+  - `tools/build-safari.py` makes `Reelcards-safari.zip` (CI keeps it as an artifact) for Apple's Safari Web
+    Extension Packager, which turns it into an app for TestFlight and the App Store with no Mac.
+    [docs/SAFARI.md](docs/SAFARI.md) has every step, for you and for students. The website's iPhone card shows an
+    *Add to Safari* button once its link is set.
+  - Fixed on the way: *Pause 1 hour* on a card's bar now saves; saves no longer stall if the background
+    script is slow to answer.
+  - Tested in Chromium, at computer and iPhone size with touch, on stand-in pages that misbehave on purpose
+    (`tools/extension-test.py`); each new check also fails on a copy of the extension without its fix. **Not
+    run in Safari or on an iPhone**: this machine can't run either or reach the real sites, and making the app
+    needs an Apple Developer account. [docs/SAFARI.md](docs/SAFARI.md) lists what to check first.
 - Smoother cards on Android (not yet run on a phone): the card window is now hardware-accelerated and
   the slide in and out animates a cached layer, so it no longer redraws every frame. A card on its way
   no longer triggers a save mid-slide, and the swipe detector stops querying the reel app for the rest of a

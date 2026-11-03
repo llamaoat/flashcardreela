@@ -3,9 +3,11 @@
    drawn like that site's own reels (the same engine and card designs as the web demo and the app).
 
    What it looks at: the position and size of <video> elements on the page, to tell which video is the
-   one being watched, and the page address on YouTube Shorts and Instagram Reels (which changes with
-   each video). It doesn't read text on the page, doesn't keep the addresses, and sends nothing
-   anywhere: everything stays in the browser's extension storage. */
+   one being watched, which way the page scrolls, and the page address on YouTube Shorts and Instagram Reels
+   (which changes with each video). It doesn't read text on the page and sends nothing anywhere. To know what "back" is it
+   remembers the last 30 videos of this visit (an address, or a marker for the player), in this page's
+   memory only: never saved, gone when the tab is. Everything else stays in the browser's extension storage.
+   guard.js, loaded before the page's own scripts, hands everything that lands on Reelcards to __rcGuard below. */
 "use strict";
 (function(){
 if (window.__reelcards) return; window.__reelcards = true;
@@ -20,12 +22,18 @@ function inFeed(){
   return true; // TikTok is all short videos; on X any video that plays counts
 }
 
-let E = null, meta = null, cur = null, lastKey = null, paused = [], host = null, root = null, timers = [];
+let E = null, meta = null, cur = null, lastKey = null, lastEl = null, paused = [], host = null, root = null, timers = [];
 const now = () => Date.now();
 RCState.load().then(r => { E = r.E; meta = r.meta; });
 RCState.onChange(() => { if (!cur) RCState.load().then(r => { if (!cur) { E = r.E; meta = r.meta; } }); });
 /* every change goes through RCState.update: the newest save, changed, saved at once (no stale copies between tabs) */
 function change(fn){ return RCState.update(fn).then(r => { E = r.E; meta = r.meta; return r.out; }); }
+
+/* Our layers go in the browser's top layer where there is one (a popover), above anything the site draws, its own
+   pop-ups included. Older browsers get the highest z-index instead. */
+const TOP = typeof HTMLElement.prototype.showPopover === "function";
+const BARE = "margin:0;padding:0;border:0;background:transparent;overflow:visible;max-width:none;max-height:none;z-index:2147483647;";
+function topLayer(el){ if (TOP) el.setAttribute("popover", "manual"); document.documentElement.appendChild(el); if (TOP) try { el.showPopover(); } catch (e) {} }
 
 /* ---------------- which video is being watched ---------------- */
 const ids = new WeakMap(); let nextId = 1;
@@ -39,57 +47,233 @@ function mainVideo(){
   }
   return best;
 }
+// A page per video (YouTube Shorts, Instagram Reels): the address tells them apart, even when the site plays them all in
+// one player. Anywhere else it's the player itself, and the file it's playing.
+const PER_VIDEO = /^\/(?:shorts|reels?)\/([^\/?#]+)/;
+const paged = () => (SITE === "youtube" || SITE === "instagram") && PER_VIDEO.test(location.pathname);
 function keyOf(v){
-  if (SITE === "youtube" || SITE === "instagram") return location.pathname; // the address changes with each video
+  if (paged()) return "p:" + location.pathname.match(PER_VIDEO)[1];
   if (SITE === "x" && v.paused && !v.autoplay) return null;                 // X: only a video that's playing
   return idOf(v) + "|" + (v.currentSrc || v.src || "");
 }
+/* The videos watched this visit, in order, and where we are in them. A card is shown on arriving at a video and sits
+   just before it, so scrolling back from that video to the one before it passes through the card's place: the card
+   comes back, with a note if it was done already (as in the Android app). Going back never counts as a new video. */
+const TRAIL_MAX = 30, SLOTS_MAX = 8;
+let trail = [], at = -1, slots = [], slotNow = null;
+function resetTrail(){ trail = []; at = -1; slots = []; slotNow = null; lastKey = null; lastEl = null; }
 function watch(){
-  if (cur || !inFeed()) return;
+  if (!E || !meta) return; // the saved state isn't loaded yet: don't note a video we couldn't act on
+  if (!inFeed()) { if (trail.length) resetTrail(); dropChip(); return; }
   const v = mainVideo(); if (!v) return;
+  if (!meta.onboarded || !E.cards.length) offerSetup(); else if (chipHost) dropChip(); // set up elsewhere meanwhile (the popup)
   const k = keyOf(v); if (!k || k === lastKey) return;
-  lastKey = k; nextVideo();
+  const before = lastEl; lastKey = k; lastEl = v;
+  let step = "new";
+  if (at > 0 && k === trail[at - 1]) { at--; step = "back"; }                                 // back to the video before
+  else if (at >= 0 && at < trail.length - 1 && k === trail[at + 1]) { at++; step = "on"; }    // on again to one seen before
+  else if (at > 0 && !paged() && (wentUp() || (before && before !== v && before.isConnected && (before.compareDocumentPosition(v) & Node.DOCUMENT_POSITION_PRECEDING)))) {
+    // a feed that rebuilt the video before (some throw players away as you scroll): the page just scrolled up, or the
+    // new player sits above the one we were on, so it's a step back, as the Android app tells from a swipe's direction
+    at--; trail[at] = k; step = "back";
+  }
+  else {                                                                                      // a video we haven't seen
+    trail.length = at + 1; trail.push(k); at = trail.length - 1;
+    if (trail.length > TRAIL_MAX) { trail.shift(); at--; slots.forEach(sl => { sl.at--; }); slots = slots.filter(sl => sl.at >= 0); }
+  }
+  if (cur) return; // the video changed under a card: keep our place, but that isn't a reason for another card
+  if (step === "back") backTo(); else nextVideo();
+}
+function backTo(){
+  const slot = slots.find(sl => sl.at === at + 1);
+  if (slot && slot.it && E && meta && !meta.off && E.cards.length) revisit(slot);
+}
+const cap = t => t ? t[0].toUpperCase() + t.slice(1) : t;
+/* The card shown again. One they did shows its answer, with a note, and isn't graded twice; one they scrolled past can be answered now. */
+function revisit(slot){
+  const old = slot.it, did = !!slot.grade || !!(slot.out && slot.out.shared);
+  const it = did ? Object.assign({}, old, {revealed:true, settled:true, got:(old.got || []).slice()})
+    : Object.assign({}, old, {revealed:false, liked:false, likedBefore:false, pick:-1, saved:false, hinted:false, beat:0, count:null, got:[], moreOpen:false, settled:false});
+  it.coach = false; it.shownAt = performance.now();
+  it.revisit = {slot, looking:did, note: slot.grade ? "You did this card already · " + cap(slot.grade) : did ? "You shared this card already" : "You skipped this one. Have a go?"};
+  show(it, {back:true});
 }
 setInterval(watch, 600);
-addEventListener("scroll", () => setTimeout(watch, 250), {passive:true, capture:true});
+/* which way the page last scrolled (any scrolling box on it), for feeds whose players can't be told apart */
+const scrolled = new WeakMap(); let upAt = 0, downAt = 0;
+const wentUp = () => upAt > downAt && performance.now() - upAt < 2500;
+addEventListener("scroll", e => {
+  const box = e.target === document ? document.scrollingElement : e.target, y = box && box.scrollTop;
+  if (box && typeof y === "number") { const was = scrolled.get(box); scrolled.set(box, y); if (was != null && y !== was) { if (y < was) upAt = performance.now(); else downAt = performance.now(); } }
+  setTimeout(watch, 250);
+}, {passive:true, capture:true});
 
 function nextVideo(){
-  if (!E || !meta || !meta.onboarded || !E.cards.length) return;
-  change(E2 => E2.onReelSwipe(now(), SITE)).then(sh => { if (sh && !cur) show(sh); });
+  if (!E || !meta || !meta.onboarded || meta.off || !E.cards.length) return;
+  // straight after Get started, the first video brings a card, so it's clear at once that it works
+  change((E2, m2) => { if (m2.firstCard) { m2.firstCard = false; return E2.forceShow(now(), SITE); } return E2.onReelSwipe(now(), SITE); })
+    .then(sh => { if (sh && !cur) show(sh, {slotAt:at}); });
 }
 
-/* ---------------- the card overlay ---------------- */
+/* ---------------- Get started, on the video page itself ----------------
+   Safari doesn't always open the welcome page (its install event can wait until the extension has been allowed on a
+   site), so the first time a feed is open with nothing set up, a bar at the top offers Get started right there: one tap
+   for GCSE Biology and Chemistry, "Normal" and no exam date (setup.js), and a card on this video at once. "Not now"
+   keeps it away for a day. */
+let chipHost = null, chipDone = false;
+function offerSetup(){
+  if (chipHost || chipDone || cur || (meta.setupLater || 0) > now()) return;
+  chipHost = document.createElement("div"); chipHost.id = "reelcards-setup";
+  chipHost.style.cssText = "position:fixed;inset:auto;left:50%;top:max(10px, env(safe-area-inset-top));transform:translateX(-50%);width:min(94vw,440px);height:auto;" + BARE;
+  const r = chipHost.attachShadow({mode:"open"});
+  r.innerHTML = '<style>' + CHIP_CSS + '</style><div class="chip" role="dialog" aria-label="Reelcards"><img alt="" src="' + chrome.runtime.getURL("icons/icon-48.png") + '">' +
+    '<div class="t"><b>Reelcards is on</b><span>Flashcards between your videos.</span></div>' +
+    '<button class="go" data-chip="go">Get started</button><button class="x" data-chip="later" aria-label="Not now">×</button></div>';
+  topLayer(chipHost);
+}
+function dropChip(){ if (chipHost) chipHost.remove(); chipHost = null; }
+function chipTap(what){
+  chipDone = true; dropChip();
+  if (what === "later") { change((E2, m2) => { m2.setupLater = now() + 24*3600000; }); return; }
+  change((E2, m2) => { RCSetup.quickStart(E2, m2); m2.firstCard = false; return E2.forceShow(now(), SITE); })
+    .then(sh => { if (sh && !cur) show(sh, {slotAt:at}); });
+}
+
+/* ---------------- the site's videos ----------------
+   Paused while a card is up, started again when it goes. Phones only allow sound from a touch, a click or a key, so a
+   swipe starts them from its touchend (sound.js); if a phone still says no, the video plays muted and "Tap for sound"
+   gives the sound back. */
+let wantResume = false, pillHost = null, pillVideo = null, pillTimer = null;
 function pauseVideos(){ paused = []; document.querySelectorAll("video").forEach(v => { if (!v.paused) { paused.push(v); try { v.pause(); } catch (e) {} } }); }
-function resumeVideos(){ paused.forEach(v => { try { v.play().catch(() => {}); } catch (e) {} }); paused = []; }
-function mount(){
+function resumeVideos(){ const list = paused; paused = []; wantResume = false; RCSound.resume(list, soundPill); }
+function soundPill(v){
+  dropPill(); pillVideo = v;
+  pillHost = document.createElement("div"); pillHost.id = "reelcards-sound";
+  pillHost.style.cssText = "position:fixed;inset:auto;left:50%;bottom:max(22px, env(safe-area-inset-bottom));transform:translateX(-50%);width:auto;height:auto;" + BARE;
+  pillHost.attachShadow({mode:"open"}).innerHTML = '<style>' + CHIP_CSS + '</style><button class="pill" data-pill="1">' +
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z"/><path d="M15.5 9a4 4 0 0 1 0 6M18.5 6.5a7.5 7.5 0 0 1 0 11"/></svg>Tap for sound</button>';
+  topLayer(pillHost);
+  pillTimer = setTimeout(dropPill, 10000);
+}
+function dropPill(){ clearTimeout(pillTimer); if (pillHost) pillHost.remove(); pillHost = null; pillVideo = null; }
+
+/* ---------------- the card overlay ---------------- */
+function mount(back){
   host = document.createElement("div"); host.id = "reelcards-overlay";
-  host.style.cssText = "position:fixed;inset:0;z-index:2147483647;";
+  host.style.cssText = "position:fixed;inset:0;width:auto;height:auto;touch-action:none;overscroll-behavior:contain;-webkit-tap-highlight-color:transparent;" + BARE;
   root = host.attachShadow({mode:"open"});
-  root.innerHTML = '<style>' + CARD_CSS + OVERLAY_CSS + '</style><div class="dim"></div><div class="wrap"><div class="frame"><div class="stage"></div></div>' +
+  root.innerHTML = '<style>' + CARD_CSS + OVERLAY_CSS + '</style><div class="dim"></div><div class="wrap"><div class="frame' + (back ? ' back' : '') + '"><div class="stage"></div><div class="note" hidden></div></div>' +
     '<div class="bar"><button data-x="next">Next ↓</button><span>Tap to see the answer · double-tap if you knew it · scroll on to skip</span><button data-x="pause">Pause 1 hour</button></div></div>';
-  document.documentElement.appendChild(host);
-  root.addEventListener("click", onClick); root.addEventListener("dblclick", onDbl);
-  addEventListener("wheel", onWheel, {capture:true, passive:false}); // scrolling on = next, and the site underneath doesn't scroll
-  addEventListener("keydown", onKey, true);
+  // what a full-screen picture lets through still stops here, before the site's own listeners
+  ["touchstart","touchmove","touchend","touchcancel","pointerdown","pointermove","pointerup","pointercancel","click","dblclick","mousedown","mouseup"].forEach(t =>
+    host.addEventListener(t, e => e.stopPropagation()));
+  topLayer(host);
   scale(); addEventListener("resize", scale);
 }
 function onWheel(e){
-  if (!cur) return; e.preventDefault(); e.stopImmediatePropagation();
+  if (!cur) return; e.preventDefault();
   const z = root && root.querySelector(".zoomer"); if (z) { z._wheel(e); return; } // a picture is open: scrolling zooms it
-  if (e.deltaY > 30) done();
+  if (e.deltaY > 30 || (cur.revisit && e.deltaY < -30)) done();
 }
-function unmount(){ removeEventListener("wheel", onWheel, {capture:true}); removeEventListener("keydown", onKey, true); removeEventListener("resize", scale); if (host) host.remove(); host = root = null; }
-/* the card is designed at 360 x 740 (a phone); scale it to the window's height */
-function scale(){ if (!root) return; const k = Math.min((innerHeight - 70) / 740, (innerWidth - 20) / 360, 1.25); root.querySelector(".frame").style.setProperty("--k", k.toFixed(3)); }
+function unmount(){ removeEventListener("resize", scale); if (host) host.remove(); host = root = null; }
+/* The card is designed at 360 x 740 (a phone). On a phone held upright it fills the screen, like a reel; on a phone on
+   its side it's the screen's height; anywhere else it's that design in a frame, scaled to the window. */
+function scale(){
+  if (!root) return;
+  const wrap = root.querySelector(".wrap"), small = matchMedia("(pointer: coarse)").matches && Math.min(innerWidth, innerHeight) < 600, upright = small && innerHeight >= innerWidth;
+  wrap.classList.toggle("phone", upright); wrap.classList.toggle("bare", small && !upright);
+  const k = upright ? 1 : small ? innerHeight / 740 : Math.min((innerHeight - 70) / 740, (innerWidth - 20) / 360, 1.25);
+  root.querySelector(".frame").style.setProperty("--k", k.toFixed(3));
+  if (cur) fitCards(root.querySelector(".stage")); // the screen turned: the text may fit differently
+}
 
-function show(sh){
+/* ---------------- what lands on Reelcards stays with Reelcards ----------------
+   Every touch, click, scroll and key comes here first (guard.js registers before the page's scripts). With a card up,
+   the keys and the wheel are the card's, and anything on the card, the Get started bar or "Tap for sound" is handled
+   here and goes no further. An open full-screen picture handles its own pinches and drags. */
+const pathOf = e => e.composedPath ? e.composedPath() : [];
+const T = e => { const n = pathOf(e)[0] || e.target; return n && n.nodeType === 1 ? n : (n && n.parentElement) || e.target; };
+window.__rcGuard = e => {
+  if (!host && !chipHost && !pillHost) return false; // nothing of ours on screen
+  const t = e.type, path = pathOf(e);
+  if (host) {
+    if (t === "keydown" || t === "keyup" || t === "keypress") { if (t === "keydown") onKey(e); return true; }
+    if (t === "wheel") { onWheel(e); return true; }
+    if (path.indexOf(host) >= 0) {
+      const z = root && root.querySelector(".zoomer"); if (z && path.indexOf(z) >= 0) return false;
+      switch (t) {
+        case "pointerdown": onDown(e); break;
+        case "pointermove": onMove(e); break;
+        case "pointerup": onUp(e); break;
+        case "pointercancel": onCancel(e); break;
+        case "touchmove": if (!inMore(T(e))) e.preventDefault(); break; // the page doesn't scroll; an open explanation does
+        case "touchend": if (wantResume) resumeVideos(); break;        // the end of a swipe: when a phone allows sound
+        case "click": onClick(e); break;
+        case "dblclick": onDbl(e); break;
+        case "contextmenu": e.preventDefault(); break;                 // a long press isn't a menu
+      }
+      return true;
+    }
+  }
+  if (chipHost && path.indexOf(chipHost) >= 0) { if (t === "click") { const b = T(e).closest("[data-chip]"); if (b) chipTap(b.dataset.chip); } return true; }
+  if (pillHost && path.indexOf(pillHost) >= 0) { if (t === "click") { const v = pillVideo; dropPill(); if (v) RCSound.unmute(v); } return true; }
+  return false;
+};
+if (!window.__rcGuarded) { // guard.js didn't load: listen here instead (later than the page, but everything still works)
+  window.__rcGuarded = true;
+  ["touchstart","touchmove","touchend","touchcancel","pointerdown","pointermove","pointerup","pointercancel","mousedown","mouseup","click","dblclick","contextmenu","wheel","keydown","keyup","keypress"].forEach(t =>
+    addEventListener(t, e => { if (window.__rcGuard(e)) e.stopImmediatePropagation(); }, {capture:true, passive:false}));
+}
+
+/* ---------------- touch: drag the card, as the app's CardView does ----------------
+   Up to move on, and down too on a card they came back to. It follows the finger, goes past a fifth of the screen or
+   on a quick flick, and springs back otherwise. A mouse uses the wheel instead. */
+let drag = null, noClickUntil = 0;
+const frameEl = () => root && root.querySelector(".frame");
+const inMore = el => !!(el && el.closest && el.closest(".moreopen .band"));
+function onDown(e){
+  if (!cur || cur.leaving || e.pointerType === "mouse" || !e.isPrimary || root.querySelector(".zoomer")) return;
+  if (T(e).closest(".bar") || inMore(T(e))) return; // a drag can start anywhere on the card, even on a button (a tap is still only that button), but an open explanation scrolls
+  drag = {id:e.pointerId, y0:e.clientY, dy:0, moving:false, pts:[[e.timeStamp, e.clientY]]};
+}
+function onMove(e){
+  const d = drag; if (!d || e.pointerId !== d.id || !cur) return;
+  d.dy = e.clientY - d.y0; d.pts.push([e.timeStamp, e.clientY]); if (d.pts.length > 6) d.pts.shift();
+  if (!d.moving && (d.dy < -12 || (cur.revisit && d.dy > 12))) { d.moving = true; clearTimeout(tapTimer); }
+  if (d.moving) { const f = frameEl(); f.classList.add("drag"); f.style.transform = "translateY(" + (cur.revisit ? d.dy : Math.min(0, d.dy)) + "px)"; }
+}
+function onUp(e){
+  const d = drag; if (!d || e.pointerId !== d.id) return; drag = null;
+  const f = frameEl(); if (!d.moving || !cur || !f) return;
+  noClickUntil = performance.now() + 400; // the lift at the end of a drag isn't a tap
+  const p = d.pts[0], v = (e.clientY - p[1]) / Math.max(16, e.timeStamp - p[0]) * 1000; // px per second
+  f.classList.remove("drag");
+  if (d.dy < -innerHeight * .2 || v < -1400) leave(-1, e.pointerType === "touch");
+  else if (cur.revisit && (d.dy > innerHeight * .2 || v > 1400)) leave(1, e.pointerType === "touch");
+  else f.style.transform = "";
+}
+function onCancel(e){ if (!drag || e.pointerId !== drag.id) return; drag = null; const f = frameEl(); if (f) { f.classList.remove("drag"); f.style.transform = ""; } }
+/* slides the card off the way the finger went, then moves on. A finger's swipe starts the video again from its touchend,
+   which comes straight after (the moment a phone allows sound); a pen's, at once. */
+function leave(dir, touch){
+  const it = cur, f = frameEl(); it.leaving = true; f.classList.add("leaving"); f.style.transform = "translateY(" + (dir * 110) + "%)";
+  if (touch) wantResume = true; else resumeVideos();
+  setTimeout(() => { if (cur === it) done(); }, 190);
+}
+
+function show(sh, opt){
+  opt = opt || {};
   // an Anki card's pictures and sounds live in storage: look them up first
   const keys = RCState.MEDIA.map(k => sh.s[k]).filter(Boolean);
-  if (keys.length && !sh.mediaReady) { RCState.media(keys).then(m => { RCState.MEDIA.forEach(k => { if (sh.s[k]) sh.s[k] = m[sh.s[k]] || null; }); sh.mediaReady = true; show(sh); }); return; }
+  if (keys.length && !sh.mediaReady) { RCState.media(keys).then(m => { RCState.MEDIA.forEach(k => { if (sh.s[k]) sh.s[k] = m[sh.s[k]] || null; }); sh.mediaReady = true; show(sh, opt); }); return; }
+  dropChip(); dropPill();
   pauseVideos();
   cur = Object.assign({kind:"card", revealed:false, liked:false, likedBefore:false, pick:-1, saved:false, hinted:false, beat:0, count:null, got:[], moreOpen:false, settled:false, shownAt:performance.now()}, sh);
-  if (meta.coachLeft > 0) cur.coach = true; // counted down when the card is finished
-  mount(); draw();
+  cur.leaving = false; // a card brought back was last seen sliding away
+  if (meta.coachLeft > 0 && !cur.revisit) cur.coach = true; // counted down when the card is finished
+  if (opt.slotAt != null) { slots = slots.filter(sl => sl.at !== opt.slotAt); slotNow = {at:opt.slotAt, it:null, out:null, grade:null}; slots.push(slotNow); if (slots.length > SLOTS_MAX) slots.shift(); }
+  else slotNow = null;
+  mount(!!opt.back); draw();
   if (cur.s.snd) play(cur.s.snd);
 }
 let sound = null;
@@ -101,6 +285,9 @@ function draw(){
   const h = new Date().getHours();
   root.querySelector(".stage").innerHTML = Render.card(cur, {night: h >= 22 || h < 6, tint:null, coach: cur.coach && !cur.revealed && !cur.liked && cur.pick < 0});
   fitCards(root.querySelector(".stage"));
+  const note = root.querySelector(".note"), hint = root.querySelector(".bar span");
+  if (cur.revisit) { note.textContent = cur.revisit.note; note.hidden = false; hint.textContent = cur.revisit.looking ? "Scroll either way or press an arrow key to carry on" : "Tap to see the answer · double-tap if you knew it · scroll either way to carry on"; }
+  else { note.hidden = true; hint.textContent = "Tap to see the answer · double-tap if you knew it · scroll on to skip"; }
   startTimers();
 }
 function done(){
@@ -108,10 +295,18 @@ function done(){
   const it = cur; cur = null; clearTimers();
   const outcome = {revealed:it.revealed, liked:it.liked, likedBefore:it.likedBefore, pick:it.pick, likeAt:it.likeAt||0, pickAt:it.pickAt||0, hintAt:it.hintAt||0,
     saved:!!it.saved, shared:!!it.shared, got:(it.got||[]).filter(Boolean).length, dwell:performance.now()-it.shownAt}, coach = !!it.coach;
-  // grade the newest saved copy of this card (another tab may have changed others meanwhile)
-  change((E2, m2) => { const c = E2.cards.find(x => x.id === it.card.id); if (coach && m2.coachLeft > 0) m2.coachLeft--; if (c) { it.card = c; E2.onCardFinished(it, outcome, now()); } });
+  const rv = it.revisit, slot = rv ? rv.slot : slotNow; slotNow = null;
+  const answered = it.revealed || it.liked || it.pick >= 0 || (it.got || []).some(Boolean);
+  if (slot && !rv) { slot.it = it; slot.out = outcome; }
+  if (rv && (rv.looking || !answered)) { /* just looking back, or skipped again: nothing to grade, and not a second skip */ }
+  else {
+    // grade the newest saved copy of this card (another tab may have changed others meanwhile)
+    change((E2, m2) => { const c = E2.cards.find(x => x.id === it.card.id); if (coach && m2.coachLeft > 0) m2.coachLeft--;
+      if (!c) return null; it.card = c; const r = E2.onCardFinished(it, outcome, now()); if (rv && r.grade) E2.dropRequeue(c); return r; })
+      .then(r => { if (slot && r) { slot.grade = r.grade; if (rv) { slot.it = it; slot.out = outcome; } } });
+  }
   if (sound) { sound.pause(); sound = null; }
-  unmount(); resumeVideos();
+  unmount(); resumeVideos(); // after a swipe, its touchend has usually started them already
 }
 
 /* ---------------- gestures (as in the app and the web demo) ---------------- */
@@ -146,12 +341,13 @@ function tick(i){
   it.got[i] = !it.got[i]; it.settled = true; draw();
 }
 function toast(msg){ if (!root) return; const t = document.createElement("div"); t.className = "toast"; t.textContent = msg; root.querySelector(".stage").appendChild(t); setTimeout(() => t.remove(), 1800); }
-let tapTimer = null;
+let tapTimer = null, lastTap = {t:0, x:0, y:0};
 function onClick(e){
-  const x = e.target.closest("[data-x]");
-  if (x) { if (x.dataset.x === "next") done(); else { E.settings.pausedUntil = now() + 60*60000; done(); } return; }
-  if (e.target.classList.contains("dim")) { done(); return; }
-  const b = e.target.closest("[data-act]"), it = cur; if (!it) return;
+  if (performance.now() < noClickUntil || (cur && cur.leaving)) return;
+  const tg = T(e), x = tg.closest("[data-x]");
+  if (x) { if (x.dataset.x === "pause") change(E2 => { E2.settings.pausedUntil = now() + 60*60000; }); done(); return; }
+  if (tg.classList.contains("dim")) { done(); return; }
+  const b = tg.closest("[data-act]"), it = cur; if (!it) return;
   if (b) {
     const a = b.dataset.act, v = b.dataset.v;
     switch (a) {
@@ -167,26 +363,29 @@ function onClick(e){
     }
     return;
   }
-  if (e.target.closest("[data-card]")) {
+  if (tg.closest("[data-card]")) {
     clearTimeout(tapTimer);
-    const pic = e.target.closest(".pic.zoomable");
+    const t = performance.now();
+    if (t - lastTap.t < 320 && Math.abs(e.clientX - lastTap.x) < 40 && Math.abs(e.clientY - lastTap.y) < 40) { lastTap.t = 0; like(); return; } // a double tap
+    lastTap = {t, x:e.clientX, y:e.clientY};
+    const pic = tg.closest(".pic.zoomable");
     if (pic && pic.dataset.src && cur.revealed) tapTimer = setTimeout(() => Render.zoomIn(root, pic.dataset.src), 260); // once the answer's showing, a click on a picture opens it full screen
     else tapTimer = setTimeout(reveal, 260);
   }
 }
-function onDbl(e){ if (!e.target.closest("[data-card]") || e.target.closest("[data-act]")) return; clearTimeout(tapTimer); like(); }
+function onDbl(e){ const tg = T(e); if (!tg.closest("[data-card]") || tg.closest("[data-act]")) return; clearTimeout(tapTimer); like(); }
 function onKey(e){
   if (!cur) return;
   const k = e.key, z = root && root.querySelector(".zoomer");
-  if (z) { if (k === "Escape") { z.remove(); e.preventDefault(); e.stopPropagation(); } return; } // a picture is open: Esc closes it, not the card
-  if (k === "ArrowDown" || k === "j" || k === "Escape" || k === "PageDown") done();
+  if (z) { if (k === "Escape") { z.remove(); e.preventDefault(); } return; } // a picture is open: Esc closes it, not the card
+  if (k === "ArrowDown" || k === "j" || k === "Escape" || k === "PageDown" || (cur.revisit && (k === "ArrowUp" || k === "k"))) done();
   else if (k === " " || k === "Enter") reveal();
   else if (k === "l") like();
   else return;
-  e.preventDefault(); e.stopImmediatePropagation();
+  e.preventDefault();
 }
 // while a card is up, the site doesn't get to start the next video
-setInterval(() => { if (cur) document.querySelectorAll("video").forEach(v => { if (!v.paused) { try { v.pause(); } catch (e) {} if (paused.indexOf(v) < 0) paused.push(v); } }); }, 400);
+setInterval(() => { if (cur && !cur.leaving) document.querySelectorAll("video").forEach(v => { if (!v.paused) { try { v.pause(); } catch (e) {} if (paused.indexOf(v) < 0) paused.push(v); } }); }, 400);
 
 /* fit pass: shrink text a step at a time if it would spill out of the safe zone (as in the web demo) */
 function fitCards(r){
@@ -203,7 +402,8 @@ function fitCards(r){
 /* fonts: the app's own, packed with the extension (declared on the page, as shadow roots can't) */
 const st = document.createElement("style");
 st.textContent = [["TikTok Sans","TikTokSans-Regular.ttf",400],["TikTok Sans","TikTokSans-Bold.ttf",700],["TikTok Sans","TikTokSans-Black.ttf",900],
-  ["Anton","Anton-Regular.ttf",400],["Caveat","Caveat-Bold.ttf",700],["Fraunces","Fraunces-Bold.ttf",700]]
+  ["Anton","Anton-Regular.ttf",400],["Caveat","Caveat-Bold.ttf",700],["Fraunces","Fraunces-Bold.ttf",700],
+  ["Inter","Inter-Regular.ttf",400],["Inter","Inter-Medium.ttf",500],["Inter","Inter-SemiBold.ttf",600]]
   .map(f => "@font-face{font-family:'" + f[0] + "';src:url('" + chrome.runtime.getURL("fonts/" + f[1]) + "');font-weight:" + f[2] + ";font-display:swap}").join("");
 (document.head || document.documentElement).appendChild(st);
 
@@ -214,7 +414,7 @@ chrome.runtime.onMessage.addListener((msg, sender, reply) => {
     E = r.E; meta = r.meta;
     if (!E.cards.length) { reply({ok:false, why:"Add some cards first."}); return; }
     if (cur) done();
-    change(E2 => E2.forceShow(now(), SITE)).then(sh => { if (sh) show(sh); reply({ok:!!sh}); });
+    change((E2, m2) => { m2.firstCard = false; return E2.forceShow(now(), SITE); }).then(sh => { if (sh) show(sh); reply({ok:!!sh}); });
   });
   return true;
 });
@@ -225,8 +425,40 @@ const OVERLAY_CSS = `
 .wrap{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;pointer-events:none}
 .frame{--k:1;width:calc(360px * var(--k));height:calc(740px * var(--k));position:relative;pointer-events:auto;border-radius:calc(22px * var(--k));overflow:hidden;box-shadow:0 30px 80px -20px #000}
 .stage{position:absolute;left:0;top:0;width:360px;height:740px;transform:scale(var(--k));transform-origin:0 0}
+.frame{animation:rcin .26s cubic-bezier(.2,.8,.2,1);transition:transform .18s ease-out;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}.frame.back{animation-name:rcback}
+.frame.drag{transition:none}.frame.leaving{transition:transform .19s ease-in,opacity .19s ease-in;opacity:.4}
+/* a phone held upright: the card is the whole screen, like a reel; on its side, the screen's height. No bar either way:
+   swipe up to move on, as in the app */
+.wrap.phone{gap:0}
+.wrap.phone .frame{width:100vw;height:100vh;height:100dvh;border-radius:0;box-shadow:none}
+.wrap.phone .stage{width:100%;height:100%;transform:none}
+.wrap.phone .bar,.wrap.bare .bar{display:none}
+.card.moreopen .band{touch-action:pan-y}
+@keyframes rcin{from{transform:translateY(28px);opacity:0}to{transform:none;opacity:1}}
+@keyframes rcback{from{transform:translateY(-28px);opacity:0}to{transform:none;opacity:1}}
+@media (prefers-reduced-motion:reduce){.frame{animation:none}}
+.note{position:absolute;top:calc(46px * var(--k));left:50%;transform:translateX(-50%);z-index:5;max-width:88%;text-align:center;font:600 calc(13px * var(--k))/1.3 system-ui,sans-serif;color:#111;background:rgba(255,255,255,.96);padding:calc(8px * var(--k)) calc(14px * var(--k));border-radius:calc(16px * var(--k));box-shadow:0 6px 20px rgba(0,0,0,.35);pointer-events:none}
+.note[hidden]{display:none}
 .bar{pointer-events:auto;display:flex;gap:10px;align-items:center;font:600 12px/1.3 system-ui,sans-serif;color:#ddd;max-width:92vw;flex-wrap:wrap;justify-content:center}
 .bar button{font:700 12px system-ui,sans-serif;border:0;border-radius:999px;padding:8px 14px;cursor:pointer;background:#fff;color:#111}
 .bar button[data-x=pause]{background:#2a2a30;color:#eee}
+`;
+/* the Get started bar and "Tap for sound": the website's deep-sea navy, frosted, over the video */
+const CHIP_CSS = `
+:host{all:initial}
+.chip,.pill{box-sizing:border-box;color:#EEF2F8;background:rgba(11,33,64,.94);border:1px solid rgba(255,255,255,.16);box-shadow:0 18px 50px -14px rgba(0,0,0,.7);
+  backdrop-filter:blur(14px) saturate(1.3);-webkit-backdrop-filter:blur(14px) saturate(1.3);font:500 13.5px/1.35 'Inter',system-ui,-apple-system,sans-serif;letter-spacing:-.1px;
+  -webkit-tap-highlight-color:transparent;animation:rcdrop .3s cubic-bezier(.2,.8,.2,1)}
+.chip{display:flex;align-items:center;gap:10px;width:100%;padding:10px 10px 10px 12px;border-radius:20px}
+.chip img{width:34px;height:34px;border-radius:9px;flex:none}
+.t{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
+.t b{font-weight:600;color:#fff;font-size:14.5px}
+.t span{color:rgba(238,242,248,.82)}
+.go{flex:none;min-height:40px;padding:0 16px;border:0;border-radius:999px;background:#fff;color:#0B2140;font:600 14px 'Inter',system-ui,-apple-system,sans-serif;cursor:pointer}
+.x{flex:none;width:32px;height:32px;padding:0;border:0;border-radius:50%;background:rgba(255,255,255,.12);color:#fff;font:400 20px/32px system-ui,sans-serif;cursor:pointer}
+.pill{display:flex;align-items:center;gap:8px;min-height:44px;padding:0 18px 0 14px;border-radius:999px;font-weight:600;font-size:14.5px;cursor:pointer}
+.pill svg{width:20px;height:20px;flex:none}
+@keyframes rcdrop{from{transform:translateY(-12px);opacity:0}to{transform:none;opacity:1}}
+@media (prefers-reduced-motion:reduce){.chip,.pill{animation:none}}
 `;
 })();

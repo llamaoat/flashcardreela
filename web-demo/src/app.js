@@ -11,6 +11,9 @@ const makeCard = RC.makeCard;
 const PRE = {"GCSE Biology":"bio","GCSE Chemistry":"chem","GCSE Spanish":"es","GCSE Science: longer answers":"sci"};
 const deckCards = name => DECKS[name].map((r,i)=>makeCard(PRE[name]+"-"+(i+1), name, r[0], r[1], r[2]));
 const HOSTS = [["tiktok","TikTok"],["instagram","Instagram"],["youtube","YouTube"]];
+// The Safari extension's install link (TestFlight's public link, then the App Store's): the iPhone card under
+// "Get Reelcards" shows an "Add to Safari" button once it's set. docs/SAFARI.md says how to get one.
+const SAFARI_LINK = "";
 
 /* ---------------- Anki files (.apkg) ---------------- */
 const MIME = {png:"image/png", jpeg:"image/jpeg", gif:"image/gif", webp:"image/webp", bmp:"image/bmp", mp3:"audio/mpeg", ogg:"audio/ogg", m4a:"audio/mp4", wav:"audio/wav", flac:"audio/flac"};
@@ -78,6 +81,7 @@ function getSection(){
   const android = /Android/.test(ua), mine = ios ? "g-iphone" : android ? "g-android" : "g-computer";
   const card = $(mine); card.classList.add("mine"); card.querySelector(".badge").hidden = false;
   const steps = card.querySelector("details.fold"); if (steps) steps.open = true; // the steps for your own device are open
+  if (SAFARI_LINK) { $("safariLink").href = SAFARI_LINK; $("safariGet").hidden = false; }
   const link = location.origin + location.pathname.replace(/[^/]*$/, "") + "?app=1&card=1";
   $("cardLink").value = /^https?:$/.test(location.protocol) ? link : "(open this page on its web address to get the link)";
   $("copyLink").onclick = () => { const f = $("cardLink"); f.select(); try { navigator.clipboard.writeText(f.value); } catch (e) { document.execCommand("copy"); } $("copyLink").textContent = "Copied"; };
@@ -190,7 +194,15 @@ function hush(){ try { window.speechSynthesis && speechSynthesis.cancel(); } cat
 /* ---------------- phone screens ---------------- */
 const stepbar = n => '<div class="steplbl">Step '+n+' of 4</div><div class="stepbar">'+[1,2,3,4].map(i=>'<i class="'+(i<=n?"on":"")+'"></i>').join("")+'</div>';
 const choice = (act,val,title,sub,on,dis) => '<button class="choice'+(on?" on":"")+'" data-act="'+act+'" data-v="'+esc(val)+'"'+(dis?" disabled":"")+'><span class="t"><b>'+esc(title)+'</b>'+(sub?'<small>'+esc(sub)+'</small>':'')+'</span><span class="m">'+(on?"✓":"")+'</span></button>';
-const tabs = () => UI.onboarded ? '<div class="tabs'+(UI.screen==="dash"?" ondash":"")+'"><button data-act="tab" data-v="dash" class="'+(UI.screen==="dash"?"on":"")+'">Reelcards</button><button data-act="tab" data-v="feed" class="'+(UI.screen==="feed"?"on":"")+'">For You</button></div>' : "";
+/* The top bar is the app's own (TikTok: centred tabs and a search; Instagram: a big "Reels" and a camera; YouTube: "Shorts", a search and a menu),
+   with a Reelcards button that opens the dashboard. On the dashboard itself it's the plain pair of tabs. */
+const FEEDTAB = {tiktok:"For You", instagram:"Reels", youtube:"Shorts"};
+function tabs(){
+  if (!UI.onboarded) return "";
+  const dash = UI.screen === "dash", I = Render.I;
+  const icons = dash ? "" : {tiktok:'<span class="tic">'+I.search+'</span>', instagram:'<span class="tic">'+I.camera+'</span>', youtube:'<span class="tic">'+I.search+'</span><span class="tic">'+I.dots+'</span>'}[UI.host] || "";
+  return '<div class="tabs'+(dash ? " ondash" : " h-"+UI.host)+'"><button data-act="tab" data-v="dash" class="'+(dash?"on":"")+'">Reelcards</button><button data-act="tab" data-v="feed" class="'+(dash?"":"on")+'">'+(dash ? "For You" : FEEDTAB[UI.host] || "For You")+'</button>'+icons+'</div>';
+}
 let timers = [];
 const clearTimers = () => { timers.forEach(clearTimeout); timers = []; };
 
@@ -200,7 +212,7 @@ function renderPhone(anim){
   switch (UI.screen) {
     case "welcome":
       h = '<div class="app sea"><div class="hero" data-motion="welcome" data-cy=".34" data-scrim="1"></div><div class="brand">Reelcards</div><div class="spacer"></div><h3>Revise without trying<span>between your reels</span></h3><p class="muted">Your flashcards slip in between TikTok, Instagram and YouTube Shorts, looking just like another reel. Double-tap if you know it. Swipe if you don\'t.</p>'+
-        '<button class="abtn" data-act="go" data-v="decks">Set up in 1 minute</button><p class="muted" style="font-size:12px">Free. Works offline. Nothing you watch is saved or sent anywhere.</p></div>'; break;
+        '<button class="abtn" data-act="quick">Get started</button><button class="alink" data-act="go" data-v="decks">Choose my decks and exam date first</button><p class="muted" style="font-size:12px">Free. Works offline. Nothing you watch is saved or sent anywhere.</p></div>'; break;
     case "decks": {
       const have = n => E.cards.some(c=>c.deck===n);
       h = '<div class="app">'+(UI.addMode?"":stepbar(1))+'<h3>'+(UI.addMode?"Add cards":"What are you revising?")+'</h3><p class="muted">Pick a ready-made deck, paste your notes, or use your Anki decks. Mix as many as you like.</p><div class="sec">Ready-made decks</div>'+
@@ -238,7 +250,7 @@ function renderPhone(anim){
         '<div class="sec">How often should cards appear?</div>'+[["chill","Starts at 1 card every 8 reels, up to 60 a day"],["normal","Starts at 1 card every 5 reels, up to 150 a day (recommended)"],["cram","Starts at 1 card every 3 reels, up to 300 a day"]].map(m=>choice("intensity",m[0],m[0][0].toUpperCase()+m[0].slice(1),m[1],UI.intensity===m[0])).join("")+
         '<p class="muted" style="font-size:12px">It then learns your rhythm: fewer cards if you skip them, more if you answer.</p><button class="abtn" data-act="examNext">Next</button></div>'; break; }
     case "permission":
-      h = '<div class="app">'+stepbar(3)+'<h3>Switch it on</h3><p class="muted">Reelcards needs to notice when you swipe to a new reel and draw a card on top. Android calls this an accessibility permission. It\'s the only one it asks for.</p>'+
+      h = '<div class="app">'+(UI.quick?'<div class="steplbl">One last step</div>':stepbar(3))+'<h3>Switch it on</h3>'+(UI.quick?'<p class="muted">We picked GCSE Biology and Chemistry, no exam date and “Normal” cards for you. You can change all of that on the dashboard afterwards.</p>':'')+'<p class="muted">Reelcards needs to notice when you swipe to a new reel and draw a card on top. Android calls this an accessibility permission. It\'s the only one it asks for.</p>'+
         '<div class="box"><b>What it can and can\'t do</b><span class="muted" style="font-size:13px">It only reacts to swipes in TikTok, Instagram, YouTube, Snapchat, Facebook, X, Reddit and Pinterest. It never reads your messages, never saves what you watch, and nothing leaves your phone.</span></div>'+
         ['Tap “Open settings” below','Find Reelcards (often under “Installed apps”)','Turn it on, then tap Allow','Come back here. The app notices'].map((s,i)=>'<div class="num"><i>'+(i+1)+'</i><span>'+s+'</span></div>').join("")+
         '<button class="abtn" data-act="openSettings">Open settings</button><div class="box"><b>Switch greyed out?</b><span class="muted" style="font-size:13px">Android blocks this for apps installed from a file: tap the switch once and press OK, then App info → ⋮ → “Allow restricted settings”, and try again.</span></div></div>'+
@@ -261,7 +273,7 @@ function renderPhone(anim){
 
 function feedHTML(){
   const it = UI.current;
-  if (!it) return tabs()+'<div class="reel plain-reel" style="background:#16161b"><div class="big">For you</div><div class="small">Swipe up to start scrolling</div></div>';
+  if (!it) return tabs()+Render.plainReel(0, 215, UI.host);
   if (it.kind === "reel") return tabs()+Render.plainReel(it.n, it.hue, UI.host);
   return tabs()+Render.card(it, Object.assign(cardOpts(), {coach: it.coach && !it.revealed && !it.liked && it.pick<0}));
 }
@@ -413,7 +425,7 @@ function renderSide(){
     return '<tr><td>'+(c.saved?"★ ":"")+esc(c.f)+'</td><td>'+esc(c.deck)+'</td><td>'+st+'</td><td class="num">'+(c.state===NEW?"–":Math.round(E.fsrs.recallNow(c,t)*100)+"%")+'</td><td class="num">'+(c.state===NEW?"–":RC.human(c.s))+'</td><td class="num">'+(c.state===NEW?"–":(c.due<=t?"due now":"in "+RC.human((c.due-t)/DAY)))+'</td><td>'+(c.grade?'<span class="chip '+c.grade+'">'+c.grade+'</span>':'–')+'</td><td class="num">'+c.skips+'</td></tr>'; }).join("") : '<tr><td colspan="8" class="muted">No cards yet. Finish step 1 on the phone.</td></tr>';
   $("anki").innerHTML = E.anki.length ? E.anki.map(a=>'<div><span class="chip '+a.g+'" style="margin-right:6px">'+a.g+'</span>'+esc(a.line)+'</div>').join("") : '<span class="muted">Nothing graded yet.</span>';
   $("hint").hidden = UI.onboarded; $("gestures").hidden = !UI.onboarded;
-  $("hostbar").innerHTML = HOSTS.map(([h,l])=>'<button data-host="'+h+'" class="'+(UI.host===h?"on":"")+'" aria-pressed="'+(UI.host===h)+'">'+(UI.host===h?"Scrolling in ":"")+l+'</button>').join("");
+  $("hostbar").innerHTML = '<span class="hostlbl">Scrolling in</span>'+HOSTS.map(([h,l])=>'<button data-host="'+h+'" class="'+(UI.host===h?"on":"")+'" aria-pressed="'+(UI.host===h)+'">'+l+'</button>').join("");
 }
 function render(anim){ renderPhone(anim); renderSide(); saveSoon(); }
 
@@ -421,6 +433,13 @@ function render(anim){ renderPhone(anim); renderSide(); saveSoon(); }
 function go(s){ UI.screen = s; UI.err = ""; render(true); }
 function finishSetup(){ UI.onboarded = true; if (UI.firstDay==null) UI.firstDay = E.dk(now()); UI.screen = "feed"; render(true); }
 function applyExam(){ E.settings.examDate = UI.exam ? now() + UI.exam*DAY : 0; E.settings.intensity = UI.intensity; E.setVibes([...UI.vibes]); }
+/* "Get started": one tap in place of the questions, as in the Android app: GCSE Biology and Chemistry, "Normal", no
+   exam date. On the web (the home-screen app) there's no switch to turn on, so it goes straight to a test card. */
+function quickStart(){
+  if (!E.cards.length) { E.addCards(deckCards("GCSE Biology")); E.addCards(deckCards("GCSE Chemistry")); }
+  UI.exam = 0; UI.intensity = "normal"; applyExam(); UI.quick = true;
+  if (UI.permission) testCard(); else go("permission");
+}
 function skipSetup(){ if (!E.cards.length) { E.addCards(deckCards("GCSE Biology")); E.addCards(deckCards("GCSE Chemistry")); E.addCards(deckCards("GCSE Science: longer answers")); sampleDeck().then(r => { E.addCards(r.cards); renderSide(); }, () => {}); } UI.exam = 14; if (!UI.vibes.size) { UI.vibes.add("football"); UI.vibes.add("gaming"); } applyExam(); UI.permission = true; finishSetup(); }
 function outcomeOf(it, dwell){ return {revealed:it.revealed, liked:it.liked, likedBefore:it.likedBefore, pick:it.pick, likeAt:it.likeAt||0, pickAt:it.pickAt||0, hintAt:it.hintAt||0, saved:!!it.saved, shared:!!it.shared,
   got:(it.got||[]).filter(Boolean).length, dwell}; }
@@ -515,7 +534,8 @@ $("screen").addEventListener("click", e => {
       case "examNext": applyExam(); go(UI.permission ? "try" : "permission"); return;
       case "openSettings": UI.settingsOpen = true; renderPhone(false); return;
       case "toggleSwitch": UI.permission = !UI.permission; renderPhone(false); return;
-      case "backFromSettings": UI.settingsOpen = false; go("try"); return;
+      case "backFromSettings": UI.settingsOpen = false; if (UI.quick) testCard(); else go("try"); return; // Get started: a test card shows by itself
+      case "quick": quickStart(); return;
       case "testCard": testCard(); return;
       case "finishSetup": finishSetup(); return;
       case "addCards": UI.addMode = true; go("decks"); return;
@@ -549,7 +569,18 @@ $("apkgFile").addEventListener("change", e => {
   f.arrayBuffer().then(b => importApkg(new Uint8Array(b), f.name, "file:" + f.name)).then(r => { UI.apkg = r; renderPhone(false); }, err => { UI.apkg = {error: "Couldn't read that file: " + err.message, name: f.name}; renderPhone(false); });
 });
 $("screen").addEventListener("input", e => { if (e.target.id==="ntext") UI.notesText = e.target.value; if (e.target.id==="ndeck") UI.notesDeck = e.target.value; });
-$("hostbar").addEventListener("click", e => { const b = e.target.closest("[data-host]"); if (!b) return; UI.host = b.dataset.host; if (UI.current && UI.current.kind==="card") UI.current.host = UI.host; render(false); });
+/* Before setup, an app's button shows how Reelcards looks in it: the demo's usual choices, one of their normal reels, then a card slips in. */
+function previewIn(){
+  skipSetup(); swipe();
+  if (UI.current && UI.current.kind === "reel") { const n = UI.reelN; timers.push(setTimeout(() => { if (UI.screen === "feed" && UI.current && UI.current.kind === "reel" && UI.reelN === n) testCard(); }, 1600)); }
+}
+$("hostbar").addEventListener("click", e => {
+  const b = e.target.closest("[data-host]"); if (!b) return;
+  UI.host = b.dataset.host; if (UI.current && UI.current.kind==="card") UI.current.host = UI.host;
+  if (!UI.onboarded) { previewIn(); return; }
+  if (UI.screen === "dash") UI.screen = "feed"; // so the change shows
+  render(false);
+});
 
 let busy = false, ty = null;
 $("phone").addEventListener("wheel", e => { if (UI.screen!=="feed") return; e.preventDefault(); if (busy || Math.abs(e.deltaY) < 20) return; busy = true; swipe(); setTimeout(()=>busy=false, 450); }, {passive:false});
@@ -669,6 +700,6 @@ function siteHero(){
   orcaFamily($("orca"));
 }
 if (!restore()) fresh(); render(true); if (!APP) { renderLab(); getSection(); siteHero(); } installOffer();
-// ?card=1 (the iPhone Shortcut's link): open straight on a card, once setup is done
-if (/[?&]card=1\b/.test(location.search) && UI.onboarded && E.cards.length) testCard();
+// ?card=1 (the iPhone Shortcut's link): open straight on a card. Before setup, that's Get started's choices.
+if (/[?&]card=1\b/.test(location.search)) { if (!UI.onboarded) quickStart(); else if (E.cards.length) testCard(); }
 })();

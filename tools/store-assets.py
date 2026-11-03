@@ -8,6 +8,7 @@ Writes:
   phone-1.png … phone-5.png   1080 x 1920 phone screenshots: a card reel under a one-line caption
   feature-graphic.png         1024 x 500
   icon-512.png                the launcher icon, 512 x 512 (Play adds the rounded corners)
+  icon-1024.png               the same at 1024 x 1024, the App Store's size (tools/build-safari.py uses it)
 
 All are opaque PNGs, as Play asks. The cards use the app's own fonts (app/src/main/assets/fonts);
 nothing is fetched from the internet. Needs Python 3 with Playwright and Pillow:
@@ -125,6 +126,9 @@ async def main():
         icon = await browser.new_page(viewport={"width": 512, "height": 512}, device_scale_factor=1)
         await icon.set_content("<html><body style='margin:0'>%s</body></html>" % ICON_SVG)
         opaque_png(await icon.screenshot(), OUT / "icon-512.png")
+        icon2 = await browser.new_page(viewport={"width": 512, "height": 512}, device_scale_factor=2)  # the App Store's size, for Safari
+        await icon2.set_content("<html><body style='margin:0'>%s</body></html>" % ICON_SVG)
+        opaque_png(await icon2.screenshot(), OUT / "icon-1024.png")
 
         await browser.close()
         if errors:

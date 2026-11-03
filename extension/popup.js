@@ -4,8 +4,7 @@
 (function(){
 const $ = id => document.getElementById(id);
 const {DAY, LABEL, VIBES, makeCard} = RC;
-const PRE = {"GCSE Biology":"bio","GCSE Chemistry":"chem","GCSE Spanish":"es","GCSE Science: longer answers":"sci"}; // same ids as the web demo
-const deckCards = name => DECKS[name].map((r,i) => makeCard(PRE[name]+"-"+(i+1), name, r[0], r[1], r[2]));
+const {deckCards, setExam} = RCSetup; // shared with the welcome page (setup.js)
 let E, meta;
 if (location.hash === "#tab") document.body.classList.add("tab"), $("tabTip").hidden = true;
 
@@ -17,8 +16,14 @@ function dataUrl(bytes, type){ let s = ""; for (let i = 0; i < bytes.length; i +
 function draw(){
   const t = Date.now(), k = E.dk(t), d = E.day(k), due = E.cards.filter(c => c.state !== RC.NEW && c.due <= t).length;
   $("stats").innerHTML = [[d.reviews,"done today"],[due,"due now"],[E.cards.length,"cards"]].map(x => '<div><b>'+x[0]+'</b><small>'+x[1]+'</small></div>').join("");
-  const p = E.settings.pausedUntil > t;
+  const p = E.settings.pausedUntil > t, off = !!meta.off;
   $("pause").textContent = p ? "Resume cards" : "Pause for 1 hour";
+  $("pause").hidden = off;
+  $("off").textContent = off ? "Switch on" : "Switch off";
+  $("state").textContent = off ? "Reelcards is off: no cards will appear until you switch it on." : p ? "Paused: cards come back in an hour, or when you resume." : "";
+  $("start").hidden = E.cards.length > 0;
+  // Safari asks before an extension works on a site: until it's allowed, say so here, with the button that asks
+  RCSetup.hasSites().then(ok => { $("sitesBox").hidden = ok || !E.cards.length; });
   const have = new Set(E.cards.map(c => c.deck));
   $("decks").innerHTML = Object.keys(DECKS).map(n => '<label class="row"><input type="checkbox" data-deck="'+n+'"'+(have.has(n)?" checked":"")+'> '+n+' <span class="muted">('+DECKS[n].length+')</span></label>').join("");
   $("exam").value = String(meta.exam == null ? 14 : meta.exam);
@@ -27,7 +32,6 @@ function draw(){
   const decks = [...have].map(n => { const cs = E.cards.filter(c => c.deck === n); return '<div>'+n+': '+cs.filter(c => c.state === RC.REVIEW).length+' learned, '+cs.filter(c => c.state === RC.NEW).length+' new</div>'; });
   $("mine").innerHTML = decks.length ? decks.join("") : "No cards yet. Pick a deck above, or add your own.";
 }
-function setExam(E2, m2, days){ m2.exam = days; E2.settings.examDate = days ? Date.now() + days*DAY : 0; }
 
 RCState.load().then(r => { E = r.E; meta = r.meta; if (meta.firstDay == null) meta.firstDay = E.dk(Date.now()); draw(); });
 // a tab finished a card: show the new numbers, and change the newest copy next time
@@ -45,6 +49,24 @@ $("vibes").addEventListener("change", e => {
 });
 $("exam").onchange = () => { const days = +$("exam").value; change((E2, m2) => setExam(E2, m2, days)); };
 $("intensity").onchange = () => { const v = $("intensity").value; change(E2 => { E2.settings.intensity = v; }); };
+$("off").onclick = () => change((E2, m2) => { m2.off = !m2.off; });
+/* One click, as in the app: GCSE Biology and Chemistry, "Normal", no exam date (setup.js), then a test card on this tab if
+   it's one of the sites; if not, the first video brings one */
+$("go").onclick = () => {
+  change((E2, m2) => RCSetup.quickStart(E2, m2)).then(() => {
+    chrome.tabs.query({active: true, currentWindow: true}, tabs => {
+      const t = tabs[0], later = () => { $("goMsg").hidden = false; $("goMsg").innerHTML = "<b>You're set.</b> Open one and scroll: your first video brings a card. " + RCSetup.FEEDS.map(f => '<a href="' + f[1] + '" target="_blank" rel="noopener">' + f[0] + "</a>").join(" · "); };
+      if (!t) { later(); return; }
+      chrome.tabs.sendMessage(t.id, {type: "testCard"}, r => {
+        if (chrome.runtime.lastError || !r || !r.ok) { later(); return; }
+        if (location.hash !== "#tab") window.close();
+      });
+    });
+  });
+};
+// Safari's question comes up from the tap; look again afterwards rather than trust the answer, and say how Safari asks on the site if it didn't
+$("allowSites").onclick = () => { RCSetup.askSites().then(() => RCSetup.hasSites()).then(ok => { if (ok) draw(); else $("sitesMsg").innerHTML = "No box came up? Open the site in Safari, tap the <b>⋯</b> More button (it shows a dot when Reelcards is waiting), tap <b>Reelcards</b> and choose <b>Always Allow</b>."; }); };
+try { chrome.permissions.onAdded.addListener(() => draw()); } catch (e) {} // allowed from Safari's own menu meanwhile
 $("pause").onclick = () => change(E2 => { E2.settings.pausedUntil = E2.settings.pausedUntil > Date.now() ? 0 : Date.now() + 60*60000; });
 $("makeCards").onclick = () => {
   const r = parseNotes($("notes").value, $("notesDeck").value.trim() || "My notes");

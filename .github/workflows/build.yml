@@ -42,6 +42,14 @@ jobs:
           name: Reelcards-extension
           path: extension/
 
+      - name: The extension packed for Safari (upload it to App Store Connect's packager, docs/SAFARI.md)
+        run: python3 tools/build-safari.py
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Reelcards-safari
+          path: build/safari/Reelcards-safari.zip
+
       - name: Build APK
         run: ./gradlew :app:assembleDebug --no-daemon
 
